@@ -1,0 +1,27 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "fagun"
+version = "0.1.0"
+description = "Fagun — one MCP server that lets any AI tool (Claude, Cursor, Codex, Antigravity, Windsurf) drive a browser, hunt bugs, and run a full QA sweep."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "Mejbaur Bahar Fagun", email = "mejbaur@markopolo.ai" }]
+keywords = ["mcp", "browser", "qa", "testing", "playwright", "ai", "claude", "cursor", "codex"]
+
+dependencies = [
+    "mcp>=1.2.0",
+    "playwright>=1.44.0",
+]
+
+[project.scripts]
+fagun = "fagun.__main__:main"
+
+[project.urls]
+Homepage = "https://github.com/fagun-dev/fagun"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/fagun"]
