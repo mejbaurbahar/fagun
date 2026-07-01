@@ -17,7 +17,9 @@ from mcp.server.fastmcp import FastMCP
 from . import __version__
 from . import format as fmt
 from . import healing
+from . import readiness as _readiness
 from . import testdata as _testdata
+from . import uat as _uat
 from .a11y import audit as _a11y_audit
 from .advsec import advanced_scan as _advanced_scan
 from .browser import launch_debuggable_chrome, manager
@@ -31,12 +33,23 @@ from .qa import run_qa as _run_qa
 from .qa import security_headers as _security_headers
 from .qa import test_forms as _test_forms
 from .report import build_markdown
+from .report import write_report as _write_report
 
 mcp = FastMCP("fagun")
 
-MENU = f"""🦊 **Fagun v{__version__}** — browser + QA agent, ready.
+MENU = f"""🦊 **Fagun v{__version__}** — end-user + UAT + QA agent, ready.
 
-I can drive a real browser and run a full quality sweep. Ask me to:
+I don't just hunt bugs — I use your product like real customers do, validate
+whole user journeys, and give you a product-readiness verdict. Ask me to:
+
+**UAT & end-user simulation**
+- `emulate <persona>` — experience the site as mobile / slow-internet / low-end /
+  keyboard-only / screen-reader / international / dark-mode / first-time user
+- `run journey` — walk a full flow (login, signup, search, checkout…) step by
+  step and tell you if a real user can finish it (screenshots + friction per step)
+- `keyboard walk <url>` — can a keyboard-only user reach & see everything?
+- `readiness report` — 16-category scorecard (UX/UI/business/a11y/perf/security…)
+  + a release verdict: Ready / Minor fixes / Medium fixes / Not ready / Critical
 
 **Browse & debug**
 - `open the browser` / `go to <url>`
@@ -58,7 +71,8 @@ I can drive a real browser and run a full quality sweep. Ask me to:
   SQLi, CSP, clickjacking, HTTP methods, CRLF, LFI, SSTI, cmdi, GraphQL, more
 - `advanced security <url>` — advanced probe battery only
 - `list test data <type>` — see the test-case catalog fuzz_forms uses
-- `deep test <url>` — crawl + QA + forms + full security + vitals, one report
+- `deep test <url>` — crawl + QA + forms + security + vitals + keyboard +
+  readiness scorecard, one report (.md/.html/.json/.xml by extension)
 - `write the report to <path>`
 
 **Power / self-healing**
@@ -150,7 +164,7 @@ async def evaluate_js(code: str) -> str:
 @mcp.tool()
 async def get_console(only_errors: bool = False, limit: int = 50) -> str:
     """Return captured console messages (most recent first, token-capped)."""
-    entries = manager.console
+    entries = list(manager.console)
     if only_errors:
         entries = [c for c in entries if c.type == "error"]
     if not entries:
@@ -166,7 +180,7 @@ async def get_console(only_errors: bool = False, limit: int = 50) -> str:
 @mcp.tool()
 async def get_network(only_problems: bool = False, limit: int = 60) -> str:
     """Return captured network requests. only_problems -> failures / 4xx / 5xx."""
-    entries = manager.network
+    entries = list(manager.network)
     if only_problems:
         entries = [n for n in entries if n.failure or (n.status and n.status >= 400)]
     if not entries:
@@ -215,9 +229,8 @@ async def full_qa_sweep(url: str, max_pages: int = 10, report_path: Optional[str
         if p.get("status") and p["status"] < 400 and not p.get("error"):
             results.append(await _run_qa(p["url"]))
     if report_path:
-        md = build_markdown(results, title=f"Fagun QA Report — {url}")
-        with open(report_path, "w", encoding="utf-8") as fh:
-            fh.write(md)
+        sc = _readiness.build_scorecard(results, meta={"target": url})
+        _write_report(results, report_path, title=f"Fagun QA Report — {url}", scorecard=sc)
         return f"Report → {report_path}\n" + fmt.render_multi(results, fmt.is_terse(), f"QA sweep {url}")
     return fmt.render_multi(results, fmt.is_terse(), f"QA sweep {url}")
 
@@ -251,21 +264,25 @@ async def test_forms(url: str, verbose: bool = False) -> str:
 
 @mcp.tool()
 async def deep_test(url: str, max_pages: int = 8, report_path: Optional[str] = None,
-                    security: bool = True, perf: bool = True, verbose: bool = False) -> str:
+                    security: bool = True, perf: bool = True, keyboard: bool = True,
+                    verbose: bool = False) -> str:
     """Full site audit: crawl + per-page QA (console/network/WCAG a11y/SEO) + form
-    audit + full security battery + real Core Web Vitals. One aggregated report.
-    Every finding is evidence-backed. security/perf toggle the heavy passes."""
-    result = await _deep_test(url, max_pages, security=security, perf=perf)
+    audit + full security battery + real Core Web Vitals + keyboard reachability,
+    then a product-readiness scorecard (category scores + release verdict). One
+    aggregated report. Report format follows the file extension: .md / .html /
+    .json / .xml(JUnit). Every finding is evidence-backed."""
+    result = await _deep_test(url, max_pages, security=security, perf=perf, keyboard=keyboard)
+    scorecard = _readiness.build_scorecard(result["results"], meta={"target": url, "pages": result["pages_tested"]})
+    prefix = ""
     if report_path:
-        md = build_markdown(result["results"], title=f"Fagun Deep Test — {url}")
-        with open(report_path, "w", encoding="utf-8") as fh:
-            fh.write(md)
+        _write_report(result["results"], report_path,
+                      title=f"Fagun Deep Test — {url}", scorecard=scorecard)
         prefix = f"Report → {report_path}\n"
-    else:
-        prefix = ""
+    verdict = (f"🧭 Readiness: {scorecard['verdict']} ({scorecard['overall_score']}/100) — "
+               f"{scorecard['verdict_reason']}\n")
     if verbose:
-        return prefix + fmt.dumps(result)
-    return prefix + fmt.render_multi(result["results"], fmt.is_terse(), f"Deep test {url}")
+        return prefix + verdict + fmt.dumps({"result": result, "readiness": scorecard})
+    return prefix + verdict + fmt.render_multi(result["results"], fmt.is_terse(), f"Deep test {url}")
 
 
 @mcp.tool()
@@ -359,6 +376,123 @@ def list_test_data(field_type: str = "text", name: str = "") -> str:
     return "\n".join(lines)
 
 
+# ------------------------------------------------------------- UAT / end-user
+@mcp.tool()
+def list_personas() -> str:
+    """List the end-user personas you can emulate (mobile, slow-internet,
+    low-end, keyboard-only, screen-reader, international, dark-mode, …)."""
+    return "\n".join(f"{p['name']}: {p['note']}" for p in _uat.list_personas())
+
+
+@mcp.tool()
+async def emulate_persona(name: str) -> str:
+    """Reconfigure the browser to experience the site AS a given user type — real
+    device viewport/touch, network + CPU throttling, and media prefs (reduced
+    motion, dark mode, forced colors). Then browse/journey as that user. Personas:
+    desktop, first-time, mobile, android-mobile, tablet, slow-internet, low-end,
+    keyboard-only, screen-reader, dark-mode, international."""
+    r = await _uat.emulate_persona(name)
+    if not r.get("ok"):
+        return f"{r.get('error')}. Available: {', '.join(r.get('available', []))}"
+    return f"Now browsing as '{r['persona']}' — {r['note']}. Applied: {fmt.dumps(r['applied'])}"
+
+
+@mcp.tool()
+async def run_journey(steps_json: str, name: str = "journey", screenshots: bool = True,
+                      verbose: bool = False) -> str:
+    """Walk a complete user journey step-by-step and report whether a real user
+    could finish it. steps_json is a JSON list of steps, each:
+    {"action": ..., "target"/"url"/"value"/"label": ...}. Actions: goto, click,
+    fill, select, press, wait, assert_text, assert_no_text, assert_url,
+    assert_visible, screenshot. Captures per-step pass/fail, screenshot, console
+    errors, failed requests, and timing. A step 'passes' only if the browser
+    actually did it — nothing is faked. See list_journeys for templates."""
+    try:
+        steps = json.loads(steps_json)
+    except Exception as e:
+        return f"Could not parse steps_json: {e}"
+    if isinstance(steps, dict):
+        steps = steps.get("steps", [steps])
+    r = await _uat.run_journey(steps, name=name, screenshots=screenshots)
+    if verbose or not fmt.is_terse():
+        return fmt.dumps(r)
+    head = (f"Journey '{r['journey']}': {'✅ COMPLETED' if r['completed'] else '❌ BLOCKED'} "
+            f"— {r['passed']}/{r['steps_total']} steps passed")
+    lines = [head]
+    for s in r["step_log"]:
+        mark = "✓" if s["ok"] else "✗"
+        extra = []
+        if s["console_errors"]:
+            extra.append(f"{s['console_errors']} JS err")
+        if s["network_failures"]:
+            extra.append(f"{s['network_failures']} req fail")
+        tail = f" [{', '.join(extra)}]" if extra else ""
+        lines.append(f"{mark} {s['i']}. {s['label']} — {fmt.clip(s['detail'], 80)} ({s['ms']}ms){tail}")
+    return "\n".join(lines)
+
+
+@mcp.tool()
+def list_journeys() -> str:
+    """List built-in user-journey templates (login, register, password-reset,
+    search, checkout, contact) you can copy into run_journey and fill in."""
+    return "Journey templates (copy + fill selectors/values):\n" + "\n".join(
+        f"- {name}: {len(_uat.JOURNEY_TEMPLATES[name])} steps" for name in _uat.list_journeys()
+    ) + "\nUse the template JSON as a starting point for run_journey."
+
+
+@mcp.tool()
+def journey_template(name: str) -> str:
+    """Return a journey template as JSON so you can edit it and pass to run_journey."""
+    tpl = _uat.JOURNEY_TEMPLATES.get(name.strip().lower())
+    if not tpl:
+        return f"No template {name!r}. Available: {', '.join(_uat.list_journeys())}"
+    return fmt.dumps(tpl)
+
+
+@mcp.tool()
+async def keyboard_walk(url: str, verbose: bool = False) -> str:
+    """Tab through a page like a keyboard-only / screen-reader user. Reports focus
+    reachability, missing visible focus indicators, and focus traps — real
+    evidence for accessibility + UX readiness."""
+    r = await _uat.keyboard_walk(url)
+    if verbose or not fmt.is_terse():
+        return fmt.dumps(r)
+    meta = f"{r['tab_stops']} tab stops / {r['focusable']} focusable"
+    return fmt.findings_block(url, r.get("findings", []), meta=meta)
+
+
+@mcp.tool()
+async def readiness_report(results_json: str, report_path: Optional[str] = None,
+                           title: str = "Fagun Readiness", verbose: bool = False) -> str:
+    """Build a product-readiness scorecard from collected results (JSON list of
+    result dicts with 'findings'). Returns 16 category scores (0-100), an overall
+    release verdict, and prioritized recommendations (why it matters + how to
+    fix). Optionally writes a full report (format by extension: .md/.html/.json)."""
+    try:
+        results = json.loads(results_json)
+    except Exception as e:
+        return f"Could not parse results_json: {e}"
+    if isinstance(results, dict):
+        results = results.get("results", [results])
+    sc = _readiness.build_scorecard(results, meta={"title": title})
+    if report_path:
+        _write_report(results, report_path, title=title, scorecard=sc)
+    if verbose:
+        return fmt.dumps(sc)
+    lines = [f"🧭 {sc['verdict']} — overall {sc['overall_score']}/100",
+             f"   {sc['verdict_reason']}",
+             f"   findings: {sc['severity_counts']['high']}H "
+             f"{sc['severity_counts']['medium']}M {sc['severity_counts']['low']}L", "Category scores:"]
+    for cat, d in sc["categories"].items():
+        lines.append(f"  {cat}: {d['score']}/100 ({d['findings']} findings)")
+    lines.append("Top fixes:")
+    for i, rec in enumerate(sc["recommendations"][:6], 1):
+        lines.append(f"  {i}. [{rec['severity']}] {rec['type']} ({rec['count']}×) — {rec['fix']}")
+    if report_path:
+        lines.insert(0, f"Report → {report_path}")
+    return "\n".join(lines)
+
+
 # ------------------------------------------------- self-healing / power tools
 @mcp.tool()
 async def browser_exec(code: str) -> str:
@@ -397,15 +531,18 @@ async def connect_chrome(port: int = 9222) -> str:
 
 
 @mcp.tool()
-async def write_report(results_json: str, path: str, title: str = "Fagun QA Report") -> str:
-    """Write a Markdown report from a JSON list of run_qa results."""
+async def write_report(results_json: str, path: str, title: str = "Fagun QA Report",
+                       readiness: bool = True) -> str:
+    """Write a report from a JSON list of results. Format follows the file
+    extension: .md (Markdown) / .html (web page) / .json / .xml (JUnit for CI).
+    With readiness=True, prepends a product-readiness scorecard + release verdict."""
     results = json.loads(results_json)
     if isinstance(results, dict):
         results = [results]
-    md = build_markdown(results, title=title)
-    with open(path, "w", encoding="utf-8") as fh:
-        fh.write(md)
-    return f"Report written to {path}"
+    sc = _readiness.build_scorecard(results) if readiness else None
+    _write_report(results, path, title=title, scorecard=sc)
+    verdict = f" — {sc['verdict']} ({sc['overall_score']}/100)" if sc else ""
+    return f"Report written to {path}{verdict}"
 
 
 def serve() -> None:

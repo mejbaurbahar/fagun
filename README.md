@@ -1,12 +1,19 @@
 # 🦊 Fagun
 
-**Give any AI a browser and let it hunt real bugs for you.**
+**Give any AI a browser to use your product like real customers, run full UAT, hunt real bugs, and tell you if it's ready to ship.**
 
 Fagun is a single tool that plugs into **Claude, Cursor, Codex, Antigravity, Windsurf,
 Cline, or VS Code**. Once it's set up, you just type **`fagun`** (or `/fagun`) and your
-AI can open a real browser, click around, and run a full quality check on any website —
-finding broken links, console errors, failed requests, form problems, accessibility
-issues, slow pages, and security misconfigurations.
+AI can open a real browser and:
+
+- **Use the site as real end users** — mobile, slow-internet, low-end, keyboard-only,
+  screen-reader, international, first-time visitor — with real device + network emulation.
+- **Run User Acceptance Testing** — walk complete journeys (signup, login, search,
+  checkout, password reset…) step by step and confirm a real user can finish them.
+- **Hunt real, reproducible bugs** — broken links, console/JS errors, failed requests,
+  form-validation gaps, accessibility violations, slow pages, security misconfig.
+- **Deliver a product-readiness verdict** — a 16-category scorecard (UX, UI, business
+  logic, a11y, perf, security…) and a release decision, with prioritized fixes.
 
 You set it up **once**. It works in **every** AI tool. Chrome installs **itself**.
 

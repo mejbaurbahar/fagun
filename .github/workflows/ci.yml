@@ -20,7 +20,9 @@ jobs:
       - name: Install
         run: |
           python -m pip install --upgrade pip
-          pip install -e .
+          pip install -e ".[dev]"
+      - name: Install Chromium engine
+        run: python -m playwright install --with-deps chromium
       - name: Import + tool registration smoke test
         run: |
           python -c "
@@ -36,3 +38,5 @@ jobs:
               print(f'OK: {len(tools)} tools, {len(prompts)} prompts')
           asyncio.run(main())
           "
+      - name: Run test suite
+        run: python -m pytest -q

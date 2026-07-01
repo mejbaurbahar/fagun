@@ -293,10 +293,14 @@ async def deep_test(
     max_pages: int = 8,
     security: bool = True,
     perf: bool = True,
+    keyboard: bool = True,
 ) -> dict[str, Any]:
     """Everything, per page: QA (console/network/a11y/SEO) + forms + security
-    headers + advanced security probes + real Core Web Vitals. Aggregated into
-    one result set. Every finding is evidence-backed — no fabricated results."""
+    headers + advanced security probes + real Core Web Vitals + keyboard
+    reachability. Aggregated into one result set. Every finding is
+    evidence-backed — no fabricated results."""
+    from . import uat as _uat
+
     crawl_result = await crawl(url, max_pages)
     results: list[dict[str, Any]] = []
     for p in crawl_result["pages"]:
@@ -308,6 +312,8 @@ async def deep_test(
         checks = [test_forms, security_headers]
         if security:
             checks.append(_advsec.advanced_scan)
+        if keyboard:
+            checks.append(_uat.keyboard_walk)
         for check in checks:
             try:
                 merged["findings"].extend((await check(page_url)).get("findings", []))

@@ -1,0 +1,32 @@
+<!doctype html>
+<html>
+<head>
+  <title>Fagun Test Fixture</title>
+  <meta name="viewport" content="width=device-width, user-scalable=no">
+  <style>
+    .low { color: #bbb; background: #ccc; }  /* low contrast on purpose */
+    body { background: #fff; }
+  </style>
+</head>
+<body>
+  <!-- a11y problems: img without alt, input without label, empty button,
+       no <h1>, duplicate id, positive tabindex, target=_blank no rel,
+       low-contrast text, viewport blocks zoom -->
+  <img src="logo.png">
+  <p class="low">Hard to read low-contrast paragraph text here.</p>
+
+  <div id="dup">one</div>
+  <div id="dup">two</div>
+
+  <button></button>
+  <a href="https://example.com" target="_blank">external</a>
+  <span tabindex="5">focus trap</span>
+
+  <form method="get" action="http://insecure.example/login">
+    <input type="text" name="username">
+    <input type="password" name="password">
+    <input type="email" name="email">
+    <button type="submit">Go</button>
+  </form>
+</body>
+</html>

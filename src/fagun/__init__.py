@@ -1,3 +1,3 @@
-"""Fagun — cross-tool browser + QA MCP server."""
+"""Fagun — end-user, UAT & QA MCP server for any AI tool."""
 
-__version__ = "0.7.0"
+__version__ = "0.8.0"

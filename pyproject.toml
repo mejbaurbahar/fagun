@@ -4,8 +4,8 @@ build-backend = "hatchling.build"
 
 [project]
 name = "fagun"
-version = "0.7.0"
-description = "Fagun — one MCP server that lets any AI tool (Claude, Cursor, Codex, Antigravity, Windsurf) drive a browser, hunt bugs, and run a full QA sweep."
+version = "0.8.0"
+description = "Fagun — one MCP server that lets any AI tool (Claude, Cursor, Codex, Antigravity, Windsurf) use a site as real end users, run full UAT, hunt bugs, and give a product-readiness verdict."
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }
@@ -20,8 +20,18 @@ dependencies = [
 [project.scripts]
 fagun = "fagun.__main__:main"
 
+[project.optional-dependencies]
+dev = ["pytest>=8.0", "pytest-asyncio>=0.23"]
+
 [project.urls]
-Homepage = "https://github.com/fagun-dev/fagun"
+Homepage = "https://github.com/mejbaurbahar/fagun"
+Documentation = "https://mejbaurbahar.github.io/fagun/"
+Repository = "https://github.com/mejbaurbahar/fagun"
+Issues = "https://github.com/mejbaurbahar/fagun/issues"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/fagun"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]

@@ -1,10 +1,10 @@
 {
   "name": "fagun",
-  "version": "0.7.0",
-  "description": "Give any AI a browser and let it hunt real bugs. Browser automation + full QA (broken links, console errors, failed requests, forms, a11y, perf, security) in one MCP server. Token-lean by default.",
+  "version": "0.8.0",
+  "description": "Give any AI a browser to use a site as real end users, run full UAT, validate user journeys, hunt real bugs, and deliver a product-readiness verdict. QA + a11y + perf + security + readiness scorecard in one MCP server. Token-lean by default.",
   "author": { "name": "Mejbaur Bahar Fagun", "url": "https://github.com/mejbaurbahar" },
   "homepage": "https://github.com/mejbaurbahar/fagun",
   "repository": "https://github.com/mejbaurbahar/fagun",
   "license": "MIT",
-  "keywords": ["browser", "qa", "testing", "bug-hunting", "playwright", "mcp"]
+  "keywords": ["browser", "qa", "uat", "testing", "readiness", "accessibility", "bug-hunting", "playwright", "mcp"]
 }

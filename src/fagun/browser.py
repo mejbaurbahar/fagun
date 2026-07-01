@@ -9,9 +9,14 @@ from __future__ import annotations
 import os
 import subprocess
 import sys
+from collections import deque
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Optional
+
+# Cap the in-memory console/network buffers so a long-lived MCP session can't grow
+# without bound. Ring buffers keep the most recent N entries (what the tools show).
+_LOG_CAP = max(100, int(os.environ.get("FAGUN_LOG_CAP", "3000")))
 
 from playwright.async_api import (
     Browser,
@@ -134,8 +139,8 @@ class BrowserManager:
     _browser: Optional[Browser] = None
     _context: Optional[BrowserContext] = None
     _page: Optional[Page] = None
-    console: list[ConsoleEntry] = field(default_factory=list)
-    network: list[NetworkEntry] = field(default_factory=list)
+    console: "deque[ConsoleEntry]" = field(default_factory=lambda: deque(maxlen=_LOG_CAP))
+    network: "deque[NetworkEntry]" = field(default_factory=lambda: deque(maxlen=_LOG_CAP))
 
     @property
     def is_open(self) -> bool:
@@ -234,6 +239,37 @@ class BrowserManager:
             await self.start()
         assert self._page is not None
         return self._page
+
+    async def new_context_with(self, **options: Any) -> Page:
+        """Recreate the context/page with new options (viewport, device, locale…).
+
+        Used by persona emulation so a mobile/international/etc. session gets a
+        real, correctly-configured browser context — not just a resized window.
+        Preserves storage_state when asked (options may carry it). Re-wires the
+        console/network listeners onto the fresh page.
+        """
+        if self._browser is None:
+            await self.start()
+        # Drop the old context so its listeners/state don't leak into the new one.
+        if self._context is not None:
+            try:
+                await self._context.close()
+            except Exception:
+                pass
+        self._context = await self._browser.new_context(**options)  # type: ignore[union-attr]
+        self._page = await self._context.new_page()
+        self._wire_listeners(self._page)
+        self.clear_logs()
+        return self._page
+
+    async def cdp(self):
+        """Return a CDP session for the current page, or None if unsupported
+        (only Chromium supports CDP; Firefox/WebKit return None)."""
+        try:
+            page = await self.page()
+            return await self._context.new_cdp_session(page)  # type: ignore[union-attr]
+        except Exception:
+            return None
 
     def clear_logs(self) -> None:
         self.console.clear()
