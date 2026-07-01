@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import json
 import os
+import sys
 from pathlib import Path
 
 SERVER_BLOCK = {"command": "uvx", "args": ["fagun"]}
@@ -21,9 +22,10 @@ CODEX = '[mcp_servers.fagun]\ncommand = "uvx"\nargs = ["fagun"]'
 
 HELP = f"""🦊 Fagun install — add this MCP server to your AI tool, then say "fagun".
 
-Prereqs (once):
-  pip install uv           # gives you uvx
-  uvx --from fagun python -m playwright install chromium   # browser engine
+Prereqs (once) — no Python/pip needed, uv brings its own:
+  macOS/Linux:  curl -LsSf https://astral.sh/uv/install.sh | sh
+  Windows:      powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
+  then:         uvx fagun setup     # installs the Chrome engine automatically
 
 ────────────────────────────────────────────────────────────────────
 Claude Code        →  run:  claude mcp add fagun -- uvx fagun
@@ -71,11 +73,19 @@ def run_cli(argv: list[str]) -> None:
     if target == "cursor":
         _write_json_server(home / ".cursor" / "mcp.json", "mcpServers")
     elif target == "claude":
-        _write_json_server(
-            home / "Library" / "Application Support" / "Claude" / "claude_desktop_config.json",
-            "mcpServers",
-        )
+        _write_json_server(_claude_desktop_config_path(), "mcpServers")
     elif target == "vscode":
         _write_json_server(Path.cwd() / ".vscode" / "mcp.json", "servers")
     else:
         print(HELP)
+
+
+def _claude_desktop_config_path() -> Path:
+    """Claude Desktop config path per OS."""
+    home = Path.home()
+    if sys.platform == "darwin":
+        return home / "Library" / "Application Support" / "Claude" / "claude_desktop_config.json"
+    if sys.platform.startswith("win"):
+        base = os.environ.get("APPDATA", str(home / "AppData" / "Roaming"))
+        return Path(base) / "Claude" / "claude_desktop_config.json"
+    return home / ".config" / "Claude" / "claude_desktop_config.json"

@@ -12,15 +12,31 @@ You set it up **once**. It works in **every** AI tool. Chrome installs **itself*
 
 ---
 
-## 🚀 Install in 3 lines
+## 🚀 Install (any OS — no Python or pip needed)
 
+**Step 1 — install `uv`** (it brings its own Python, so nothing else is required):
+
+**macOS / Linux:**
 ```bash
-pip install uv                 # 1. get the runner (skip if you have uv)
-uvx fagun setup                # 2. installs the Chrome engine automatically
-uvx fagun install              # 3. shows the config to paste into your AI tool
+curl -LsSf https://astral.sh/uv/install.sh | sh
+```
+**Windows (PowerShell):**
+```powershell
+powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
+```
+> ⚠️ **Restart your terminal** after this so `uv` is on your PATH.
+> (macOS/Linux: or run `source $HOME/.local/bin/env` in the current shell.)
+
+**Step 2 — set up Fagun:**
+```bash
+uvx fagun setup      # installs the Chrome engine automatically
+uvx fagun install    # shows the config to paste into your AI tool
 ```
 
 That's it. Restart your AI tool, type **`fagun`**, and go.
+
+> **Already have `pip`/Python?** `pip install uv` also works — but the installer
+> above needs no Python at all, which is why we recommend it.
 
 > 💡 Don't want to think about config? Just tell your AI:
 > *"Install and set up fagun for me — follow https://github.com/mejbaurbahar/fagun/blob/main/install.md"*

@@ -11,11 +11,23 @@ If any step fails, read the "Troubleshooting" section and retry.
 > https://github.com/mejbaurbahar/fagun/blob/main/install.md if setup or connection
 > fails.
 
-## Step 1 — ensure `uv` exists
+## Step 1 — ensure `uv` exists (no Python/pip required — uv bundles its own)
 
+Detect the OS and run the matching installer. `uv` provides its own Python, so the
+user does NOT need pip or a system Python.
+
+**macOS / Linux:**
 ```bash
 uv --version || curl -LsSf https://astral.sh/uv/install.sh | sh
 ```
+**Windows (PowerShell):**
+```powershell
+uv --version; if ($LASTEXITCODE -ne 0) { powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex" }
+```
+
+After install, `uv` may not be on PATH until the shell restarts. In the current
+shell you can source it (macOS/Linux): `source $HOME/.local/bin/env`. On Windows,
+open a new terminal.
 
 ## Step 2 — install / upgrade Fagun with Python 3.12
 
