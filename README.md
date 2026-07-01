@@ -127,4 +127,22 @@ python -m playwright install chromium
 python -m fagun        # starts the MCP server on stdio
 ```
 
+## Releasing to PyPI (maintainer)
+
+Auto-publish is wired via GitHub Actions using **PyPI Trusted Publishing** (OIDC —
+no API token stored). One-time setup on [pypi.org](https://pypi.org/manage/account/publishing/):
+
+- Project: `fagun` · Owner: `mejbaurbahar` · Repo: `fagun`
+- Workflow: `publish.yml` · Environment: `pypi`
+
+Then every release is just a tag:
+
+```bash
+# bump version in pyproject.toml + src/fagun/__init__.py first
+git tag v0.2.0 && git push origin v0.2.0
+```
+
+The `Publish to PyPI` workflow builds, checks, and uploads automatically. Build
+locally to verify anytime: `python -m build && twine check dist/*`.
+
 MIT © Mejbaur Bahar Fagun

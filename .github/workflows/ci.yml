@@ -1,0 +1,38 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.10", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e .
+      - name: Import + tool registration smoke test
+        run: |
+          python -c "
+          import asyncio
+          from fagun.server import mcp
+          async def main():
+              tools = await mcp.list_tools()
+              names = {t.name for t in tools}
+              assert 'deep_test' in names and 'test_forms' in names, names
+              assert len(tools) >= 19, len(tools)
+              prompts = await mcp.list_prompts()
+              assert any(p.name == 'fagun' for p in prompts)
+              print(f'OK: {len(tools)} tools, {len(prompts)} prompts')
+          asyncio.run(main())
+          "
