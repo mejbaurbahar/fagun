@@ -37,8 +37,10 @@ def main() -> None:
         print("   Add to your MCP config env if you want this by default.")
         return
 
-    # Support `fagun install` helper without importing the heavy MCP stack.
-    if len(sys.argv) > 1 and sys.argv[1] in {"install", "--install", "help", "--help", "-h"}:
+    # Support `fagun install` / `fagun init` helpers without the heavy MCP stack.
+    if len(sys.argv) > 1 and sys.argv[1] in {
+        "install", "--install", "init", "setup-all", "auto", "help", "--help", "-h"
+    }:
         from .install import run_cli
 
         run_cli(sys.argv[1:])

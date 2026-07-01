@@ -40,7 +40,10 @@ VS Code (Copilot MCP) →  .vscode/mcp.json
 Codex CLI          →  ~/.codex/config.toml
 {CODEX}
 ────────────────────────────────────────────────────────────────────
-⚡ EASIEST — one command each (also installs the /fagun skill):
+🚀 ONE COMMAND — sets up EVERYTHING (browser + all detected AI tools + skill):
+  uvx fagun init
+
+⚡ Or target one tool (also installs the /fagun skill):
   uvx fagun install claude-code    # registers MCP in Claude Code (all projects)
   uvx fagun install cursor         # writes ~/.cursor/mcp.json
   uvx fagun install claude         # Claude Desktop
@@ -73,9 +76,90 @@ def _write_json_server(path: Path, key: str) -> None:
     print(f"✅ wrote fagun to {path}")
 
 
+def _write_codex(path: Path) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    block = '\n[mcp_servers.fagun]\ncommand = "uvx"\nargs = ["fagun"]\n'
+    existing = path.read_text(encoding="utf-8") if path.exists() else ""
+    if "[mcp_servers.fagun]" in existing:
+        print(f"✅ fagun already in {path}")
+        return
+    path.write_text(existing + block, encoding="utf-8")
+    print(f"✅ wrote fagun to {path}")
+
+
+def init() -> None:
+    """One command to rule them all: install the browser engine, then auto-detect
+    every AI tool on this machine and register the fagun MCP server + /fagun skill.
+    """
+    import shutil
+
+    home = Path.home()
+    print("🦊 Fagun init — setting up everything…\n")
+
+    # 1. Browser engine.
+    try:
+        from .browser import ensure_browser_installed
+
+        print("• Installing Chromium engine…")
+        ensure_browser_installed("chromium")
+        print("  ✅ browser ready")
+    except Exception as e:
+        print(f"  ⚠️  browser install failed: {e}")
+
+    wired = []
+
+    # 2. Claude Code (CLI).
+    if shutil.which("claude"):
+        _install_claude_code()
+        _install_skill(home / ".claude" / "skills")
+        wired.append("Claude Code")
+
+    # 3. Cursor.
+    if (home / ".cursor").exists() or _app_exists("Cursor"):
+        _write_json_server(home / ".cursor" / "mcp.json", "mcpServers")
+        _install_skill(home / ".cursor" / "skills")
+        wired.append("Cursor")
+
+    # 4. Claude Desktop.
+    cd = _claude_desktop_config_path()
+    if cd.parent.exists() or _app_exists("Claude"):
+        _write_json_server(cd, "mcpServers")
+        _install_skill(home / ".claude" / "skills")
+        wired.append("Claude Desktop")
+
+    # 5. Codex.
+    if (home / ".codex").exists() or shutil.which("codex"):
+        _write_codex(home / ".codex" / "config.toml")
+        wired.append("Codex")
+
+    # 6. Windsurf / Cline share Cursor-style config dirs.
+    if (home / ".codeium").exists() or _app_exists("Windsurf"):
+        _write_json_server(home / ".codeium" / "windsurf" / "mcp_config.json", "mcpServers")
+        wired.append("Windsurf")
+
+    print("\n" + ("─" * 52))
+    if wired:
+        print("✅ Wired up: " + ", ".join(wired))
+        print("   Restart the tool, then type:  fagun   (or /fagun)")
+    else:
+        print("No AI tools detected automatically. Run one of:")
+        print("   uvx fagun install claude-code | cursor | claude | vscode")
+    print("─" * 52)
+
+
+def _app_exists(name: str) -> bool:
+    if sys.platform == "darwin":
+        return Path(f"/Applications/{name}.app").exists()
+    return False
+
+
 def run_cli(argv: list[str]) -> None:
     if not argv or argv[0] in {"help", "--help", "-h"}:
         print(HELP)
+        return
+
+    if argv[0] in {"init", "setup-all", "auto"}:
+        init()
         return
 
     # `fagun install cursor` / `install claude` writes the file for you.

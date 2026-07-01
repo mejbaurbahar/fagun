@@ -10,33 +10,42 @@ issues, slow pages, and security misconfigurations.
 
 You set it up **once**. It works in **every** AI tool. Chrome installs **itself**.
 
+🌐 **Website:** https://mejbaurbahar.github.io/fagun/ · 📦 **PyPI:** https://pypi.org/project/fagun/
+
 ---
 
-## ⚡ Fastest setup — pick one
+## ⚡ One command sets up everything
 
-**A) Paste this prompt into Claude Code / Cursor / Codex** — the AI does everything:
+```bash
+uvx fagun init
+```
 
-> Install and set up **fagun** for me: install `uv` if missing, run `uvx fagun setup`,
-> then `uvx fagun install claude-code`. Follow
-> https://github.com/mejbaurbahar/fagun/blob/main/install.md if anything fails.
+That's the whole install. `fagun init` installs the Chrome engine **and** auto-detects
+every AI tool on your machine (Claude Code, Claude Desktop, Cursor, Codex, Windsurf)
+and registers the fagun browser tools **+** the `/fagun` skill in each one.
 
-**B) Claude Code plugin** — skill + browser tools in one go:
+Then restart your AI tool and type **`fagun`** — followed by what you want tested.
 
+> Prefer pip? `pip install fagun && fagun init` does the same thing.
+
+<details>
+<summary>Other ways to install</summary>
+
+**Paste-prompt** (let the AI do it):
+> Install and set up **fagun** for me: install `uv` if missing, then run `uvx fagun init`.
+> Follow https://github.com/mejbaurbahar/fagun/blob/main/install.md if anything fails.
+
+**Claude Code plugin:**
 ```
 /plugin marketplace add mejbaurbahar/fagun
 /plugin install fagun@fagun
 ```
 
-**C) One command** (installs the MCP server **and** the `/fagun` skill):
-
+**Target one tool:**
 ```bash
-uvx fagun install claude-code    # Claude Code (all projects)
-uvx fagun install cursor         # Cursor
-uvx fagun install claude         # Claude Desktop
-uvx fagun install vscode         # VS Code
+uvx fagun install claude-code   # or: cursor | claude | vscode
 ```
-
-Then restart the tool and type **`fagun`**. That's it.
+</details>
 
 <details>
 <summary>Don't have <code>uv</code> yet? (one line, no Python needed)</summary>

@@ -6,15 +6,15 @@ If any step fails, read the "Troubleshooting" section and retry.
 
 ## Fastest path (try this first)
 
-If the user is on Claude Code, the whole setup is two lines — do these, then stop:
+The entire setup is ONE command — installs the browser engine and registers fagun
+into every AI tool it detects (Claude Code, Cursor, Claude Desktop, Codex, Windsurf):
 
 ```bash
-uvx fagun setup                  # installs uv-managed Chromium automatically
-uvx fagun install claude-code    # registers the MCP server + /fagun skill (user scope)
+uvx fagun init
 ```
 
-Or install as a plugin: `/plugin marketplace add mejbaurbahar/fagun` then
-`/plugin install fagun@fagun`. If either works, you're done — skip the steps below.
+If `uv` is missing, install it first (macOS/Linux: `curl -LsSf https://astral.sh/uv/install.sh | sh`),
+then re-run. If that works, you're done — skip the steps below.
 
 ## The command users give you
 
