@@ -27,8 +27,10 @@ th{color:var(--gold);font-weight:600;font-size:12px;letter-spacing:.06em;text-tr
 td code{color:var(--gold-soft);font-size:13px}
 .tag{display:inline-block;font-size:11px;padding:3px 9px;border-radius:999px;border:1px solid var(--line);color:var(--muted);margin:3px 4px 0 0}
 .cmd{background:#08060f;border:1px solid var(--line);border-radius:12px;padding:16px 18px;overflow-x:auto;font-size:13.5px;line-height:1.9;white-space:nowrap}
-.tocnav a{display:block;padding:6px 0;color:var(--muted);text-decoration:none;font-size:14px;border-bottom:1px solid transparent}
+.tocnav a{display:block;padding:6px 0 6px 10px;color:var(--muted);text-decoration:none;font-size:14px;border-left:2px solid transparent;transition:color .15s,border-color .15s}
 .tocnav a:hover{color:var(--text)}
+.tocnav a.active{color:var(--gold);border-left-color:var(--gold);font-weight:600}
+#tocInner{transition:opacity .25s ease}
 .who h3{margin:.2em 0 .4em;font-size:19px;color:var(--text)}
 .who p{margin:0;color:var(--muted);font-size:14.5px;line-height:1.6}
 .who .ic{font-size:24px}
@@ -316,8 +318,33 @@ section{scroll-margin-top:80px}
 </footer>
 
 <script>
-// reveal TOC on wide screens
-if (window.matchMedia('(min-width:900px)').matches) document.getElementById('toc').style.display='block';
+(function(){
+  var toc=document.getElementById('toc'), inner=document.getElementById('tocInner');
+  if(!toc||!inner) return;
+  var wide=window.matchMedia('(min-width:900px)');
+  function apply(){ toc.style.display = wide.matches ? 'block':'none'; }
+  apply(); wide.addEventListener('change',apply);
+  var links=[].slice.call(inner.querySelectorAll('a'));
+  var secs=links.map(function(a){ return document.querySelector(a.getAttribute('href')); });
+  var main=document.querySelector('main');
+  function spy(){
+    if(!wide.matches) return;
+    // hide TOC over the hero; reveal once content scrolls under the header
+    var startY = main.getBoundingClientRect().top + window.scrollY - 150;
+    var show = window.scrollY > startY;
+    inner.style.opacity = show ? '1':'0';
+    inner.style.pointerEvents = show ? 'auto':'none';
+    // scroll-spy: last section whose top has passed the header line (rect-based)
+    var line = 180, idx = 0;
+    for(var i=0;i<secs.length;i++){ if(secs[i] && secs[i].getBoundingClientRect().top <= line) idx = i; }
+    // near the very bottom, force-select the last section (FAQ)
+    if(window.innerHeight + window.scrollY >= document.body.scrollHeight - 4) idx = secs.length-1;
+    links.forEach(function(l,i){ l.classList.toggle('active', i===idx); });
+  }
+  spy();
+  window.addEventListener('scroll', spy, {passive:true});
+  window.addEventListener('resize', spy);
+})();
 </script>
 </body>
 </html>
