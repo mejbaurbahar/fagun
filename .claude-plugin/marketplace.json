@@ -3,14 +3,14 @@
   "owner": { "name": "Mejbaur Bahar Fagun", "url": "https://github.com/mejbaurbahar" },
   "metadata": {
     "description": "Fagun — give any AI a browser and let it hunt real bugs.",
-    "version": "0.6.2"
+    "version": "0.7.0"
   },
   "plugins": [
     {
       "name": "fagun",
       "source": "./",
       "description": "Browser automation + full QA bug-hunting in one MCP server. Installs the fagun MCP server (via uvx) and the /fagun bug-hunter skill together.",
-      "version": "0.6.2",
+      "version": "0.7.0",
       "author": { "name": "Mejbaur Bahar Fagun" },
       "homepage": "https://github.com/mejbaurbahar/fagun",
       "license": "MIT"

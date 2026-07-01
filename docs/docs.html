@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fagun — Documentation, Why &amp; Who it's for</title>
+<meta name="description" content="Full Fagun documentation: what it is, why teams need it, who should use it, every MCP tool, the test taxonomy, and example prompts. Real bugs, real evidence, no fake results.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='13' font-size='13'>🦊</text></svg>">
+<style>
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+html,body{margin:0;padding:0;overflow-x:hidden}
+body{background:#0d0b16;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif}
+:root{--gold:#E8B04B;--gold-soft:#f0c877;--ink:#0d0b16;--ink2:#241a33;--text:#F3EEE6;--muted:#a79bb5;--line:rgba(243,238,230,.11);--card:rgba(255,255,255,.03)}
+a{color:var(--gold-soft)}
+h1,h2,h3{font-family:Didot,'Bodoni MT','Playfair Display',Georgia,serif;font-weight:500;letter-spacing:-.01em}
+code,pre,.mono{font-family:'SF Mono','JetBrains Mono',Menlo,Consolas,monospace}
+.wrap{max-width:1000px;margin:0 auto;padding:0 clamp(20px,5vw,44px)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:clamp(20px,3vw,30px)}
+.pill{display:inline-block;font-size:11px;font-weight:600;letter-spacing:.18em;color:var(--gold);text-transform:uppercase;margin:0 0 12px}
+.grid{display:grid;gap:20px}
+.g2{grid-template-columns:repeat(auto-fit,minmax(280px,1fr))}
+.g3{grid-template-columns:repeat(auto-fit,minmax(230px,1fr))}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{color:var(--gold);font-weight:600;font-size:12px;letter-spacing:.06em;text-transform:uppercase}
+td code{color:var(--gold-soft);font-size:13px}
+.tag{display:inline-block;font-size:11px;padding:3px 9px;border-radius:999px;border:1px solid var(--line);color:var(--muted);margin:3px 4px 0 0}
+.cmd{background:#08060f;border:1px solid var(--line);border-radius:12px;padding:16px 18px;overflow-x:auto;font-size:13.5px;line-height:1.9;white-space:nowrap}
+.tocnav a{display:block;padding:6px 0;color:var(--muted);text-decoration:none;font-size:14px;border-bottom:1px solid transparent}
+.tocnav a:hover{color:var(--text)}
+.who h3{margin:.2em 0 .4em;font-size:19px;color:var(--text)}
+.who p{margin:0;color:var(--muted);font-size:14.5px;line-height:1.6}
+.who .ic{font-size:24px}
+section{scroll-margin-top:80px}
+</style>
+</head>
+<body style="color:var(--text);background:linear-gradient(180deg,#0d0b16 0%,#181026 55%,#241a33 100%);min-height:100vh">
+
+<!-- header -->
+<header style="position:sticky;top:0;z-index:20;backdrop-filter:blur(10px);background:rgba(13,11,22,.72);border-bottom:1px solid var(--line)">
+  <div class="wrap" style="display:flex;align-items:center;justify-content:space-between;gap:16px;padding-top:16px;padding-bottom:16px">
+    <a href="./index.html" style="display:flex;align-items:center;gap:11px;text-decoration:none;color:var(--text)">
+      <svg viewBox="0 0 64 64" width="28" height="28"><path d="M6 8 L28 22 L36 22 L58 8 L52 32 L12 32 Z" fill="#E8B04B"/><path d="M12 32 L32 54 L52 32 Z" fill="#d99f3c"/><path d="M10 12 L26 23 L15 27 Z" fill="#1a1226"/><path d="M54 12 L38 23 L49 27 Z" fill="#1a1226"/><circle cx="24" cy="34" r="2.7" fill="#1a1226"/><circle cx="40" cy="34" r="2.7" fill="#1a1226"/><path d="M27 44 L32 49 L37 44 Z" fill="#1a1226"/></svg>
+      <span style="font-family:Didot,Georgia,serif;font-size:21px;font-weight:600">Fagun</span>
+      <span style="color:var(--muted);font-size:13px">/ docs</span>
+    </a>
+    <nav style="display:flex;gap:18px;align-items:center;font-size:14px">
+      <a href="./index.html" style="color:var(--muted);text-decoration:none">Home</a>
+      <a href="https://github.com/mejbaurbahar/fagun" style="color:var(--muted);text-decoration:none">GitHub</a>
+      <a href="https://pypi.org/project/fagun/" style="color:var(--muted);text-decoration:none">PyPI</a>
+    </nav>
+  </div>
+</header>
+
+<!-- hero -->
+<section class="wrap" style="padding-top:clamp(46px,8vh,90px);padding-bottom:20px">
+  <p class="pill">Documentation · v0.7.0 · Open source (MIT)</p>
+  <h1 style="margin:0;font-size:clamp(2.4rem,6vw,4.4rem);line-height:1">The complete guide to <span style="font-style:italic;color:var(--gold)">Fagun</span>.</h1>
+  <p style="max-width:680px;margin:22px 0 0;font-size:clamp(16px,2vw,19px);line-height:1.6;color:var(--muted)">
+    One MCP server that gives <b style="color:var(--text)">any</b> AI tool a real browser to click, crawl, and find <b style="color:var(--text)">real</b> bugs — functional, security, performance, accessibility, SEO. Every finding is backed by evidence. Nothing is faked; if it can't be reproduced, it isn't reported.
+  </p>
+  <div style="display:flex;gap:20px;flex-wrap:wrap;margin-top:24px">
+    <span class="tag">30 MCP tools</span><span class="tag">WCAG 2.1 a11y</span><span class="tag">Real Core Web Vitals</span><span class="tag">20+ security classes</span><span class="tag">Active form fuzzing</span><span class="tag">Works with local models</span>
+  </div>
+</section>
+
+<div class="wrap" style="display:grid;grid-template-columns:200px 1fr;gap:44px;align-items:start;padding-top:34px;padding-bottom:80px">
+
+  <!-- TOC -->
+  <aside class="tocnav" style="position:sticky;top:80px;display:none" id="toc">
+    <p style="font-size:11px;letter-spacing:.16em;color:var(--gold);text-transform:uppercase;margin:0 0 6px">On this page</p>
+    <a href="#what">What is Fagun</a>
+    <a href="#why">Why you need it</a>
+    <a href="#who">Who it's for</a>
+    <a href="#install">Install</a>
+    <a href="#tools">All tools</a>
+    <a href="#taxonomy">Test taxonomy</a>
+    <a href="#testdata">Test data</a>
+    <a href="#security">Security classes</a>
+    <a href="#examples">Example prompts</a>
+    <a href="#safety">Safety</a>
+    <a href="#faq">FAQ</a>
+  </aside>
+
+  <main style="min-width:0;display:flex;flex-direction:column;gap:clamp(44px,7vh,74px)">
+
+    <!-- WHAT -->
+    <section id="what">
+      <p class="pill">What is Fagun</p>
+      <h2 style="margin:0 0 16px;font-size:clamp(1.7rem,3.4vw,2.5rem)">A senior QA + security engineer that lives in your AI tool.</h2>
+      <p style="color:var(--muted);font-size:16px;line-height:1.7;max-width:720px">Fagun is a <b style="color:var(--text)">Model Context Protocol (MCP)</b> server. Install it once and your AI assistant — Claude Code, Cursor, Codex, Windsurf, Claude Desktop, or any MCP client — gains 30 browser + QA tools. It drives a <b style="color:var(--text)">real Chromium browser</b> (auto-installed), navigates like a user, and reports defects the way an engineering team would: with steps, evidence, severity, and a suggested fix.</p>
+      <div class="grid g3" style="margin-top:24px">
+        <div class="card"><div style="font-size:22px">🎯</div><h3 style="margin:.4em 0 .3em;font-size:17px;color:var(--text)">Real, not hallucinated</h3><p style="margin:0;color:var(--muted);font-size:14px;line-height:1.6">Every finding comes from an actual tool result — a console error, a status code, a measured metric. No "could potentially".</p></div>
+        <div class="card"><div style="font-size:22px">🔌</div><h3 style="margin:.4em 0 .3em;font-size:17px;color:var(--text)">Any AI, any model</h3><p style="margin:0;color:var(--muted);font-size:14px;line-height:1.6">Pure MCP — no built-in model. Works with frontier models <i>and</i> fully local open-source ones via Ollama (Qwen, DeepSeek, Llama, Mistral…).</p></div>
+        <div class="card"><div style="font-size:22px">🪶</div><h3 style="margin:.4em 0 .3em;font-size:17px;color:var(--text)">Token-lean</h3><p style="margin:0;color:var(--muted);font-size:14px;line-height:1.6">Terse output by default cuts tool-result tokens ~70%. Full detail goes to a Markdown report on disk, not your context.</p></div>
+      </div>
+    </section>
+
+    <!-- WHY -->
+    <section id="why">
+      <p class="pill">Why you need it</p>
+      <h2 style="margin:0 0 16px;font-size:clamp(1.7rem,3.4vw,2.5rem)">AI can write code. It usually can't <span style="font-style:italic;color:var(--gold)">see</span> it run.</h2>
+      <p style="color:var(--muted);font-size:16px;line-height:1.7;max-width:720px">An LLM writing a feature is flying blind — it never loads the page, never clicks the button, never reads the 500 in the network tab. Fagun closes that loop. It gives the model eyes and hands on a live browser, so it can verify its own work, catch regressions, and hunt the bugs that only appear at runtime.</p>
+      <div class="grid g2" style="margin-top:24px">
+        <div class="card">
+          <h3 style="margin:0 0 10px;font-size:17px;color:#f87171">Without Fagun</h3>
+          <ul style="margin:0;padding-left:18px;color:var(--muted);font-size:14.5px;line-height:1.8">
+            <li>"Looks correct" — never actually run</li>
+            <li>Console errors &amp; failed API calls unseen</li>
+            <li>Broken links, form gaps, a11y issues shipped</li>
+            <li>Security misconfigs undetected</li>
+            <li>Perf regressions found by users, not you</li>
+            <li>Manual QA repeated by hand every release</li>
+          </ul>
+        </div>
+        <div class="card" style="border-color:rgba(232,176,75,.3)">
+          <h3 style="margin:0 0 10px;font-size:17px;color:#4ade80">With Fagun</h3>
+          <ul style="margin:0;padding-left:18px;color:var(--muted);font-size:14.5px;line-height:1.8">
+            <li>Feature loaded, clicked, verified end-to-end</li>
+            <li>Console + network watched after every action</li>
+            <li>Links, forms, WCAG checked automatically</li>
+            <li>20+ security classes probed (non-destructive)</li>
+            <li>Real Core Web Vitals with a Lighthouse-style score</li>
+            <li>One command re-runs the whole sweep any time</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- WHO -->
+    <section id="who">
+      <p class="pill">Who it's for</p>
+      <h2 style="margin:0 0 16px;font-size:clamp(1.7rem,3.4vw,2.5rem)">If you build, ship, or break software — it's for you.</h2>
+      <div class="grid g2 who" style="margin-top:12px">
+        <div class="card"><div class="ic">👩‍💻</div><h3>Developers &amp; AI-pair-programmers</h3><p>Verify a change actually works in the browser before you commit. Catch console errors and failed requests the moment they appear. Let the model self-check its own output.</p></div>
+        <div class="card"><div class="ic">🧪</div><h3>QA &amp; SDET engineers</h3><p>Generate positive / negative / boundary / edge / injection test data automatically, fuzz every form, and get a reproducible report — without writing the harness by hand.</p></div>
+        <div class="card"><div class="ic">🛡️</div><h3>Security researchers &amp; bug bounty hunters</h3><p>Non-destructive probes for XSS, SQLi, CSP, clickjacking, CRLF, LFI, SSTI, host-header injection, exposed files, secrets, GraphQL introspection &amp; more — every hit evidence-backed. Authorized targets only.</p></div>
+        <div class="card"><div class="ic">📊</div><h3>Product managers &amp; analysts</h3><p>Find missing workflows, broken journeys, and validation gaps. Get an executive summary grouped by severity and business impact — not a wall of stack traces.</p></div>
+        <div class="card"><div class="ic">♿</div><h3>Accessibility &amp; SEO specialists</h3><p>Real WCAG 2.1 checks including computed color-contrast, plus metadata, canonical, viewport, and Core Web Vitals in one pass.</p></div>
+        <div class="card"><div class="ic">🏢</div><h3>Agencies, freelancers &amp; indie hackers</h3><p>Audit any client site in minutes and hand over a professional Markdown report. Runs locally and privately — great for offline or air-gapped work.</p></div>
+      </div>
+    </section>
+
+    <!-- INSTALL -->
+    <section id="install">
+      <p class="pill">Install</p>
+      <h2 style="margin:0 0 16px;font-size:clamp(1.7rem,3.4vw,2.5rem)">One line. Nothing to configure.</h2>
+      <p style="color:var(--muted);font-size:15px;line-height:1.6;max-width:680px">No Python, no pip — <code style="color:var(--gold-soft)">uv</code> brings its own runtime, and Chromium auto-installs on first run. Fagun auto-detects every AI tool on your machine and wires up the MCP server + <code style="color:var(--gold-soft)">/fagun</code> skill.</p>
+      <div class="cmd" style="margin-top:18px">
+<span style="color:var(--gold)">$</span> <span style="color:var(--text)">uvx fagun init</span>                    <span style="color:#6f6784"># browser + all AI tools + skill</span>
+<span style="color:var(--gold)">$</span> <span style="color:var(--text)">uvx fagun install claude-code</span>       <span style="color:#6f6784"># or target one tool</span>
+      </div>
+      <p style="color:var(--muted);font-size:14px;margin:16px 0 6px">Inside Claude Code, as a plugin:</p>
+      <div class="cmd">
+<span style="color:#7fb0e8">/plugin</span> <span style="color:var(--muted)">marketplace add mejbaurbahar/fagun</span>
+<span style="color:#7fb0e8">/plugin</span> <span style="color:var(--muted)">install fagun@fagun</span>
+      </div>
+      <p style="color:var(--muted);font-size:13px;margin-top:14px">Env toggles: <code>FAGUN_TERSE=0</code> full JSON · <code>FAGUN_HEADLESS=0</code> show the browser · <code>FAGUN_BROWSER=firefox|webkit</code> · <code>FAGUN_CDP_URL</code> attach to your own Chrome.</p>
+    </section>
+
+    <!-- TOOLS -->
+    <section id="tools">
+      <p class="pill">All 30 MCP tools</p>
+      <h2 style="margin:0 0 20px;font-size:clamp(1.7rem,3.4vw,2.5rem)">Everything it can do.</h2>
+
+      <h3 style="font-size:16px;color:var(--gold);margin:0 0 8px">Browse &amp; debug</h3>
+      <div class="card" style="padding:0;overflow-x:auto"><table>
+        <tr><th>Tool</th><th>What it does</th></tr>
+        <tr><td><code>open_browser</code></td><td>Launch (or attach to) the browser.</td></tr>
+        <tr><td><code>navigate</code></td><td>Go to a URL; returns status + title.</td></tr>
+        <tr><td><code>click</code> · <code>fill</code> · <code>press_key</code></td><td>Drive the page by selector or visible text.</td></tr>
+        <tr><td><code>screenshot</code></td><td>Save a PNG (full-page optional).</td></tr>
+        <tr><td><code>evaluate_js</code></td><td>Run JS in the page, get JSON back.</td></tr>
+        <tr><td><code>get_console</code> · <code>get_network</code></td><td>Captured console messages / requests (errors &amp; 4xx-5xx only, if asked).</td></tr>
+        <tr><td><code>close_browser</code></td><td>Close and free resources.</td></tr>
+      </table></div>
+
+      <h3 style="font-size:16px;color:var(--gold);margin:26px 0 8px">QA &amp; bug hunting</h3>
+      <div class="card" style="padding:0;overflow-x:auto"><table>
+        <tr><th>Tool</th><th>What it does</th></tr>
+        <tr><td><code>crawl</code></td><td>Breadth-first map of the site (same host).</td></tr>
+        <tr><td><code>run_qa</code></td><td>Single-page sweep: console, network, WCAG a11y, SEO, load time.</td></tr>
+        <tr><td><code>check_links</code></td><td>Probe every link; report 4xx / 5xx / unreachable.</td></tr>
+        <tr><td><code>test_forms</code></td><td>Static form audit (security / validation / a11y) — no submit.</td></tr>
+        <tr><td><code>fuzz_forms</code></td><td><b style="color:var(--text)">Active</b>: fills each field with the labelled test-data catalog, reads the browser's real validity verdict, flags gaps. <code>submit=true</code> opt-in.</td></tr>
+        <tr><td><code>list_test_data</code></td><td>Show the test cases used for a field type.</td></tr>
+        <tr><td><code>deep_test</code></td><td>The big one: crawl + per-page QA + forms + full security + real vitals → one report.</td></tr>
+        <tr><td><code>full_qa_sweep</code> · <code>write_report</code></td><td>Multi-page QA / write a Markdown report from results.</td></tr>
+      </table></div>
+
+      <h3 style="font-size:16px;color:var(--gold);margin:26px 0 8px">Performance, accessibility &amp; security</h3>
+      <div class="card" style="padding:0;overflow-x:auto"><table>
+        <tr><th>Tool</th><th>What it does</th></tr>
+        <tr><td><code>perf_audit</code></td><td>Real Core Web Vitals (LCP, CLS, TBT, FCP, TTFB) + a Lighthouse-comparable 0-100 score. No estimates.</td></tr>
+        <tr><td><code>a11y_audit</code></td><td>Deep WCAG 2.1 incl. real computed color-contrast, ARIA, labels, headings, focus order, zoom.</td></tr>
+        <tr><td><code>security_headers</code></td><td>CSP, HSTS, X-Frame, nosniff, version/stack leaks.</td></tr>
+        <tr><td><code>security_scan</code></td><td>Full non-destructive scan (core + advanced, see below).</td></tr>
+        <tr><td><code>advanced_security</code></td><td>Advanced probe battery only.</td></tr>
+      </table></div>
+
+      <h3 style="font-size:16px;color:var(--gold);margin:26px 0 8px">Power &amp; self-healing</h3>
+      <div class="card" style="padding:0;overflow-x:auto"><table>
+        <tr><th>Tool</th><th>What it does</th></tr>
+        <tr><td><code>connect_chrome</code></td><td>Auto-launch YOUR real Chrome with debugging on and attach — reuse logged-in sessions, no manual setup.</td></tr>
+        <tr><td><code>browser_exec</code></td><td>Run any async Python against the live page — full Playwright power when a built-in tool can't do it.</td></tr>
+        <tr><td><code>save_helper</code> · <code>list_helpers</code> · <code>load_helper</code></td><td>Persist reusable snippets so the agent gets smarter each run.</td></tr>
+        <tr><td><code>fagun_start</code></td><td>Show the capability menu.</td></tr>
+      </table></div>
+    </section>
+
+    <!-- TAXONOMY -->
+    <section id="taxonomy">
+      <p class="pill">Test taxonomy</p>
+      <h2 style="margin:0 0 16px;font-size:clamp(1.7rem,3.4vw,2.5rem)">What it tests, top to bottom.</h2>
+      <div class="grid g3">
+        <div class="card"><h3 style="margin:0 0 6px;font-size:16px;color:var(--text)">Functional</h3><p style="margin:0;color:var(--muted);font-size:14px;line-height:1.6">Core journeys end-to-end, buttons/nav, state persistence, empty &amp; zero-result states.</p></div>
+        <div class="card"><h3 style="margin:0 0 6px;font-size:16px;color:var(--text)">Runtime / JS</h3><p style="margin:0;color:var(--muted);font-size:14px;line-height:1.6">Console errors after load &amp; every interaction, unhandled rejections, null derefs, lazy-chunk failures.</p></div>
+        <div class="card"><h3 style="margin:0 0 6px;font-size:16px;color:var(--text)">Network / API</h3><p style="margin:0;color:var(--muted);font-size:14px;line-height:1.6">4xx/5xx, failed &amp; timed-out calls, CORS, N+1, mixed content.</p></div>
+        <div class="card"><h3 style="margin:0 0 6px;font-size:16px;color:var(--text)">Forms &amp; input</h3><p style="margin:0;color:var(--muted);font-size:14px;line-height:1.6">Required enforcement, type/boundary/edge validation, injection reflection, maxlength, double-submit.</p></div>
+        <div class="card"><h3 style="margin:0 0 6px;font-size:16px;color:var(--text)">Auth / session</h3><p style="margin:0;color:var(--muted);font-size:14px;line-height:1.6">Login errors, session persistence &amp; logout, protected-URL leaks, IDOR smell, password-over-GET.</p></div>
+        <div class="card"><h3 style="margin:0 0 6px;font-size:16px;color:var(--text)">Accessibility</h3><p style="margin:0;color:var(--muted);font-size:14px;line-height:1.6">WCAG 2.1: contrast, labels, ARIA, headings, focus order, zoom, landmarks.</p></div>
+        <div class="card"><h3 style="margin:0 0 6px;font-size:16px;color:var(--text)">Performance</h3><p style="margin:0;color:var(--muted);font-size:14px;line-height:1.6">Real vitals, page weight, long tasks, load time, worst offenders with numbers.</p></div>
+        <div class="card"><h3 style="margin:0 0 6px;font-size:16px;color:var(--text)">SEO</h3><p style="margin:0;color:var(--muted);font-size:14px;line-height:1.6">Title/description length, canonical, viewport, h1 count, noindex, robots.</p></div>
+        <div class="card"><h3 style="margin:0 0 6px;font-size:16px;color:var(--text)">Security</h3><p style="margin:0;color:var(--muted);font-size:14px;line-height:1.6">20+ classes, non-destructive, evidence-backed — see the full list below.</p></div>
+      </div>
+    </section>
+
+    <!-- TEST DATA -->
+    <section id="testdata">
+      <p class="pill">Test data</p>
+      <h2 style="margin:0 0 16px;font-size:clamp(1.7rem,3.4vw,2.5rem)">Every case, labelled &amp; traceable.</h2>
+      <p style="color:var(--muted);font-size:15px;line-height:1.7;max-width:720px"><code>fuzz_forms</code> generates the right cases for each field type (email, number, tel, url, date, password, text…). Every value is tagged so a finding always names the exact case that produced it — no guesswork.</p>
+      <div class="card" style="padding:0;overflow-x:auto;margin-top:18px"><table>
+        <tr><th>Category</th><th>Examples</th></tr>
+        <tr><td><code>valid</code></td><td>well-formed values that should be accepted — <code>user@example.com</code>, <code>+8801712345678</code>, <code>2024-02-29</code></td></tr>
+        <tr><td><code>invalid</code></td><td>malformed that should reject — missing @, letters in tel, month 13, non-leap Feb 29</td></tr>
+        <tr><td><code>edge</code></td><td>empty, single char, whitespace-only, shortest-legal</td></tr>
+        <tr><td><code>boundary</code></td><td>length+1, int32 max+1, 5000-char overflow, 400-digit number, &gt;254-char email</td></tr>
+        <tr><td><code>outofbox</code></td><td>unicode/emoji, RTL override, cyrillic homoglyph, null byte, format-string tokens, leading zeros, hex, IDN email, SSRF hosts</td></tr>
+        <tr><td><code>injection</code></td><td><code>'"&gt;&lt;script&gt;</code>, <code>{{7*7}}</code>, <code>' OR '1'='1</code>, <code>../../etc/passwd</code>, <code>;echo</code>, CRLF — observed for handling, never weaponized</td></tr>
+      </table></div>
+    </section>
+
+    <!-- SECURITY -->
+    <section id="security">
+      <p class="pill">Security classes</p>
+      <h2 style="margin:0 0 10px;font-size:clamp(1.7rem,3.4vw,2.5rem)">Bug-bounty-grade, non-destructive.</h2>
+      <p style="color:var(--muted);font-size:14px;line-height:1.6;max-width:720px">GET/HEAD/OPTIONS only. No writes, no attacks on third parties, unique harmless markers. Every finding quotes what was actually seen. <b style="color:var(--text)">Run only against systems you're authorized to test.</b></p>
+      <div style="margin-top:18px">
+        <span class="tag">Exposed files (.git/.env/.aws)</span><span class="tag">Leaked secrets (AWS/Stripe/JWT…)</span><span class="tag">CORS misconfig</span><span class="tag">Reflected XSS</span><span class="tag">Open redirect</span><span class="tag">SQLi error signals</span><span class="tag">Cookie flags</span><span class="tag">CSP quality</span><span class="tag">Clickjacking</span><span class="tag">Risky HTTP methods / TRACE</span><span class="tag">Mixed content</span><span class="tag">Missing SRI</span><span class="tag">Sensitive-page caching</span><span class="tag">Host-header injection</span><span class="tag">CRLF injection</span><span class="tag">Path traversal / LFI</span><span class="tag">SSTI (7*7=49)</span><span class="tag">Command injection signals</span><span class="tag">GraphQL introspection</span><span class="tag">Error / stack-trace disclosure</span><span class="tag">Sensitive data in URL</span><span class="tag">Security headers</span>
+      </div>
+    </section>
+
+    <!-- EXAMPLES -->
+    <section id="examples">
+      <p class="pill">Example prompts</p>
+      <h2 style="margin:0 0 16px;font-size:clamp(1.7rem,3.4vw,2.5rem)">Just talk to it.</h2>
+      <div class="grid g2">
+        <div class="card mono" style="font-size:13.5px;line-height:1.7;color:var(--muted)">"deep test https://example.com and write the report to ./report.md"</div>
+        <div class="card mono" style="font-size:13.5px;line-height:1.7;color:var(--muted)">"fuzz the signup form on staging.myapp.com — try invalid and edge inputs"</div>
+        <div class="card mono" style="font-size:13.5px;line-height:1.7;color:var(--muted)">"perf audit our landing page and tell me what's hurting LCP"</div>
+        <div class="card mono" style="font-size:13.5px;line-height:1.7;color:var(--muted)">"a11y audit this page for WCAG AA contrast and label issues"</div>
+        <div class="card mono" style="font-size:13.5px;line-height:1.7;color:var(--muted)">"security scan example.com — I own it — and rank by severity"</div>
+        <div class="card mono" style="font-size:13.5px;line-height:1.7;color:var(--muted)">"connect to my Chrome, log in, then check the dashboard for console errors"</div>
+      </div>
+    </section>
+
+    <!-- SAFETY -->
+    <section id="safety">
+      <p class="pill">Safety &amp; ethics</p>
+      <h2 style="margin:0 0 16px;font-size:clamp(1.7rem,3.4vw,2.5rem)">Non-destructive by design.</h2>
+      <div class="card">
+        <ul style="margin:0;padding-left:18px;color:var(--muted);font-size:15px;line-height:1.9">
+          <li><b style="color:var(--text)">No fake results.</b> Observations come from tool output; hypotheses are labelled as such.</li>
+          <li><b style="color:var(--text)">No data changes by default.</b> Form fuzzing doesn't submit unless you pass <code>submit=true</code>.</li>
+          <li><b style="color:var(--text)">Authorized targets only.</b> Active security probing is for systems you own or have permission to test.</li>
+          <li><b style="color:var(--text)">No third-party attacks, no DoS, no mass enumeration.</b> Least-intrusive testing that proves the point.</li>
+          <li><b style="color:var(--text)">Private &amp; local.</b> Runs on your machine; nothing phones home. Works fully offline with local models.</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- FAQ -->
+    <section id="faq">
+      <p class="pill">FAQ</p>
+      <h2 style="margin:0 0 16px;font-size:clamp(1.7rem,3.4vw,2.5rem)">Quick answers.</h2>
+      <div class="grid" style="gap:14px">
+        <div class="card"><h3 style="margin:0 0 6px;font-size:16px;color:var(--text)">Does it need an API key?</h3><p style="margin:0;color:var(--muted);font-size:14.5px;line-height:1.6">No. Fagun is a browser tool server. Your AI client provides the model — frontier or local (Ollama).</p></div>
+        <div class="card"><h3 style="margin:0 0 6px;font-size:16px;color:var(--text)">Which AI tools work?</h3><p style="margin:0;color:var(--muted);font-size:14.5px;line-height:1.6">Any MCP client: Claude Code &amp; Desktop, Cursor, Codex, Windsurf, Cline, VS Code, and more.</p></div>
+        <div class="card"><h3 style="margin:0 0 6px;font-size:16px;color:var(--text)">Do I need to install Chrome or Python?</h3><p style="margin:0;color:var(--muted);font-size:14.5px;line-height:1.6">No. <code>uv</code> bundles its runtime and Chromium auto-installs on first run.</p></div>
+        <div class="card"><h3 style="margin:0 0 6px;font-size:16px;color:var(--text)">Is the security scan safe to run?</h3><p style="margin:0;color:var(--muted);font-size:14.5px;line-height:1.6">It's non-destructive (read-only probes). Still — only run it on systems you're authorized to test.</p></div>
+      </div>
+    </section>
+
+    <div class="card" style="text-align:center;border-color:rgba(232,176,75,.3);background:radial-gradient(120% 100% at 50% 0,rgba(232,176,75,.08),transparent 70%)">
+      <h2 style="margin:0 0 10px;font-size:clamp(1.6rem,3vw,2.2rem)">Give your AI a browser.</h2>
+      <p style="margin:0 0 20px;color:var(--muted);font-size:15px">One command. Real bugs. Real evidence.</p>
+      <div class="cmd" style="display:inline-block;text-align:left;white-space:nowrap"><span style="color:var(--gold)">$</span> <span style="color:var(--text)">uvx fagun init</span></div>
+      <div style="margin-top:18px;display:flex;gap:14px;justify-content:center;flex-wrap:wrap">
+        <a href="https://github.com/mejbaurbahar/fagun" style="text-decoration:none;color:#231a08;background:var(--gold);padding:12px 22px;border-radius:999px;font-weight:600;font-size:15px">★ Star on GitHub</a>
+        <a href="./index.html" style="text-decoration:none;color:var(--text);border:1px solid var(--line);padding:12px 22px;border-radius:999px;font-size:15px">← Back home</a>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<footer style="border-top:1px solid var(--line);padding:26px 0">
+  <div class="wrap" style="display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap;color:var(--muted);font-size:13px">
+    <span>🦊 Fagun v0.7.0 · MIT © <a href="https://github.com/mejbaurbahar" style="color:var(--muted)">Mejbaur Bahar Fagun</a></span>
+    <span><a href="https://github.com/mejbaurbahar/fagun" style="color:var(--muted)">GitHub</a> · <a href="https://pypi.org/project/fagun/" style="color:var(--muted)">PyPI</a> · <a href="./index.html" style="color:var(--muted)">Home</a></span>
+  </div>
+</footer>
+
+<script>
+// reveal TOC on wide screens
+if (window.matchMedia('(min-width:900px)').matches) document.getElementById('toc').style.display='block';
+</script>
+</body>
+</html>

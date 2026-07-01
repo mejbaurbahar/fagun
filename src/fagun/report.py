@@ -37,6 +37,11 @@ def build_markdown(results: list[dict[str, Any]], title: str = "Fagun QA Report"
             meta.append(f"status {r['status']}")
         if r.get("load_ms") is not None:
             meta.append(f"{r['load_ms']} ms")
+        if r.get("perf_score") is not None:
+            meta.append(f"perf {r['perf_score']}/100")
+        if r.get("vitals"):
+            v = r["vitals"]
+            meta.append(f"LCP {v.get('LCP')}ms · CLS {v.get('CLS')} · TBT {v.get('TBT')}ms")
         if meta:
             lines.append(f"_{' · '.join(meta)}_")
         lines.append("")
@@ -50,6 +55,8 @@ def build_markdown(results: list[dict[str, Any]], title: str = "Fagun QA Report"
                 icon = _SEV_ICON.get(f.get("severity", "low"), "•")
                 extra = f" _(at {f['at']})_" if f.get("at") else ""
                 lines.append(f"- {icon} **{f.get('type')}**: {f.get('detail')}{extra}")
+                if f.get("evidence"):
+                    lines.append(f"  - _evidence:_ {f['evidence']}")
         lines.append("")
 
     return "\n".join(lines)

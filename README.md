@@ -234,9 +234,24 @@ GET/HEAD only, no attacks on third parties:
 
 `fagun_start` · `open_browser` · `navigate` · `click` · `fill` · `press_key` ·
 `screenshot` · `evaluate_js` · `get_console` · `get_network` · `crawl` · `run_qa` ·
-`check_links` · `test_forms` · `security_headers` · `security_scan` · `deep_test` ·
-`full_qa_sweep` · `write_report` · `browser_exec` · `save_helper` · `list_helpers` ·
-`load_helper` · `connect_chrome` · `close_browser`
+`check_links` · `test_forms` · `fuzz_forms` · `list_test_data` · `perf_audit` ·
+`a11y_audit` · `security_headers` · `security_scan` · `advanced_security` ·
+`deep_test` · `full_qa_sweep` · `write_report` · `browser_exec` · `save_helper` ·
+`list_helpers` · `load_helper` · `connect_chrome` · `close_browser`
+
+**What's new in v0.7.0 — deeper, smarter, evidence-backed:**
+- **`fuzz_forms`** — actively fills every form field with a labelled test-data
+  catalog (valid / invalid / edge / boundary / out-of-box / injection) and reads
+  the browser's *real* Constraint-Validation verdict. A validation gap is reported
+  only when the browser itself accepted a value it should have rejected.
+- **`perf_audit`** — real Core Web Vitals (LCP, CLS, TBT, FCP, TTFB) from the
+  browser's Performance APIs + a Lighthouse-comparable 0-100 score. No estimates.
+- **`a11y_audit`** — deep WCAG 2.1 checks incl. real computed color-contrast.
+- **`advanced_security`** / bigger `security_scan` — CSP quality, clickjacking,
+  risky HTTP methods, mixed content, missing SRI, sensitive-page caching, host-
+  header injection, CRLF, path-traversal/LFI, SSTI, command-injection, GraphQL
+  introspection, error/stack-trace disclosure, sensitive-data-in-URL.
+- Every finding carries **evidence** — nothing is fabricated; unreproducible = not reported.
 
 ---
 

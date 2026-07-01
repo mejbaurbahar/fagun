@@ -1,6 +1,6 @@
 {
   "name": "fagun",
-  "version": "0.6.2",
+  "version": "0.7.0",
   "description": "Give any AI a browser and let it hunt real bugs. Browser automation + full QA (broken links, console errors, failed requests, forms, a11y, perf, security) in one MCP server. Token-lean by default.",
   "author": { "name": "Mejbaur Bahar Fagun", "url": "https://github.com/mejbaurbahar" },
   "homepage": "https://github.com/mejbaurbahar/fagun",

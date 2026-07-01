@@ -17,8 +17,13 @@ from mcp.server.fastmcp import FastMCP
 from . import __version__
 from . import format as fmt
 from . import healing
+from . import testdata as _testdata
+from .a11y import audit as _a11y_audit
+from .advsec import advanced_scan as _advanced_scan
 from .browser import launch_debuggable_chrome, manager
+from .forms import fuzz_forms as _fuzz_forms
 from .security import security_scan as _security_scan
+from .vitals import measure as _measure
 from .qa import check_links as _check_links
 from .qa import crawl as _crawl
 from .qa import deep_test as _deep_test
@@ -41,12 +46,19 @@ I can drive a real browser and run a full quality sweep. Ask me to:
 
 **QA & bug hunting**
 - `crawl <url>` — map the site
-- `run QA on <url>` — console errors, failed requests, a11y, perf, SEO
+- `run QA on <url>` — console errors, failed requests, WCAG a11y, perf, SEO
 - `check links on <url>` — find broken links
-- `test forms on <url>` — form security / validation / a11y
+- `test forms on <url>` — static form security / validation / a11y (no submit)
+- `fuzz forms on <url>` — active: fills every field with valid/invalid/edge/
+  boundary/out-of-box/injection data, reports real validation gaps
+- `perf audit <url>` — real Core Web Vitals + Lighthouse-style score
+- `a11y audit <url>` — deep WCAG 2.1 incl. real color contrast
 - `security headers of <url>` — CSP, HSTS, X-Frame, info leaks
-- `security scan <url>` — exposed files, secrets, CORS, XSS/redirect/SQLi (safe probes)
-- `deep test <url>` — crawl + QA + forms + headers, full report
+- `security scan <url>` — full: exposed files, secrets, CORS, XSS, redirect,
+  SQLi, CSP, clickjacking, HTTP methods, CRLF, LFI, SSTI, cmdi, GraphQL, more
+- `advanced security <url>` — advanced probe battery only
+- `list test data <type>` — see the test-case catalog fuzz_forms uses
+- `deep test <url>` — crawl + QA + forms + full security + vitals, one report
 - `write the report to <path>`
 
 **Power / self-healing**
@@ -238,9 +250,12 @@ async def test_forms(url: str, verbose: bool = False) -> str:
 
 
 @mcp.tool()
-async def deep_test(url: str, max_pages: int = 8, report_path: Optional[str] = None, verbose: bool = False) -> str:
-    """Full audit: crawl + QA + forms + security headers across the site, one report."""
-    result = await _deep_test(url, max_pages)
+async def deep_test(url: str, max_pages: int = 8, report_path: Optional[str] = None,
+                    security: bool = True, perf: bool = True, verbose: bool = False) -> str:
+    """Full site audit: crawl + per-page QA (console/network/WCAG a11y/SEO) + form
+    audit + full security battery + real Core Web Vitals. One aggregated report.
+    Every finding is evidence-backed. security/perf toggle the heavy passes."""
+    result = await _deep_test(url, max_pages, security=security, perf=perf)
     if report_path:
         md = build_markdown(result["results"], title=f"Fagun Deep Test — {url}")
         with open(report_path, "w", encoding="utf-8") as fh:
@@ -254,14 +269,94 @@ async def deep_test(url: str, max_pages: int = 8, report_path: Optional[str] = N
 
 
 @mcp.tool()
-async def security_scan(url: str, verbose: bool = False) -> str:
-    """Active-but-safe security scan: exposed files, leaked secrets, CORS misconfig,
-    cookie flags, reflected-XSS candidates, open redirect, SQLi error signals.
-    NON-DESTRUCTIVE. Only run against targets you are authorized to test."""
+async def security_scan(url: str, advanced: bool = True, verbose: bool = False) -> str:
+    """Active-but-safe security scan. Core: exposed files, leaked secrets, CORS,
+    cookie flags, reflected-XSS, open redirect, SQLi error signals. With
+    advanced=True (default) also: CSP quality, clickjacking, risky HTTP methods,
+    mixed content, missing SRI, sensitive-page caching, host-header injection,
+    CRLF, path-traversal/LFI, SSTI, command-injection signals, GraphQL
+    introspection, error/stack-trace disclosure, sensitive data in URL.
+    NON-DESTRUCTIVE, every finding evidence-backed. Authorized targets only."""
     r = await _security_scan(url)
+    findings = list(r.get("findings", []))
+    if advanced:
+        try:
+            findings.extend((await _advanced_scan(url)).get("findings", []))
+        except Exception as e:
+            findings.append({"severity": "low", "type": "scan-error", "detail": f"advanced: {e}"})
+    seen: set = set()
+    uniq = []
+    for f in findings:
+        k = (f.get("type"), f.get("detail"))
+        if k not in seen:
+            seen.add(k)
+            uniq.append(f)
+    r = {"url": url, "findings": uniq}
     if verbose or not fmt.is_terse():
         return fmt.dumps(r)
-    return fmt.findings_block(url, r.get("findings", []), meta="security scan")
+    return fmt.findings_block(url, uniq, meta="security scan")
+
+
+@mcp.tool()
+async def advanced_security(url: str, verbose: bool = False) -> str:
+    """Advanced security probes only (CSP/clickjacking/HTTP-methods/mixed-content/
+    SRI/cache/host-header/CRLF/path-traversal/SSTI/cmdi/GraphQL/error-disclosure).
+    Non-destructive, evidence-backed. Authorized targets only."""
+    r = await _advanced_scan(url)
+    if verbose or not fmt.is_terse():
+        return fmt.dumps(r)
+    return fmt.findings_block(url, r.get("findings", []), meta="advanced security")
+
+
+@mcp.tool()
+async def perf_audit(url: str, verbose: bool = False) -> str:
+    """Measure REAL Core Web Vitals (LCP, CLS, TBT, FCP, TTFB, INP) via the
+    browser's Performance APIs and return a Lighthouse-comparable perf score
+    (0-100). No estimates — every number is measured."""
+    r = await _measure(url)
+    if verbose or not fmt.is_terse():
+        return fmt.dumps(r)
+    m = r["metrics"]
+    head = (f"{url} | perf score {r['score']}/100 | "
+            f"LCP {m.get('LCP')}ms CLS {m.get('CLS')} TBT {m.get('TBT')}ms "
+            f"FCP {m.get('FCP')}ms TTFB {m.get('TTFB')}ms")
+    return head + "\n" + fmt.findings_block(url, r.get("findings", []), meta="vitals")
+
+
+@mcp.tool()
+async def a11y_audit(url: str, verbose: bool = False) -> str:
+    """Deep accessibility audit — real WCAG 2.1 checks in the live DOM including
+    computed color-contrast, labels, ARIA roles, headings, focus order, zoom.
+    Findings include example selectors as evidence."""
+    r = await _a11y_audit(url)
+    if verbose or not fmt.is_terse():
+        return fmt.dumps({k: v for k, v in r.items() if k != "raw"})
+    return fmt.findings_block(url, r.get("findings", []), meta="a11y (WCAG)")
+
+
+@mcp.tool()
+async def fuzz_forms(url: str, submit: bool = False, verbose: bool = False) -> str:
+    """Actively fuzz every form field with labelled test data (valid/invalid/edge/
+    boundary/out-of-box/injection) and report REAL validation gaps read from the
+    browser's Constraint Validation API. Default does NOT submit; submit=True also
+    submits crafted input once (authorized targets only)."""
+    r = await _fuzz_forms(url, submit=submit)
+    if verbose or not fmt.is_terse():
+        return fmt.dumps(r)
+    meta = f"{r.get('forms', 0)} forms, {r.get('cases_tested', 0)} cases"
+    return fmt.findings_block(url, r.get("findings", []), meta=meta)
+
+
+@mcp.tool()
+def list_test_data(field_type: str = "text", name: str = "") -> str:
+    """Show the labelled test-data catalog that fuzz_forms uses for a field type
+    (email/number/tel/url/date/password/text). Categories: valid, invalid, edge,
+    boundary, outofbox, injection."""
+    cases = _testdata.cases_for(field_type, name)
+    lines = [f"{len(cases)} test cases for type={field_type!r} name={name!r}:"]
+    for c in cases:
+        lines.append(f"[{c.category}] {c.label}: {fmt.clip(c.value, 50)!r}")
+    return "\n".join(lines)
 
 
 # ------------------------------------------------- self-healing / power tools

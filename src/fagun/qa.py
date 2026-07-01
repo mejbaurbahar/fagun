@@ -10,6 +10,9 @@ import time
 from typing import Any
 from urllib.parse import urldefrag, urljoin, urlparse
 
+from . import a11y as _a11y
+from . import advsec as _advsec
+from . import vitals as _vitals
 from .browser import manager
 
 
@@ -54,6 +57,42 @@ async def crawl(start_url: str, max_pages: int = 20) -> dict[str, Any]:
         )
 
     return {"start": start_url, "crawled": len(pages), "pages": pages}
+
+
+async def _seo_checks(page) -> list[dict[str, Any]]:
+    """Real SEO/meta signals read from the loaded document."""
+    data = await page.evaluate(
+        """() => {
+            const g = (s, a='content') => { const e = document.querySelector(s); return e ? (e.getAttribute(a)||'') : null; };
+            return {
+                title: (document.title||'').trim(),
+                desc: g('meta[name="description"]'),
+                canonical: g('link[rel="canonical"]','href'),
+                robots: g('meta[name="robots"]'),
+                ogTitle: g('meta[property="og:title"]'),
+                viewport: g('meta[name="viewport"]'),
+                h1: document.querySelectorAll('h1').length,
+            };
+        }"""
+    )
+    out: list[dict[str, Any]] = []
+    if not data["title"]:
+        out.append({"severity": "medium", "type": "seo", "detail": "Missing <title>"})
+    elif len(data["title"]) > 60:
+        out.append({"severity": "low", "type": "seo", "detail": f"<title> {len(data['title'])} chars (>60 truncates in SERP)"})
+    if data["desc"] is None:
+        out.append({"severity": "low", "type": "seo", "detail": "Missing meta description"})
+    if data["canonical"] is None:
+        out.append({"severity": "low", "type": "seo", "detail": "No canonical link"})
+    if data["h1"] == 0:
+        out.append({"severity": "low", "type": "seo", "detail": "No <h1> on page"})
+    elif data["h1"] > 1:
+        out.append({"severity": "low", "type": "seo", "detail": f"{data['h1']} <h1> elements (should be 1)"})
+    if data["viewport"] is None:
+        out.append({"severity": "low", "type": "seo", "detail": "No viewport meta (not mobile-friendly)"})
+    if (data["robots"] or "").lower().find("noindex") >= 0:
+        out.append({"severity": "medium", "type": "seo", "detail": "Page is noindex — excluded from search"})
+    return out
 
 
 async def run_qa(url: str) -> dict[str, Any]:
@@ -113,31 +152,15 @@ async def run_qa(url: str) -> dict[str, Any]:
                 {"severity": "medium", "type": "bad-response", "detail": f"{n.status} {n.method} {n.url}"}
             )
 
-    # Basic accessibility heuristics.
-    imgs_no_alt = await page.eval_on_selector_all(
-        "img:not([alt])", "els => els.length"
-    )
-    if imgs_no_alt:
-        findings.append(
-            {"severity": "low", "type": "a11y-img-alt", "detail": f"{imgs_no_alt} <img> without alt"}
-        )
-    inputs_no_label = await page.evaluate(
-        """() => {
-            const inputs = [...document.querySelectorAll('input,select,textarea')];
-            return inputs.filter(el => {
-                if (el.type === 'hidden' || el.type === 'submit' || el.type === 'button') return false;
-                if (el.getAttribute('aria-label') || el.getAttribute('aria-labelledby')) return false;
-                if (el.id && document.querySelector(`label[for="${el.id}"]`)) return false;
-                return !el.closest('label');
-            }).length;
-        }"""
-    )
-    if inputs_no_label:
-        findings.append(
-            {"severity": "low", "type": "a11y-input-label", "detail": f"{inputs_no_label} form fields without a label"}
-        )
-    if not await page.query_selector("title, h1"):
-        findings.append({"severity": "low", "type": "seo", "detail": "No <title> or <h1>"})
+    # Deep accessibility audit (real WCAG checks incl. computed color contrast).
+    try:
+        a11y_result = await _a11y.audit(url, navigate=False)
+        findings.extend(a11y_result.get("findings", []))
+    except Exception as e:
+        findings.append({"severity": "low", "type": "check-error", "detail": f"a11y: {e}"})
+
+    # SEO signals.
+    findings.extend(await _seo_checks(page))
 
     # Performance signal.
     if load_ms > 4000:
@@ -265,8 +288,15 @@ async def test_forms(url: str) -> dict[str, Any]:
     return {"url": url, "forms": len(forms), "findings": findings}
 
 
-async def deep_test(url: str, max_pages: int = 8) -> dict[str, Any]:
-    """Everything: crawl → per-page QA + forms + security headers, aggregated."""
+async def deep_test(
+    url: str,
+    max_pages: int = 8,
+    security: bool = True,
+    perf: bool = True,
+) -> dict[str, Any]:
+    """Everything, per page: QA (console/network/a11y/SEO) + forms + security
+    headers + advanced security probes + real Core Web Vitals. Aggregated into
+    one result set. Every finding is evidence-backed — no fabricated results."""
     crawl_result = await crawl(url, max_pages)
     results: list[dict[str, Any]] = []
     for p in crawl_result["pages"]:
@@ -274,12 +304,35 @@ async def deep_test(url: str, max_pages: int = 8) -> dict[str, Any]:
             continue
         page_url = p["url"]
         merged = await run_qa(page_url)
-        for check in (test_forms, security_headers):
+
+        checks = [test_forms, security_headers]
+        if security:
+            checks.append(_advsec.advanced_scan)
+        for check in checks:
             try:
                 merged["findings"].extend((await check(page_url)).get("findings", []))
             except Exception as e:
                 merged["findings"].append(
                     {"severity": "low", "type": "check-error", "detail": f"{check.__name__} failed: {e}"}
                 )
+
+        if perf:
+            try:
+                v = await _vitals.measure(page_url)
+                merged["perf_score"] = v["score"]
+                merged["vitals"] = v["metrics"]
+                merged["findings"].extend(v.get("findings", []))
+            except Exception as e:
+                merged["findings"].append({"severity": "low", "type": "check-error", "detail": f"vitals: {e}"})
+
+        # Dedup after merging many sources.
+        seen: set[tuple[str, str]] = set()
+        uniq = []
+        for f in merged["findings"]:
+            k = (f.get("type", ""), f.get("detail", ""))
+            if k not in seen:
+                seen.add(k)
+                uniq.append(f)
+        merged["findings"] = uniq
         results.append(merged)
     return {"start": url, "pages_tested": len(results), "results": results}
