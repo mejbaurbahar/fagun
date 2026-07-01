@@ -8,7 +8,20 @@ control a real browser, debug it (console, network, DOM, screenshots, JS eval), 
 run an automated quality sweep (broken requests, console errors, accessibility,
 performance, SEO) with a Markdown report.
 
-You set it up once. Then inside any of those tools you just say **`fagun`** and it starts.
+You set it up once. Then inside any of those tools you just say **`fagun`** (or `/fagun`) and it starts.
+
+---
+
+## One-line setup (paste into your AI tool)
+
+Tell your AI agent (Claude, Cursor, Codex, Antigravity, …) exactly this:
+
+> Install or upgrade **fagun** to the latest stable version with `uv` using Python
+> 3.12, register the skill from `fagun skill`, and connect it to my browser. Follow
+> https://github.com/mejbaurbahar/fagun/blob/main/install.md if setup or connection fails.
+
+The agent follows [`install.md`](install.md) and wires everything up. Then just type
+**`/fagun`** and describe what to test.
 
 ---
 
@@ -77,11 +90,23 @@ Inside any tool, just talk:
 - *"show me the console errors"* · *"any failed network requests?"*
 - *"click Sign in, type me@x.com into email, press Enter"*
 
+- *"deep test https://example.com and write the report to ./report.md"* — the full sweep
+
+## The `/fagun` skill — autonomous bug hunter
+
+`skills/fagun/SKILL.md` is a full QA methodology the AI follows: it hunts **real,
+reproducible** bugs across 10 scenario classes — functional, JS/runtime errors,
+network/API, form validation, auth/session/authorization, accessibility,
+performance, visual/responsive, security posture, and edge cases — with an
+evidence-or-it-didn't-happen rule and impact-based severity. Register it (see
+`install.md` Step 5) to get the `/fagun` slash command.
+
 ## What it exposes (MCP tools)
 
 `fagun_start` · `open_browser` · `navigate` · `click` · `fill` · `press_key` ·
-`screenshot` · `evaluate_js` · `get_console` · `get_network` · `crawl` ·
-`run_qa` · `full_qa_sweep` · `write_report` · `close_browser`
+`screenshot` · `evaluate_js` · `get_console` · `get_network` · `crawl` · `run_qa` ·
+`check_links` · `test_forms` · `security_headers` · `deep_test` · `full_qa_sweep` ·
+`write_report` · `close_browser`
 
 Plus a **`fagun` prompt** — appears as a slash command in tools that surface MCP prompts.
 

@@ -16,8 +16,12 @@ from mcp.server.fastmcp import FastMCP
 
 from . import __version__
 from .browser import manager
+from .qa import check_links as _check_links
 from .qa import crawl as _crawl
+from .qa import deep_test as _deep_test
 from .qa import run_qa as _run_qa
+from .qa import security_headers as _security_headers
+from .qa import test_forms as _test_forms
 from .report import build_markdown
 
 mcp = FastMCP("fagun")
@@ -35,10 +39,13 @@ I can drive a real browser and run a full quality sweep. Ask me to:
 **QA & bug hunting**
 - `crawl <url>` — map the site
 - `run QA on <url>` — console errors, failed requests, a11y, perf, SEO
-- `full QA sweep of <url>` — crawl then QA every page
+- `check links on <url>` — find broken links
+- `test forms on <url>` — form security / validation / a11y
+- `security headers of <url>` — CSP, HSTS, X-Frame, info leaks
+- `deep test <url>` — crawl + QA + forms + headers, full report
 - `write the report to <path>`
 
-Tell me a URL to start. Example: *"run a full QA sweep of https://example.com and write the report."*
+Tell me a URL to start. Example: *"deep test https://example.com and write the report to ./report.md."*
 """
 
 
@@ -177,6 +184,36 @@ async def full_qa_sweep(url: str, max_pages: int = 10, report_path: Optional[str
         with open(report_path, "w", encoding="utf-8") as fh:
             fh.write(md)
         return f"Swept {len(results)} pages. Report written to {report_path}\n\n{md[:1500]}"
+    return md
+
+
+@mcp.tool()
+async def security_headers(url: str) -> str:
+    """Check a page for missing/weak security headers (CSP, HSTS, X-Frame, etc.)."""
+    return json.dumps(await _security_headers(url), indent=2)
+
+
+@mcp.tool()
+async def check_links(url: str, max_links: int = 100) -> str:
+    """Find broken links (4xx/5xx/unreachable) among the links on a page."""
+    return json.dumps(await _check_links(url, max_links), indent=2)
+
+
+@mcp.tool()
+async def test_forms(url: str) -> str:
+    """Audit every form on a page for security, validation and a11y issues (no submit)."""
+    return json.dumps(await _test_forms(url), indent=2)
+
+
+@mcp.tool()
+async def deep_test(url: str, max_pages: int = 8, report_path: Optional[str] = None) -> str:
+    """Full audit: crawl + QA + forms + security headers across the site, one report."""
+    result = await _deep_test(url, max_pages)
+    md = build_markdown(result["results"], title=f"Fagun Deep Test — {url}")
+    if report_path:
+        with open(report_path, "w", encoding="utf-8") as fh:
+            fh.write(md)
+        return f"Deep-tested {result['pages_tested']} pages. Report → {report_path}\n\n{md[:1800]}"
     return md
 
 
