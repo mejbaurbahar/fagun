@@ -67,20 +67,22 @@ section{scroll-margin-top:80px}
 
 <div class="wrap" style="display:grid;grid-template-columns:200px 1fr;gap:44px;align-items:start;padding-top:34px;padding-bottom:80px">
 
-  <!-- TOC -->
-  <aside class="tocnav" style="position:sticky;top:80px;display:none" id="toc">
-    <p style="font-size:11px;letter-spacing:.16em;color:var(--gold);text-transform:uppercase;margin:0 0 6px">On this page</p>
-    <a href="#what">What is Fagun</a>
-    <a href="#why">Why you need it</a>
-    <a href="#who">Who it's for</a>
-    <a href="#install">Install</a>
-    <a href="#tools">All tools</a>
-    <a href="#taxonomy">Test taxonomy</a>
-    <a href="#testdata">Test data</a>
-    <a href="#security">Security classes</a>
-    <a href="#examples">Example prompts</a>
-    <a href="#safety">Safety</a>
-    <a href="#faq">FAQ</a>
+  <!-- TOC (grid column stays as spacer; inner nav is position:fixed so it never scrolls) -->
+  <aside id="toc" style="display:none">
+    <div class="tocnav" id="tocInner" style="position:fixed;top:92px;width:190px;max-height:calc(100vh - 120px);overflow-y:auto;left:calc(max(0px,(100vw - 1000px)/2) + clamp(20px,5vw,44px))">
+      <p style="font-size:11px;letter-spacing:.16em;color:var(--gold);text-transform:uppercase;margin:0 0 6px">On this page</p>
+      <a href="#what">What is Fagun</a>
+      <a href="#why">Why you need it</a>
+      <a href="#who">Who it's for</a>
+      <a href="#install">Install</a>
+      <a href="#tools">All tools</a>
+      <a href="#taxonomy">Test taxonomy</a>
+      <a href="#testdata">Test data</a>
+      <a href="#security">Security classes</a>
+      <a href="#examples">Example prompts</a>
+      <a href="#safety">Safety</a>
+      <a href="#faq">FAQ</a>
+    </div>
   </aside>
 
   <main style="min-width:0;display:flex;flex-direction:column;gap:clamp(44px,7vh,74px)">
