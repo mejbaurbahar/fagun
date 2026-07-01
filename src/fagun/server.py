@@ -15,6 +15,7 @@ from typing import Optional
 from mcp.server.fastmcp import FastMCP
 
 from . import __version__
+from . import format as fmt
 from .browser import manager
 from .qa import check_links as _check_links
 from .qa import crawl as _crawl
@@ -127,28 +128,34 @@ async def evaluate_js(code: str) -> str:
 
 
 @mcp.tool()
-async def get_console(only_errors: bool = False) -> str:
-    """Return captured console messages."""
+async def get_console(only_errors: bool = False, limit: int = 50) -> str:
+    """Return captured console messages (most recent first, token-capped)."""
     entries = manager.console
     if only_errors:
         entries = [c for c in entries if c.type == "error"]
     if not entries:
         return "No console messages captured."
-    return "\n".join(f"[{c.type}] {c.text} ({c.location})" for c in entries[-100:])
+    cap = min(limit, 200) if fmt.is_terse() else limit
+    shown = entries[-cap:]
+    lines = [f"{c.type[:4]} {fmt.clip(c.text, 140)}" for c in shown]
+    if len(entries) > cap:
+        lines.insert(0, f"({len(entries)} total, showing last {cap})")
+    return "\n".join(lines)
 
 
 @mcp.tool()
-async def get_network(only_problems: bool = False) -> str:
+async def get_network(only_problems: bool = False, limit: int = 60) -> str:
     """Return captured network requests. only_problems -> failures / 4xx / 5xx."""
     entries = manager.network
     if only_problems:
         entries = [n for n in entries if n.failure or (n.status and n.status >= 400)]
     if not entries:
         return "No network activity matched."
-    out = []
-    for n in entries[-150:]:
-        state = n.failure or n.status
-        out.append(f"{n.method} {state} [{n.resource_type}] {n.url}")
+    cap = min(limit, 200) if fmt.is_terse() else limit
+    shown = entries[-cap:]
+    out = [f"{n.method} {n.failure or n.status} {fmt.clip(n.url, 90)}" for n in shown]
+    if len(entries) > cap:
+        out.insert(0, f"({len(entries)} total, showing last {cap})")
     return "\n".join(out)
 
 
@@ -159,16 +166,24 @@ async def close_browser() -> str:
 
 
 # --------------------------------------------------------------------- qa tools
+# All QA tools default to TERSE output (compact text) to save the AI's tokens.
+# Pass verbose=True for full JSON.
 @mcp.tool()
-async def crawl(url: str, max_pages: int = 20) -> str:
-    """Crawl a site within the same host, up to max_pages. Returns JSON."""
-    return json.dumps(await _crawl(url, max_pages), indent=2)
+async def crawl(url: str, max_pages: int = 20, verbose: bool = False) -> str:
+    """Crawl a site within the same host, up to max_pages."""
+    r = await _crawl(url, max_pages)
+    if verbose or not fmt.is_terse():
+        return fmt.dumps(r)
+    lines = [f"crawled {r['crawled']} pages from {url}:"]
+    for p in r["pages"]:
+        lines.append(f"{p.get('status', 'ERR')} {fmt.clip(p['url'], 90)}")
+    return "\n".join(lines)
 
 
 @mcp.tool()
-async def run_qa(url: str) -> str:
+async def run_qa(url: str, verbose: bool = False) -> str:
     """Run the QA sweep on a single page (console, network, a11y, perf, SEO)."""
-    return json.dumps(await _run_qa(url), indent=2)
+    return fmt.render_qa(await _run_qa(url), terse=not verbose and fmt.is_terse())
 
 
 @mcp.tool()
@@ -179,42 +194,55 @@ async def full_qa_sweep(url: str, max_pages: int = 10, report_path: Optional[str
     for p in crawl_result["pages"]:
         if p.get("status") and p["status"] < 400 and not p.get("error"):
             results.append(await _run_qa(p["url"]))
-    md = build_markdown(results, title=f"Fagun QA Report — {url}")
     if report_path:
+        md = build_markdown(results, title=f"Fagun QA Report — {url}")
         with open(report_path, "w", encoding="utf-8") as fh:
             fh.write(md)
-        return f"Swept {len(results)} pages. Report written to {report_path}\n\n{md[:1500]}"
-    return md
+        return f"Report → {report_path}\n" + fmt.render_multi(results, fmt.is_terse(), f"QA sweep {url}")
+    return fmt.render_multi(results, fmt.is_terse(), f"QA sweep {url}")
 
 
 @mcp.tool()
-async def security_headers(url: str) -> str:
+async def security_headers(url: str, verbose: bool = False) -> str:
     """Check a page for missing/weak security headers (CSP, HSTS, X-Frame, etc.)."""
-    return json.dumps(await _security_headers(url), indent=2)
+    r = await _security_headers(url)
+    if verbose or not fmt.is_terse():
+        return fmt.dumps(r)
+    return fmt.findings_block(url, r.get("findings", []), meta=f"status {r.get('status', '?')}")
 
 
 @mcp.tool()
-async def check_links(url: str, max_links: int = 100) -> str:
+async def check_links(url: str, max_links: int = 100, verbose: bool = False) -> str:
     """Find broken links (4xx/5xx/unreachable) among the links on a page."""
-    return json.dumps(await _check_links(url, max_links), indent=2)
+    r = await _check_links(url, max_links)
+    if verbose or not fmt.is_terse():
+        return fmt.dumps(r)
+    return fmt.findings_block(url, r.get("findings", []), meta=f"{r.get('links_checked', 0)} checked")
 
 
 @mcp.tool()
-async def test_forms(url: str) -> str:
+async def test_forms(url: str, verbose: bool = False) -> str:
     """Audit every form on a page for security, validation and a11y issues (no submit)."""
-    return json.dumps(await _test_forms(url), indent=2)
+    r = await _test_forms(url)
+    if verbose or not fmt.is_terse():
+        return fmt.dumps(r)
+    return fmt.findings_block(url, r.get("findings", []), meta=f"{r.get('forms', 0)} forms")
 
 
 @mcp.tool()
-async def deep_test(url: str, max_pages: int = 8, report_path: Optional[str] = None) -> str:
+async def deep_test(url: str, max_pages: int = 8, report_path: Optional[str] = None, verbose: bool = False) -> str:
     """Full audit: crawl + QA + forms + security headers across the site, one report."""
     result = await _deep_test(url, max_pages)
-    md = build_markdown(result["results"], title=f"Fagun Deep Test — {url}")
     if report_path:
+        md = build_markdown(result["results"], title=f"Fagun Deep Test — {url}")
         with open(report_path, "w", encoding="utf-8") as fh:
             fh.write(md)
-        return f"Deep-tested {result['pages_tested']} pages. Report → {report_path}\n\n{md[:1800]}"
-    return md
+        prefix = f"Report → {report_path}\n"
+    else:
+        prefix = ""
+    if verbose:
+        return prefix + fmt.dumps(result)
+    return prefix + fmt.render_multi(result["results"], fmt.is_terse(), f"Deep test {url}")
 
 
 @mcp.tool()

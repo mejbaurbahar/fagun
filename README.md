@@ -108,6 +108,25 @@ Every finding comes with **steps to reproduce, what was observed, and the impact
 
 ---
 
+## 🪙 Token-saving (on by default)
+
+Browser tools normally flood your AI's context with huge JSON blobs and full
+network/console dumps — burning tokens fast. Fagun is built to be **token-lean**:
+
+- **Terse output by default** — compact one-line-per-finding text instead of pretty
+  JSON (~70% fewer tokens per result). Set `FAGUN_TERSE=0` for full JSON, or pass
+  `verbose=true` to any tool for one call.
+- **One call, not ten** — `deep_test` crawls + checks console, network, forms,
+  headers, a11y, perf across the whole site in a **single** tool call, instead of
+  many manual `navigate` + `get_console` + `get_network` round-trips.
+- **Capped & deduped** — long link/console/network lists are truncated with a
+  `+N more` marker; duplicate findings are collapsed.
+- **Reports go to disk, not context** — pass `report_path` and the full detail is
+  written to a file while only a compact summary returns to the AI.
+
+> 💡 Cheapest workflow: `deep test <url> and save the report to ./report.md`
+> → one call, tiny summary in context, full report on disk.
+
 ## ⚙️ Options (optional)
 
 Set these as environment variables if you need them:
@@ -117,6 +136,7 @@ Set these as environment variables if you need them:
 | `FAGUN_HEADLESS` | `1` | Set to `0` to **watch** the browser work |
 | `FAGUN_BROWSER` | `chromium` | Use `firefox` or `webkit` instead |
 | `FAGUN_CDP_URL` | — | Attach to **your own** open Chrome, e.g. `http://127.0.0.1:9222` |
+| `FAGUN_TERSE` | `1` | Compact token-lean output. Set `0` for full JSON. |
 
 ---
 

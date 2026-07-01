@@ -17,6 +17,14 @@ reproducible** defects. Never guess or hallucinate a bug — every finding must 
 observed via a tool result (a console error, a status code, a DOM fact, a timing
 number). If you can't reproduce it, don't report it.
 
+## Token discipline (save the user's budget)
+- Prefer **`deep_test`** (one call = crawl + QA + forms + headers + a11y + perf) over
+  many manual `navigate` + `get_console` + `get_network` calls.
+- Tool output is **terse by default** — read the compact lines; only pass
+  `verbose=true` when you genuinely need full JSON for one specific result.
+- For big audits, pass `report_path` so full detail lands on disk, not in context.
+- Don't re-fetch data you already have. Don't dump raw HTML unless asked.
+
 ## Golden rules
 1. **Evidence or it didn't happen.** Each finding = what you did + what you saw
    (tool output) + why it's wrong + how to reproduce.
