@@ -154,14 +154,24 @@ def init() -> None:
         step("Windsurf", lambda: _write_json_server(
             home / ".codeium" / "windsurf" / "mcp_config.json", "mcpServers"))
 
-    print("\n" + ("─" * 52))
+    reload_cmd = "open a new terminal window" if sys.platform.startswith("win") else "exec $SHELL   (or just open a new terminal)"
+
+    print("\n" + ("─" * 56))
     if wired:
         print("✅ Wired up: " + ", ".join(wired))
-        print("   Restart the tool, then type:  fagun   (or /fagun)")
+        print("\n▶ NEXT STEPS")
+        print("  1. Restart your AI tool (quit & reopen it) so it loads Fagun.")
+        print(f"  2. Reload this terminal:  {reload_cmd}")
+        print("  3. In your AI tool, just type  fagun  then what to test, e.g.:")
+        print("       fagun deep test https://example.com")
+        print("       fagun security scan https://example.com")
+        print("       fagun check links on https://example.com")
+        print("       fagun connect to my Chrome")
+        print("       fagun test the signup form on https://example.com")
     else:
         print("No AI tools detected automatically. Run one of:")
         print("   uvx fagun install claude-code | cursor | claude | vscode")
-    print("─" * 52)
+    print("─" * 56)
 
 
 def _app_exists(name: str) -> bool:
