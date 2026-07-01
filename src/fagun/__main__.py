@@ -26,6 +26,17 @@ def main() -> None:
         print(f"✅ {engine} ready. Add fagun to your AI tool: `fagun install`")
         return
 
+    # `fagun connect-chrome` — launch a debuggable Chrome (no manual chrome://inspect).
+    if len(sys.argv) > 1 and sys.argv[1] in {"connect-chrome", "chrome"}:
+        from .browser import launch_debuggable_chrome
+
+        port = int(sys.argv[2]) if len(sys.argv) > 2 else 9222
+        cdp = launch_debuggable_chrome(port)
+        print(f"✅ Chrome launched with remote debugging at {cdp}")
+        print(f"   Fagun will attach automatically (FAGUN_CDP_URL={cdp}).")
+        print("   Add to your MCP config env if you want this by default.")
+        return
+
     # Support `fagun install` helper without importing the heavy MCP stack.
     if len(sys.argv) > 1 and sys.argv[1] in {"install", "--install", "help", "--help", "-h"}:
         from .install import run_cli

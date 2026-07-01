@@ -119,12 +119,41 @@ summarize to the user grouped by severity, each with repro steps.
 - Overflow, overlap, cut-off text, broken images, invisible-on-hover.
 - Dark mode / zoom 200% breakage.
 
-### I. Security posture (surface-level, non-exploit)
-- `security_headers`: missing CSP/HSTS/X-Frame-Options/nosniff, version leaks.
-- Secrets in JS/HTML: `evaluate_js` grep page source for `api_key`, `token`,
-  `AKIA`, private URLs. Report presence, don't use them.
-- Verbose error pages / stack traces exposed → high.
-- Autocomplete on sensitive fields, forms posting cross-origin.
+### I. Security (bug-bounty grade — AUTHORIZED targets only)
+Run **`security_scan(url)`** — one call covering the classes hunters get paid for:
+- **Exposed files**: `/.git/config`, `/.env`, `/.aws/credentials`, backups, `/actuator/env`,
+  swagger — source/secret disclosure (high).
+- **Leaked secrets** in HTML/JS: AWS `AKIA…`, `sk_live_…`, Google keys, GitHub `ghp_…`,
+  JWTs, private keys. Report presence; never use them.
+- **CORS misconfig**: reflects arbitrary Origin + credentials → account-data theft.
+- **Reflected XSS candidates**: unescaped marker reflection in params.
+- **Open redirect**: param-controlled external `Location`.
+- **SQLi error signals**: single-quote injection triggers DB errors.
+- **Cookie flags**: missing Secure/HttpOnly/SameSite.
+- Plus `security_headers`: CSP/HSTS/X-Frame/nosniff, version leaks.
+
+**Bug-bounty method (how hunters actually find bugs):**
+1. **Map surface** — `crawl` + `security_scan` every discovered page/param. Params are
+   where IDOR/XSS/SSRF/SQLi/redirect live.
+2. **Auth & access control** — the highest-paid class. Test IDOR (change an id in URL/
+   param → someone else's data?), missing function-level authz, JWT `alg:none`/weak
+   secret, session fixation. Use `browser_exec` to replay a request with a different id.
+3. **Injection** — reflected/stored XSS, SQLi, SSTI (`{{7*7}}`→49), command injection.
+   Observe the response; report the reflection/error — do NOT weaponize.
+4. **Business logic** — negative quantities, price tampering, race conditions
+   (double-spend), coupon reuse, step-skipping in multi-stage flows.
+5. **Info disclosure** — exposed files, secrets, verbose errors, debug endpoints.
+6. **Chain** — combine low findings into high impact (open-redirect → OAuth token theft;
+   IDOR + weak authz → ATO; exposed `.env` → full compromise). Always report the chain.
+Every finding: reproduce twice, prove impact, no "could potentially". Report the
+observation, never exploit beyond proof, never touch data you don't own.
+
+### J. Self-healing (write what's missing)
+When no built-in tool fits, use **`browser_exec`** to run Python against the live page
+(full Playwright: intercept requests, replay with modified headers/body, multi-tab,
+downloads, storage). When you crack something non-obvious, **`save_helper(name, code)`**
+so it's reusable next run. For your OWN logged-in Chrome (session reuse, gated pages):
+**`connect_chrome`** launches a debuggable Chrome and attaches — no manual setup.
 
 ### J. Edge cases & resilience
 - Reload mid-flow; back/forward button after actions.
@@ -153,7 +182,8 @@ Impact:  <user/business consequence>
 ## MCP tools you have
 `fagun_start` · `open_browser` · `navigate` · `click` · `fill` · `press_key` ·
 `screenshot` · `evaluate_js` · `get_console` · `get_network` · `crawl` · `run_qa` ·
-`check_links` · `test_forms` · `security_headers` · `deep_test` · `full_qa_sweep` ·
-`write_report` · `close_browser`
+`check_links` · `test_forms` · `security_headers` · `security_scan` · `deep_test` ·
+`full_qa_sweep` · `write_report` · `browser_exec` · `save_helper` · `list_helpers` ·
+`load_helper` · `connect_chrome` · `close_browser`
 
 When done, always `close_browser`.

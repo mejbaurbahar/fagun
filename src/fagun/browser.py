@@ -10,6 +10,7 @@ import os
 import subprocess
 import sys
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any, Optional
 
 from playwright.async_api import (
@@ -46,6 +47,69 @@ def ensure_browser_installed(engine: str = "chromium") -> None:
 def _is_missing_browser_error(err: Exception) -> bool:
     msg = str(err).lower()
     return "executable doesn't exist" in msg or "playwright install" in msg
+
+
+def _find_chrome() -> Optional[str]:
+    """Locate a real Chrome/Chromium binary per OS."""
+    candidates = []
+    if sys.platform == "darwin":
+        candidates = [
+            "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+            "/Applications/Chromium.app/Contents/MacOS/Chromium",
+            "/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge",
+        ]
+    elif sys.platform.startswith("win"):
+        pf = os.environ.get("ProgramFiles", r"C:\Program Files")
+        pfx = os.environ.get("ProgramFiles(x86)", r"C:\Program Files (x86)")
+        candidates = [
+            rf"{pf}\Google\Chrome\Application\chrome.exe",
+            rf"{pfx}\Google\Chrome\Application\chrome.exe",
+            rf"{pf}\Microsoft\Edge\Application\msedge.exe",
+        ]
+    else:
+        import shutil
+
+        for name in ("google-chrome", "google-chrome-stable", "chromium", "chromium-browser", "microsoft-edge"):
+            p = shutil.which(name)
+            if p:
+                return p
+        candidates = ["/usr/bin/google-chrome", "/usr/bin/chromium"]
+    for c in candidates:
+        if os.path.exists(c):
+            return c
+    return None
+
+
+def launch_debuggable_chrome(port: int = 9222) -> str:
+    """Launch the user's real Chrome with remote debugging enabled, in a dedicated
+    profile. This is the fully-automatic alternative to manually ticking
+    chrome://inspect/#remote-debugging — no clicks needed. Sets FAGUN_CDP_URL so
+    the next browser start attaches to it.
+    """
+    chrome = _find_chrome()
+    if not chrome:
+        raise RuntimeError(
+            "No Chrome/Chromium found. Install Chrome, or launch it yourself with "
+            f"--remote-debugging-port={port} and set FAGUN_CDP_URL=http://127.0.0.1:{port}"
+        )
+    profile = Path(
+        os.environ.get("XDG_CONFIG_HOME") or str(Path.home() / ".config")
+    ) / "fagun" / "chrome-profile"
+    profile.mkdir(parents=True, exist_ok=True)
+    subprocess.Popen(
+        [
+            chrome,
+            f"--remote-debugging-port={port}",
+            f"--user-data-dir={profile}",
+            "--no-first-run",
+            "--no-default-browser-check",
+        ],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+    cdp = f"http://127.0.0.1:{port}"
+    os.environ["FAGUN_CDP_URL"] = cdp
+    return cdp
 
 
 @dataclass
@@ -93,7 +157,20 @@ class BrowserManager:
         auto_installed = False
         if cdp:
             # Attach to an already-running Chrome (the "autoConnect" style flow).
-            self._browser = await launcher.connect_over_cdp(cdp)
+            # Retry: a freshly-launched Chrome may take a second to open the port.
+            import asyncio
+
+            last: Exception | None = None
+            for _ in range(15):
+                try:
+                    self._browser = await launcher.connect_over_cdp(cdp)
+                    last = None
+                    break
+                except Exception as e:
+                    last = e
+                    await asyncio.sleep(0.5)
+            if last is not None:
+                raise RuntimeError(f"Could not connect to Chrome at {cdp}: {last}")
             self._context = (
                 self._browser.contexts[0]
                 if self._browser.contexts

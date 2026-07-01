@@ -16,7 +16,9 @@ from mcp.server.fastmcp import FastMCP
 
 from . import __version__
 from . import format as fmt
-from .browser import manager
+from . import healing
+from .browser import launch_debuggable_chrome, manager
+from .security import security_scan as _security_scan
 from .qa import check_links as _check_links
 from .qa import crawl as _crawl
 from .qa import deep_test as _deep_test
@@ -43,8 +45,14 @@ I can drive a real browser and run a full quality sweep. Ask me to:
 - `check links on <url>` — find broken links
 - `test forms on <url>` — form security / validation / a11y
 - `security headers of <url>` — CSP, HSTS, X-Frame, info leaks
+- `security scan <url>` — exposed files, secrets, CORS, XSS/redirect/SQLi (safe probes)
 - `deep test <url>` — crawl + QA + forms + headers, full report
 - `write the report to <path>`
+
+**Power / self-healing**
+- `connect to my Chrome` — auto-launches debuggable Chrome, no manual setup
+- `browser_exec <python>` — I write any missing automation against the live page
+- `save/list/load helper` — reusable snippets that make me smarter each run
 
 Tell me a URL to start. Example: *"deep test https://example.com and write the report to ./report.md."*
 """
@@ -243,6 +251,54 @@ async def deep_test(url: str, max_pages: int = 8, report_path: Optional[str] = N
     if verbose:
         return prefix + fmt.dumps(result)
     return prefix + fmt.render_multi(result["results"], fmt.is_terse(), f"Deep test {url}")
+
+
+@mcp.tool()
+async def security_scan(url: str, verbose: bool = False) -> str:
+    """Active-but-safe security scan: exposed files, leaked secrets, CORS misconfig,
+    cookie flags, reflected-XSS candidates, open redirect, SQLi error signals.
+    NON-DESTRUCTIVE. Only run against targets you are authorized to test."""
+    r = await _security_scan(url)
+    if verbose or not fmt.is_terse():
+        return fmt.dumps(r)
+    return fmt.findings_block(url, r.get("findings", []), meta="security scan")
+
+
+# ------------------------------------------------- self-healing / power tools
+@mcp.tool()
+async def browser_exec(code: str) -> str:
+    """Run async Python against the live page (`page`, `context`, `manager` in scope;
+    assign `result` or return a value). Use when a built-in tool can't do what you
+    need — write the missing automation directly. Runs locally on this machine."""
+    return await healing.browser_exec(code)
+
+
+@mcp.tool()
+async def save_helper(name: str, code: str) -> str:
+    """Persist a reusable browser helper snippet so it's available next session."""
+    return healing.save_helper(name, code)
+
+
+@mcp.tool()
+async def list_helpers() -> str:
+    """List saved helper snippets."""
+    return healing.list_helpers()
+
+
+@mcp.tool()
+async def load_helper(name: str) -> str:
+    """Show the code of a saved helper."""
+    return healing.load_helper(name)
+
+
+@mcp.tool()
+async def connect_chrome(port: int = 9222) -> str:
+    """Launch YOUR real Chrome with remote debugging on and attach to it — fully
+    automatic, no manual chrome://inspect step. Uses a dedicated Fagun profile."""
+    cdp = launch_debuggable_chrome(port)
+    await manager.stop()
+    msg = await manager.start()
+    return f"Chrome launched with debugging at {cdp}. {msg}"
 
 
 @mcp.tool()

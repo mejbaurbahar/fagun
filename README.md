@@ -176,12 +176,34 @@ Set these as environment variables if you need them:
 
 ---
 
+## 🔐 Security scanning (authorized targets only)
+
+`security scan <url>` runs the bug classes hunters get paid for — **non-destructive**,
+GET/HEAD only, no attacks on third parties:
+
+- Exposed files (`/.git`, `/.env`, `/.aws/credentials`, backups, actuator)
+- Leaked secrets in HTML/JS (AWS, Stripe, Google, GitHub, JWT, private keys)
+- CORS misconfiguration · reflected-XSS candidates · open redirect · SQLi error signals
+- Cookie flags · security headers (CSP/HSTS/X-Frame)
+
+> ⚠️ Only scan sites you own or are authorized to test.
+
+## 🔌 Use your own logged-in Chrome (self-healing + sessions)
+
+- `connect to my Chrome` → Fagun launches a debuggable Chrome and attaches — **no
+  manual `chrome://inspect` step**. Great for testing behind a login (reuses your
+  session).
+- `browser_exec` → when no built-in tool fits, the AI writes Python against the live
+  page (full Playwright). `save_helper` persists what works, so Fagun gets smarter
+  every run.
+
 ## 🧰 Everything it can do (MCP tools)
 
 `fagun_start` · `open_browser` · `navigate` · `click` · `fill` · `press_key` ·
 `screenshot` · `evaluate_js` · `get_console` · `get_network` · `crawl` · `run_qa` ·
-`check_links` · `test_forms` · `security_headers` · `deep_test` · `full_qa_sweep` ·
-`write_report` · `close_browser`
+`check_links` · `test_forms` · `security_headers` · `security_scan` · `deep_test` ·
+`full_qa_sweep` · `write_report` · `browser_exec` · `save_helper` · `list_helpers` ·
+`load_helper` · `connect_chrome` · `close_browser`
 
 ---
 
