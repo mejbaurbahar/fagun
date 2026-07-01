@@ -13,6 +13,19 @@ import sys
 
 
 def main() -> None:
+    # `fagun setup` — install the browser engine up front (also auto-runs on
+    # first browser use, so this is optional but nice for a clean first launch).
+    if len(sys.argv) > 1 and sys.argv[1] in {"setup", "--setup"}:
+        import os
+
+        from .browser import ensure_browser_installed
+
+        engine = os.environ.get("FAGUN_BROWSER", "chromium").lower()
+        print(f"Installing {engine} browser engine…")
+        ensure_browser_installed(engine)
+        print(f"✅ {engine} ready. Add fagun to your AI tool: `fagun install`")
+        return
+
     # Support `fagun install` helper without importing the heavy MCP stack.
     if len(sys.argv) > 1 and sys.argv[1] in {"install", "--install", "help", "--help", "-h"}:
         from .install import run_cli

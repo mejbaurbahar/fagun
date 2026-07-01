@@ -7,6 +7,8 @@ and the AI can inspect them at any time.
 from __future__ import annotations
 
 import os
+import subprocess
+import sys
 from dataclasses import dataclass, field
 from typing import Any, Optional
 
@@ -17,6 +19,33 @@ from playwright.async_api import (
     Playwright,
     async_playwright,
 )
+
+
+def ensure_browser_installed(engine: str = "chromium") -> None:
+    """Install the Playwright browser engine if it isn't already present.
+
+    Runs `python -m playwright install <engine>` once. Idempotent — Playwright
+    skips the download if the browser is already cached. This is what makes
+    Chrome setup fully automatic: the user never runs a separate install step.
+    """
+    try:
+        subprocess.run(
+            [sys.executable, "-m", "playwright", "install", engine],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+    except Exception as e:  # pragma: no cover - surfaced to the caller's retry
+        detail = getattr(e, "stderr", "") or str(e)
+        raise RuntimeError(
+            f"Automatic browser install failed for {engine}. "
+            f"Run manually: {sys.executable} -m playwright install {engine}\n{detail}"
+        ) from e
+
+
+def _is_missing_browser_error(err: Exception) -> bool:
+    msg = str(err).lower()
+    return "executable doesn't exist" in msg or "playwright install" in msg
 
 
 @dataclass
@@ -61,6 +90,7 @@ class BrowserManager:
         }.get(engine, self._pw.chromium)
 
         cdp = os.environ.get("FAGUN_CDP_URL")
+        auto_installed = False
         if cdp:
             # Attach to an already-running Chrome (the "autoConnect" style flow).
             self._browser = await launcher.connect_over_cdp(cdp)
@@ -72,7 +102,15 @@ class BrowserManager:
         else:
             if headless is None:
                 headless = os.environ.get("FAGUN_HEADLESS", "1") != "0"
-            self._browser = await launcher.launch(headless=headless)
+            try:
+                self._browser = await launcher.launch(headless=headless)
+            except Exception as e:
+                # First run with no browser installed -> install it, then retry once.
+                if not _is_missing_browser_error(e):
+                    raise
+                ensure_browser_installed(engine)
+                auto_installed = True
+                self._browser = await launcher.launch(headless=headless)
             self._context = await self._browser.new_context()
 
         self._page = (
@@ -81,7 +119,8 @@ class BrowserManager:
             else await self._context.new_page()
         )
         self._wire_listeners(self._page)
-        return f"Browser started ({engine}, {'CDP' if cdp else 'launched'})."
+        note = " (auto-installed engine)" if auto_installed else ""
+        return f"Browser started ({engine}, {'CDP' if cdp else 'launched'}){note}."
 
     def _wire_listeners(self, page: Page) -> None:
         def on_console(msg: Any) -> None:

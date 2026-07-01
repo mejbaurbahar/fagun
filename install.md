@@ -29,11 +29,14 @@ If `fagun` is not on PyPI yet, install from GitHub:
 uv tool install --python 3.12 --upgrade "git+https://github.com/mejbaurbahar/fagun"
 ```
 
-## Step 3 — install the browser engine (once)
+## Step 3 — install the browser engine
 
 ```bash
-uv tool run --from fagun python -m playwright install chromium
+uvx fagun setup
 ```
+
+(Optional — Fagun also auto-installs Chromium the first time it opens a browser,
+so this step just makes the first launch instant.)
 
 ## Step 4 — register Fagun as an MCP server (pick the user's tool)
 

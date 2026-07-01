@@ -1,67 +1,45 @@
 # 🦊 Fagun
 
-**One MCP server. Every AI tool. Type `fagun` and it drives a browser + runs full QA.**
+**Give any AI a browser and let it hunt real bugs for you.**
 
-Fagun is an [MCP](https://modelcontextprotocol.io) server that lets any AI coding
-tool — **Claude Code / Desktop, Cursor, Codex, Antigravity, Windsurf, Cline, VS Code** —
-control a real browser, debug it (console, network, DOM, screenshots, JS eval), and
-run an automated quality sweep (broken requests, console errors, accessibility,
-performance, SEO) with a Markdown report.
+Fagun is a single tool that plugs into **Claude, Cursor, Codex, Antigravity, Windsurf,
+Cline, or VS Code**. Once it's set up, you just type **`fagun`** (or `/fagun`) and your
+AI can open a real browser, click around, and run a full quality check on any website —
+finding broken links, console errors, failed requests, form problems, accessibility
+issues, slow pages, and security misconfigurations.
 
-You set it up once. Then inside any of those tools you just say **`fagun`** (or `/fagun`) and it starts.
-
----
-
-## One-line setup (paste into your AI tool)
-
-Tell your AI agent (Claude, Cursor, Codex, Antigravity, …) exactly this:
-
-> Install or upgrade **fagun** to the latest stable version with `uv` using Python
-> 3.12, register the skill from `fagun skill`, and connect it to my browser. Follow
-> https://github.com/mejbaurbahar/fagun/blob/main/install.md if setup or connection fails.
-
-The agent follows [`install.md`](install.md) and wires everything up. Then just type
-**`/fagun`** and describe what to test.
+You set it up **once**. It works in **every** AI tool. Chrome installs **itself**.
 
 ---
 
-## Setup (once, ~2 min)
-
-**1. Install the runner + browser engine**
+## 🚀 Install in 3 lines
 
 ```bash
-pip install uv
-uvx --from fagun python -m playwright install chromium
+pip install uv                 # 1. get the runner (skip if you have uv)
+uvx fagun setup                # 2. installs the Chrome engine automatically
+uvx fagun install              # 3. shows the config to paste into your AI tool
 ```
 
-`uvx` runs Fagun without a permanent install and always uses the latest version.
+That's it. Restart your AI tool, type **`fagun`**, and go.
 
-**2. Add Fagun to your AI tool**
+> 💡 Don't want to think about config? Just tell your AI:
+> *"Install and set up fagun for me — follow https://github.com/mejbaurbahar/fagun/blob/main/install.md"*
+> and it does everything above for you.
 
-Print ready-to-paste config for every tool:
+---
 
-```bash
-uvx fagun install
-```
+## 🔌 Connect it to your AI tool
 
-Or let Fagun write the file for you:
+Every tool uses the **same** setting: run `uvx fagun`. Pick yours:
 
-```bash
-uvx fagun install cursor     # writes ~/.cursor/mcp.json
-uvx fagun install claude     # writes Claude Desktop config
-uvx fagun install vscode     # writes .vscode/mcp.json
-```
-
-Manual config is identical everywhere — command `uvx`, args `["fagun"]`:
-
-| Tool | Where |
-|------|-------|
+| Tool | How |
+|------|-----|
 | **Claude Code** | `claude mcp add fagun -- uvx fagun` |
-| **Claude Desktop** | `~/Library/Application Support/Claude/claude_desktop_config.json` |
-| **Cursor** | `~/.cursor/mcp.json` |
-| **Windsurf / Cline / Antigravity** | their MCP settings (same JSON as Cursor) |
-| **VS Code (Copilot)** | `.vscode/mcp.json` |
-| **Codex CLI** | `~/.codex/config.toml` |
+| **Claude Desktop** | add the JSON below to `claude_desktop_config.json` |
+| **Cursor** | `uvx fagun install cursor` (writes `~/.cursor/mcp.json`) |
+| **VS Code (Copilot)** | `uvx fagun install vscode` (writes `.vscode/mcp.json`) |
+| **Windsurf / Cline / Antigravity** | paste the JSON below into their MCP settings |
+| **Codex CLI** | add the TOML below to `~/.codex/config.toml` |
 
 ```jsonc
 // Claude Desktop / Cursor / Windsurf / Cline / Antigravity
@@ -69,80 +47,89 @@ Manual config is identical everywhere — command `uvx`, args `["fagun"]`:
 ```
 
 ```toml
-# Codex ~/.codex/config.toml
+# Codex — ~/.codex/config.toml
 [mcp_servers.fagun]
 command = "uvx"
 args = ["fagun"]
 ```
 
-**3. Restart the tool. Say `fagun`.**
+**Restart the tool after adding it.** Then type `fagun`.
 
 ---
 
-## Use it
+## 💬 How to use it
 
-Inside any tool, just talk:
+Just talk to your AI in plain English:
 
-- *"fagun"* → shows the menu and starts up
-- *"go to example.com and screenshot it"*
-- *"run QA on https://example.com"*
-- *"full QA sweep of https://example.com, write the report to ./qa.md"*
-- *"show me the console errors"* · *"any failed network requests?"*
-- *"click Sign in, type me@x.com into email, press Enter"*
+- `fagun` → shows the menu and starts up
+- `go to example.com and take a screenshot`
+- `run QA on https://example.com`
+- `deep test https://example.com and save the report to ./report.md`
+- `check for broken links on https://example.com`
+- `test the forms on the signup page`
+- `are there any console errors?` · `any failed network requests?`
+- `log in with test@x.com / password123, then check the dashboard`
 
-- *"deep test https://example.com and write the report to ./report.md"* — the full sweep
+### 🕵️ The `/fagun` bug hunter
 
-## The `/fagun` skill — autonomous bug hunter
+Fagun ships with a skill that turns your AI into a methodical QA tester. It sweeps
+**10 kinds of problems** and only reports bugs it can actually reproduce (no guessing):
 
-`skills/fagun/SKILL.md` is a full QA methodology the AI follows: it hunts **real,
-reproducible** bugs across 10 scenario classes — functional, JS/runtime errors,
-network/API, form validation, auth/session/authorization, accessibility,
-performance, visual/responsive, security posture, and edge cases — with an
-evidence-or-it-didn't-happen rule and impact-based severity. Register it (see
-`install.md` Step 5) to get the `/fagun` slash command.
+| # | Checks for |
+|---|-----------|
+| 1 | **Functional** — broken journeys, buttons/links that lie |
+| 2 | **JavaScript errors** — crashes, console errors on load & on click |
+| 3 | **Network / API** — 4xx/5xx, failed calls, mixed content |
+| 4 | **Forms** — missing validation, insecure submission, no labels |
+| 5 | **Auth / sessions** — login errors, leaks, access control |
+| 6 | **Accessibility** — missing alt text, labels, keyboard traps |
+| 7 | **Performance** — slow loads, heavy resources |
+| 8 | **Visual / responsive** — layout breakage, overflow, cut-off text |
+| 9 | **Security** — missing CSP/HSTS, exposed versions, secrets in code |
+| 10 | **Edge cases** — reloads, back button, huge inputs, offline |
 
-## What it exposes (MCP tools)
+Every finding comes with **steps to reproduce, what was observed, and the impact.**
+
+---
+
+## ⚙️ Options (optional)
+
+Set these as environment variables if you need them:
+
+| Variable | Default | What it does |
+|----------|---------|--------------|
+| `FAGUN_HEADLESS` | `1` | Set to `0` to **watch** the browser work |
+| `FAGUN_BROWSER` | `chromium` | Use `firefox` or `webkit` instead |
+| `FAGUN_CDP_URL` | — | Attach to **your own** open Chrome, e.g. `http://127.0.0.1:9222` |
+
+---
+
+## 🧰 Everything it can do (MCP tools)
 
 `fagun_start` · `open_browser` · `navigate` · `click` · `fill` · `press_key` ·
 `screenshot` · `evaluate_js` · `get_console` · `get_network` · `crawl` · `run_qa` ·
 `check_links` · `test_forms` · `security_headers` · `deep_test` · `full_qa_sweep` ·
 `write_report` · `close_browser`
 
-Plus a **`fagun` prompt** — appears as a slash command in tools that surface MCP prompts.
+---
 
-## Options (env vars)
-
-| Var | Default | Meaning |
-|-----|---------|---------|
-| `FAGUN_HEADLESS` | `1` | `0` shows the browser window |
-| `FAGUN_BROWSER` | `chromium` | `chromium` \| `firefox` \| `webkit` |
-| `FAGUN_CDP_URL` | — | Attach to a running Chrome, e.g. `http://127.0.0.1:9222` |
-
-## Local dev
+## 🛠️ For developers
 
 ```bash
-git clone <repo> && cd fagun
+git clone https://github.com/mejbaurbahar/fagun && cd fagun
 pip install -e .
 python -m playwright install chromium
-python -m fagun        # starts the MCP server on stdio
+python -m fagun        # runs the MCP server on stdio
 ```
 
-## Releasing to PyPI (maintainer)
-
-Auto-publish is wired via GitHub Actions using **PyPI Trusted Publishing** (OIDC —
-no API token stored). One-time setup on [pypi.org](https://pypi.org/manage/account/publishing/):
-
-- Project: `fagun` · Owner: `mejbaurbahar` · Repo: `fagun`
-- Workflow: `publish.yml` · Environment: `pypi`
-
-Then every release is just a tag:
+**Release (maintainer):** publishing is automatic via GitHub Actions +
+[PyPI Trusted Publishing](https://pypi.org/manage/account/publishing/). Bump the
+version in `pyproject.toml` and `src/fagun/__init__.py`, then:
 
 ```bash
-# bump version in pyproject.toml + src/fagun/__init__.py first
-git tag v0.2.0 && git push origin v0.2.0
+git tag v0.3.0 && git push origin v0.3.0
 ```
 
-The `Publish to PyPI` workflow builds, checks, and uploads automatically. Build
-locally to verify anytime: `python -m build && twine check dist/*`.
+---
 
-MIT © Mejbaur Bahar Fagun
+MIT © [Mejbaur Bahar Fagun](https://github.com/mejbaurbahar)
