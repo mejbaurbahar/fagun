@@ -181,6 +181,30 @@ body{background:#0d0b16}
     </div>
   </section>
 
+  <!-- ============ BAND 4 · SEE IT IN ACTION ============ -->
+  <section id="see-it-in-action" style="position:relative;z-index:2;max-width:1120px;margin:0 auto;padding:clamp(56px,9vh,110px) clamp(20px,5vw,44px) 0;scroll-margin-top:20px">
+    <p style="margin:0 0 12px;font-size:12px;font-weight:600;letter-spacing:.2em;color:var(--gold);text-transform:uppercase">See it in action</p>
+    <h2 style="margin:0 0 26px;font-family:Didot,'Bodoni MT','Playfair Display',Georgia,serif;font-weight:500;font-size:clamp(1.9rem,3.6vw,2.9rem);line-height:1.08;letter-spacing:-.01em;max-width:640px">Setup to first bug, on any OS.</h2>
+
+    <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">
+      <button type="button" class="fg-os fg-os-on" data-os="mac" onclick="fgOS('mac')" style="cursor:pointer;font-family:inherit;font-size:13.5px;font-weight:600;padding:8px 18px;border-radius:999px;border:1px solid var(--gold);background:rgba(232,176,75,.12);color:var(--text);transition:all .18s">macOS</button>
+      <button type="button" class="fg-os" data-os="win" onclick="fgOS('win')" style="cursor:pointer;font-family:inherit;font-size:13.5px;font-weight:600;padding:8px 18px;border-radius:999px;border:1px solid var(--line);background:transparent;color:var(--muted);transition:all .18s">Windows</button>
+      <button type="button" class="fg-os" data-os="linux" onclick="fgOS('linux')" style="cursor:pointer;font-family:inherit;font-size:13.5px;font-weight:600;padding:8px 18px;border-radius:999px;border:1px solid var(--line);background:transparent;color:var(--muted);transition:all .18s">Linux</button>
+    </div>
+
+    <div style="background:rgba(8,6,15,.85);border:1px solid rgba(232,176,75,.2);border-radius:14px;box-shadow:0 30px 80px -34px rgba(0,0,0,.9);overflow:hidden">
+      <div style="display:flex;align-items:center;gap:7px;padding:11px 14px;border-bottom:1px solid var(--line);background:rgba(255,255,255,.02)">
+        <span style="width:10px;height:10px;border-radius:50%;background:#f87171"></span>
+        <span style="width:10px;height:10px;border-radius:50%;background:#fbbf24"></span>
+        <span style="width:10px;height:10px;border-radius:50%;background:#4ade80"></span>
+        <span id="fg-demo-title" style="margin-left:8px;font-family:'SF Mono','JetBrains Mono',Menlo,monospace;font-size:12px;color:var(--muted)">Terminal — macOS</span>
+        <button type="button" onclick="fgReplay()" style="margin-left:auto;cursor:pointer;font-family:'SF Mono',monospace;font-size:11px;color:var(--gold);background:transparent;border:1px solid rgba(232,176,75,.3);border-radius:7px;padding:3px 10px">↻ replay</button>
+      </div>
+      <div id="fg-demo-body" style="height:340px;overflow:hidden;padding:16px 18px;font-family:'SF Mono','JetBrains Mono',Menlo,Consolas,monospace;font-size:12.5px;line-height:1.9;white-space:pre-wrap;word-break:break-word;color:var(--muted)"></div>
+    </div>
+    <p style="margin:14px 0 0;font-size:13px;color:var(--muted)">One command sets up every AI tool on your machine. Then just type <span style="color:var(--gold)">fagun</span> + what to test.</p>
+  </section>
+
   <!-- ============ FOOTER ============ -->
   <footer style="position:relative;z-index:2;max-width:1120px;margin:clamp(64px,10vh,120px) auto 0;padding:26px clamp(20px,5vw,44px) 40px;border-top:1px solid var(--line);display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:16px">
     <div style="display:flex;align-items:center;gap:10px">
@@ -270,7 +294,91 @@ body{background:#0d0b16}
     draw();
   })();
 
-  // ---- typing terminal ----
+  // ---- OS demo terminal (tabbed, replayable) ----
+  (function(){
+    var body = document.getElementById('fg-demo-body');
+    var title = document.getElementById('fg-demo-title');
+    if(!body) return;
+    var g='#4ade80', r='#f87171', y='#fbbf24', gold='#E8B04B', dim='#6f6784', cy='#22d3ee', tx='#c9c0d6';
+    var scripts = {
+      mac: {label:'macOS', lines:[
+        {t:'$ curl -LsSf https://astral.sh/uv/install.sh | sh', c:gold},
+        {t:'  installing uv ......... done', c:dim},
+        {t:'$ uvx fagun init', c:gold},
+        {t:'  ✅ browser ready', c:g},
+        {t:'  ✅ Wired up: Claude Code, Cursor, Codex', c:g},
+        {t:'', c:dim},
+        {t:'# now in your AI tool, just type:', c:dim},
+        {t:'› fagun deep test https://acme.store', c:cy},
+        {t:'  ✕ broken link  GET /pricing → 404', c:r},
+        {t:'  ✕ console  Uncaught TypeError: cart is null', c:r},
+        {t:'  ⚠ form  #signup — 2 inputs missing <label>', c:y},
+        {t:'  ✅ audit complete · 4 issues · report saved', c:gold},
+      ]},
+      win: {label:'Windows', lines:[
+        {t:'PS> irm https://astral.sh/uv/install.ps1 | iex', c:gold},
+        {t:'  installing uv ......... done', c:dim},
+        {t:'PS> uvx fagun init', c:gold},
+        {t:'  ✅ browser ready', c:g},
+        {t:'  ✅ Wired up: Claude Code, VS Code', c:g},
+        {t:'', c:dim},
+        {t:'# in your AI tool, just type:', c:dim},
+        {t:'› fagun audit https://acme.store', c:cy},
+        {t:'  ✕ exposed  /.env reachable (200)', c:r},
+        {t:'  ⚠ headers  missing CSP', c:y},
+        {t:'  ✅ audit complete · 2 issues', c:gold},
+      ]},
+      linux: {label:'Linux', lines:[
+        {t:'$ curl -LsSf https://astral.sh/uv/install.sh | sh', c:gold},
+        {t:'  installing uv ......... done', c:dim},
+        {t:'$ uvx fagun init', c:gold},
+        {t:'  ✅ browser ready', c:g},
+        {t:'  ✅ Wired up: Cursor, Codex, Windsurf', c:g},
+        {t:'', c:dim},
+        {t:'# in your AI tool, just type:', c:dim},
+        {t:'› fagun security scan https://acme.store', c:cy},
+        {t:'  ✕ leaked secret  AWS key in bundle.js', c:r},
+        {t:'  ✕ open redirect  ?next= → external', c:r},
+        {t:'  ✅ scan complete · 2 issues', c:gold},
+      ]},
+    };
+    var cur='mac', timer;
+    window.fgOS = function(os){
+      cur=os;
+      document.querySelectorAll('.fg-os').forEach(function(b){
+        var on = b.getAttribute('data-os')===os;
+        b.style.borderColor = on ? 'var(--gold)' : 'var(--line)';
+        b.style.background = on ? 'rgba(232,176,75,.12)' : 'transparent';
+        b.style.color = on ? 'var(--text)' : 'var(--muted)';
+      });
+      title.textContent = 'Terminal — ' + scripts[os].label;
+      play();
+    };
+    window.fgReplay = function(){ play(); };
+    function play(){
+      clearTimeout(timer); body.innerHTML='';
+      var lines = scripts[cur].lines, li=0;
+      if(reduce){ lines.forEach(function(l){ var d=document.createElement('div'); d.style.color=l.c||tx; d.textContent=l.t||' '; body.appendChild(d); }); return; }
+      function nextLine(){
+        if(li>=lines.length) return;
+        var line=lines[li++];
+        var div=document.createElement('div'); div.style.color=line.c||tx;
+        if((line.t||'')[0]==='✕') div.style.textShadow='0 0 9px rgba(248,113,113,0.4)';
+        body.appendChild(div);
+        if(!line.t){ timer=setTimeout(nextLine,120); return; }
+        var caret=document.createElement('span'); caret.textContent='▍'; caret.style.color=gold;
+        var ci=0;
+        (function step(){
+          if(ci<line.t.length){ div.textContent=line.t.slice(0,++ci); div.appendChild(caret); timer=setTimeout(step,10+Math.random()*22); }
+          else { caret.remove(); body.scrollTop=body.scrollHeight; timer=setTimeout(nextLine,line.c===gold?360:180); }
+        })();
+      }
+      nextLine();
+    }
+    play();
+  })();
+
+  // ---- typing terminal (hero) ----
   (function(){
     var term = document.getElementById('fg-term-body');
     if(!term) return;

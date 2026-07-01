@@ -118,6 +118,30 @@ args = ["fagun"]
 
 ---
 
+## 🎬 See it in action
+
+▶️ **Live animated demo (macOS / Windows / Linux):** https://mejbaurbahar.github.io/fagun/#see-it-in-action
+
+Setup + first bug on each OS:
+
+**macOS / Linux**
+```bash
+curl -LsSf https://astral.sh/uv/install.sh | sh   # get uv (once)
+uvx fagun init                                     # browser + all AI tools + skill
+# then, inside your AI tool, type:
+#   fagun deep test https://example.com
+```
+
+**Windows (PowerShell)**
+```powershell
+powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"   # get uv (once)
+uvx fagun init                                     # browser + all AI tools + skill
+# then, inside your AI tool, type:
+#   fagun audit https://example.com
+```
+
+That's the whole flow: **install uv → `uvx fagun init` → type `fagun <task>`** in any AI tool.
+
 ## 💬 How to use it
 
 Just talk to your AI in plain English:

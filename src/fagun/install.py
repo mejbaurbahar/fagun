@@ -107,35 +107,52 @@ def init() -> None:
         print(f"  ⚠️  browser install failed: {e}")
 
     wired = []
+    skilled: set = set()  # dirs we've already dropped the skill into (avoid dupes)
+
+    def skill_once(d: Path) -> None:
+        key = str(d.resolve())
+        if key not in skilled:
+            _install_skill(d)
+            skilled.add(key)
+
+    def step(name: str, fn) -> None:
+        """Run one tool's wiring; never let a failure abort the rest of init."""
+        try:
+            fn()
+            wired.append(name)
+        except Exception as e:
+            print(f"• {name} skipped ({type(e).__name__}: {e})")
 
     # 2. Claude Code (CLI).
     if shutil.which("claude"):
-        _install_claude_code()
-        _install_skill(home / ".claude" / "skills")
-        wired.append("Claude Code")
+        def _cc():
+            _install_claude_code()
+            skill_once(home / ".claude" / "skills")
+        step("Claude Code", _cc)
 
     # 3. Cursor.
     if (home / ".cursor").exists() or _app_exists("Cursor"):
-        _write_json_server(home / ".cursor" / "mcp.json", "mcpServers")
-        _install_skill(home / ".cursor" / "skills")
-        wired.append("Cursor")
+        def _cur():
+            _write_json_server(home / ".cursor" / "mcp.json", "mcpServers")
+            skill_once(home / ".cursor" / "skills")
+        step("Cursor", _cur)
 
     # 4. Claude Desktop.
     cd = _claude_desktop_config_path()
     if cd.parent.exists() or _app_exists("Claude"):
-        _write_json_server(cd, "mcpServers")
-        _install_skill(home / ".claude" / "skills")
-        wired.append("Claude Desktop")
+        def _cdt():
+            _write_json_server(cd, "mcpServers")
+            skill_once(home / ".claude" / "skills")
+        step("Claude Desktop", _cdt)
 
     # 5. Codex.
     if (home / ".codex").exists() or shutil.which("codex"):
-        _write_codex(home / ".codex" / "config.toml")
-        wired.append("Codex")
+        step("Codex", lambda: _write_codex(home / ".codex" / "config.toml"))
 
     # 6. Windsurf / Cline share Cursor-style config dirs.
     if (home / ".codeium").exists() or _app_exists("Windsurf"):
-        _write_json_server(home / ".codeium" / "windsurf" / "mcp_config.json", "mcpServers")
-        wired.append("Windsurf")
+        step("Windsurf", lambda: _write_json_server(
+            home / ".codeium" / "windsurf" / "mcp_config.json", "mcpServers"))
 
     print("\n" + ("─" * 52))
     if wired:
@@ -198,21 +215,39 @@ def _install_skill(skills_dir: Path) -> None:
 
 
 def _install_claude_code() -> None:
-    """Register the fagun MCP server in Claude Code (user scope), all projects."""
+    """Register the fagun MCP server in Claude Code (user scope), all projects.
+
+    Robust across OSes: resolves the full `claude` path (on Windows it's a .cmd, so a
+    bare name fails CreateProcess), captures output, and NEVER raises — a broken or
+    missing CLI must not abort `fagun init`.
+    """
     import shutil
     import subprocess
 
-    if not shutil.which("claude"):
-        print("⚠️  `claude` CLI not found. Run manually: claude mcp add fagun --scope user -- uvx fagun")
+    claude = shutil.which("claude")
+    if not claude:
+        print("• Claude Code CLI not found — skipped (run `claude mcp add fagun --scope user -- uvx fagun` if you use it)")
         return
     try:
-        subprocess.run(
-            ["claude", "mcp", "add", "fagun", "--scope", "user", "--", "uvx", "fagun"],
-            check=True,
+        args = [claude, "mcp", "add", "fagun", "--scope", "user", "--", "uvx", "fagun"]
+        # On Windows the resolved binary is a .cmd/.bat, which CreateProcess can't
+        # exec directly by list form — run through the shell there.
+        win = sys.platform.startswith("win")
+        r = subprocess.run(
+            subprocess.list2cmdline(args) if win else args,
+            capture_output=True,
+            text=True,
+            shell=win,
         )
-        print("✅ registered fagun in Claude Code (user scope). Restart Claude Code, then type: fagun")
-    except subprocess.CalledProcessError as e:
-        print(f"⚠️  claude mcp add failed ({e}). It may already be registered — run `claude mcp list`.")
+        blob = ((r.stdout or "") + (r.stderr or "")).lower()
+        if r.returncode == 0:
+            print("✅ registered fagun in Claude Code (user scope)")
+        elif "already exists" in blob or "already" in blob:
+            print("✅ fagun already registered in Claude Code")
+        else:
+            print(f"• Claude Code: {(r.stderr or r.stdout).strip()[:100] or 'skipped'} (run `claude mcp list` to check)")
+    except Exception as e:
+        print(f"• Claude Code register skipped ({type(e).__name__}). Run: claude mcp add fagun --scope user -- uvx fagun")
 
 
 def _claude_desktop_config_path() -> Path:
