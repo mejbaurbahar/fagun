@@ -40,6 +40,17 @@ VS Code (Copilot MCP) →  .vscode/mcp.json
 Codex CLI          →  ~/.codex/config.toml
 {CODEX}
 ────────────────────────────────────────────────────────────────────
+⚡ EASIEST — one command each (also installs the /fagun skill):
+  uvx fagun install claude-code    # registers MCP in Claude Code (all projects)
+  uvx fagun install cursor         # writes ~/.cursor/mcp.json
+  uvx fagun install claude         # Claude Desktop
+  uvx fagun install vscode         # .vscode/mcp.json
+  uvx fagun install skill          # just the /fagun skill
+
+🧩 Claude Code plugin (skill + MCP together):
+  /plugin marketplace add mejbaurbahar/fagun
+  /plugin install fagun@fagun
+────────────────────────────────────────────────────────────────────
 After adding: restart the tool, then type  fagun  to start.
 """
 
@@ -72,12 +83,52 @@ def run_cli(argv: list[str]) -> None:
     home = Path.home()
     if target == "cursor":
         _write_json_server(home / ".cursor" / "mcp.json", "mcpServers")
+        _install_skill(home / ".cursor" / "skills")
     elif target == "claude":
         _write_json_server(_claude_desktop_config_path(), "mcpServers")
+        _install_skill(home / ".claude" / "skills")
     elif target == "vscode":
         _write_json_server(Path.cwd() / ".vscode" / "mcp.json", "servers")
+    elif target in ("claude-code", "cc"):
+        _install_claude_code()
+        _install_skill(home / ".claude" / "skills")
+    elif target == "skill":
+        _install_skill(home / ".claude" / "skills")
     else:
         print(HELP)
+
+
+def _install_skill(skills_dir: Path) -> None:
+    """Copy the bundled /fagun skill into a tool's skills directory."""
+    try:
+        from importlib.resources import files
+
+        text = (files("fagun.data") / "skill.md").read_text(encoding="utf-8")
+    except Exception as e:
+        print(f"⚠️  could not load bundled skill: {e}")
+        return
+    dest = skills_dir / "fagun" / "SKILL.md"
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    dest.write_text(text, encoding="utf-8")
+    print(f"✅ installed /fagun skill to {dest}")
+
+
+def _install_claude_code() -> None:
+    """Register the fagun MCP server in Claude Code (user scope), all projects."""
+    import shutil
+    import subprocess
+
+    if not shutil.which("claude"):
+        print("⚠️  `claude` CLI not found. Run manually: claude mcp add fagun --scope user -- uvx fagun")
+        return
+    try:
+        subprocess.run(
+            ["claude", "mcp", "add", "fagun", "--scope", "user", "--", "uvx", "fagun"],
+            check=True,
+        )
+        print("✅ registered fagun in Claude Code (user scope). Restart Claude Code, then type: fagun")
+    except subprocess.CalledProcessError as e:
+        print(f"⚠️  claude mcp add failed ({e}). It may already be registered — run `claude mcp list`.")
 
 
 def _claude_desktop_config_path() -> Path:

@@ -4,6 +4,18 @@ You are an AI coding tool (Claude, Cursor, Codex, Antigravity, Windsurf, Cline, 
 The user asked you to install and connect **Fagun**. Do the steps below in order.
 If any step fails, read the "Troubleshooting" section and retry.
 
+## Fastest path (try this first)
+
+If the user is on Claude Code, the whole setup is two lines — do these, then stop:
+
+```bash
+uvx fagun setup                  # installs uv-managed Chromium automatically
+uvx fagun install claude-code    # registers the MCP server + /fagun skill (user scope)
+```
+
+Or install as a plugin: `/plugin marketplace add mejbaurbahar/fagun` then
+`/plugin install fagun@fagun`. If either works, you're done — skip the steps below.
+
 ## The command users give you
 
 > Install or upgrade **fagun** to the latest stable version with `uv` using Python

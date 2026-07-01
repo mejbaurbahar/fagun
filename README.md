@@ -12,7 +12,43 @@ You set it up **once**. It works in **every** AI tool. Chrome installs **itself*
 
 ---
 
-## 🚀 Install (any OS — no Python or pip needed)
+## ⚡ Fastest setup — pick one
+
+**A) Paste this prompt into Claude Code / Cursor / Codex** — the AI does everything:
+
+> Install and set up **fagun** for me: install `uv` if missing, run `uvx fagun setup`,
+> then `uvx fagun install claude-code`. Follow
+> https://github.com/mejbaurbahar/fagun/blob/main/install.md if anything fails.
+
+**B) Claude Code plugin** — skill + browser tools in one go:
+
+```
+/plugin marketplace add mejbaurbahar/fagun
+/plugin install fagun@fagun
+```
+
+**C) One command** (installs the MCP server **and** the `/fagun` skill):
+
+```bash
+uvx fagun install claude-code    # Claude Code (all projects)
+uvx fagun install cursor         # Cursor
+uvx fagun install claude         # Claude Desktop
+uvx fagun install vscode         # VS Code
+```
+
+Then restart the tool and type **`fagun`**. That's it.
+
+<details>
+<summary>Don't have <code>uv</code> yet? (one line, no Python needed)</summary>
+
+**macOS / Linux:** `curl -LsSf https://astral.sh/uv/install.sh | sh`
+**Windows:** `powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"`
+Then restart your terminal.
+</details>
+
+---
+
+## 🚀 Manual install (any OS — no Python or pip needed)
 
 **Step 1 — install `uv`** (it brings its own Python, so nothing else is required):
 
