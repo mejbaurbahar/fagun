@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Fagun — Documentation, Why &amp; Who it's for</title>
-<meta name="description" content="Full Fagun documentation: what it is, why teams need it, who should use it, every MCP tool, the test taxonomy, and example prompts. Real bugs, real evidence, no fake results.">
+<meta name="description" content="Full Fagun documentation: end-user simulation, UAT, personas, user journeys, product-readiness scorecard, authenticated testing, every MCP tool, the test taxonomy, security classes, and example prompts. Real bugs, real evidence, no fake results.">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='13' font-size='13'>🦊</text></svg>">
 <style>
 *{box-sizing:border-box}
@@ -57,13 +57,13 @@ section{scroll-margin-top:80px}
 
 <!-- hero -->
 <section class="wrap" style="padding-top:clamp(46px,8vh,90px);padding-bottom:20px">
-  <p class="pill">Documentation · v0.7.0 · Open source (MIT)</p>
+  <p class="pill">Documentation · v0.9.0 · Open source (MIT)</p>
   <h1 style="margin:0;font-size:clamp(2.4rem,6vw,4.4rem);line-height:1">The complete guide to <span style="font-style:italic;color:var(--gold)">Fagun</span>.</h1>
-  <p style="max-width:680px;margin:22px 0 0;font-size:clamp(16px,2vw,19px);line-height:1.6;color:var(--muted)">
-    One MCP server that gives <b style="color:var(--text)">any</b> AI tool a real browser to click, crawl, and find <b style="color:var(--text)">real</b> bugs — functional, security, performance, accessibility, SEO. Every finding is backed by evidence. Nothing is faked; if it can't be reproduced, it isn't reported.
+  <p style="max-width:720px;margin:22px 0 0;font-size:clamp(16px,2vw,19px);line-height:1.6;color:var(--muted)">
+    One MCP server that gives <b style="color:var(--text)">any</b> AI tool a real browser to use your product like real customers do — as multiple personas, across whole user journeys — run full <b style="color:var(--text)">UAT</b>, hunt <b style="color:var(--text)">real</b> bugs (functional, security, performance, accessibility, SEO), and return a <b style="color:var(--text)">product-readiness verdict</b>. Every finding is backed by evidence. Nothing is faked; if it can't be reproduced, it isn't reported.
   </p>
   <div style="display:flex;gap:20px;flex-wrap:wrap;margin-top:24px">
-    <span class="tag">30 MCP tools</span><span class="tag">WCAG 2.1 a11y</span><span class="tag">Real Core Web Vitals</span><span class="tag">20+ security classes</span><span class="tag">Active form fuzzing</span><span class="tag">Works with local models</span>
+    <span class="tag">42 MCP tools</span><span class="tag">11 end-user personas</span><span class="tag">User-journey runner</span><span class="tag">16-category readiness scorecard</span><span class="tag">WCAG 2.1 a11y</span><span class="tag">Real Core Web Vitals</span><span class="tag">20+ security classes</span><span class="tag">Authenticated testing</span><span class="tag">Works with local models</span>
   </div>
 </section>
 
@@ -75,6 +75,7 @@ section{scroll-margin-top:80px}
       <p style="font-size:11px;letter-spacing:.16em;color:var(--gold);text-transform:uppercase;margin:0 0 6px">On this page</p>
       <a href="#what">What is Fagun</a>
       <a href="#why">Why you need it</a>
+      <a href="#uat">UAT &amp; readiness</a>
       <a href="#who">Who it's for</a>
       <a href="#install">Install</a>
       <a href="#tools">All tools</a>
@@ -92,8 +93,8 @@ section{scroll-margin-top:80px}
     <!-- WHAT -->
     <section id="what">
       <p class="pill">What is Fagun</p>
-      <h2 style="margin:0 0 16px;font-size:clamp(1.7rem,3.4vw,2.5rem)">A senior QA + security engineer that lives in your AI tool.</h2>
-      <p style="color:var(--muted);font-size:16px;line-height:1.7;max-width:720px">Fagun is a <b style="color:var(--text)">Model Context Protocol (MCP)</b> server. Install it once and your AI assistant — Claude Code, Cursor, Codex, Windsurf, Claude Desktop, or any MCP client — gains 30 browser + QA tools. It drives a <b style="color:var(--text)">real Chromium browser</b> (auto-installed), navigates like a user, and reports defects the way an engineering team would: with steps, evidence, severity, and a suggested fix.</p>
+      <h2 style="margin:0 0 16px;font-size:clamp(1.7rem,3.4vw,2.5rem)">A senior UAT, QA &amp; security engineer that lives in your AI tool.</h2>
+      <p style="color:var(--muted);font-size:16px;line-height:1.7;max-width:720px">Fagun is a <b style="color:var(--text)">Model Context Protocol (MCP)</b> server. Install it once and your AI assistant — Claude Code, Cursor, Codex, Windsurf, Claude Desktop, or any MCP client — gains 42 browser + QA tools. It drives a <b style="color:var(--text)">real Chromium browser</b> (auto-installed) and does what a whole product team would: <b style="color:var(--text)">uses the product as real customers</b> (mobile, slow-internet, keyboard-only, screen-reader…), <b style="color:var(--text)">walks complete journeys</b> (signup, login, search, checkout…), hunts defects, and ends with a <b style="color:var(--text)">product-readiness verdict</b> — every finding with steps, evidence, severity, and a suggested fix.</p>
       <div class="grid g3" style="margin-top:24px">
         <div class="card"><div style="font-size:22px">🎯</div><h3 style="margin:.4em 0 .3em;font-size:17px;color:var(--text)">Real, not hallucinated</h3><p style="margin:0;color:var(--muted);font-size:14px;line-height:1.6">Every finding comes from an actual tool result — a console error, a status code, a measured metric. No "could potentially".</p></div>
         <div class="card"><div style="font-size:22px">🔌</div><h3 style="margin:.4em 0 .3em;font-size:17px;color:var(--text)">Any AI, any model</h3><p style="margin:0;color:var(--muted);font-size:14px;line-height:1.6">Pure MCP — no built-in model. Works with frontier models <i>and</i> fully local open-source ones via Ollama (Qwen, DeepSeek, Llama, Mistral…).</p></div>
@@ -121,14 +122,29 @@ section{scroll-margin-top:80px}
         <div class="card" style="border-color:rgba(232,176,75,.3)">
           <h3 style="margin:0 0 10px;font-size:17px;color:#4ade80">With Fagun</h3>
           <ul style="margin:0;padding-left:18px;color:var(--muted);font-size:14.5px;line-height:1.8">
-            <li>Feature loaded, clicked, verified end-to-end</li>
+            <li>Product used as real personas, journeys walked end-to-end</li>
             <li>Console + network watched after every action</li>
-            <li>Links, forms, WCAG checked automatically</li>
+            <li>Links, forms, WCAG, keyboard checked automatically</li>
             <li>20+ security classes probed (non-destructive)</li>
             <li>Real Core Web Vitals with a Lighthouse-style score</li>
-            <li>One command re-runs the whole sweep any time</li>
+            <li>A product-readiness verdict + one-command re-runs</li>
           </ul>
         </div>
+      </div>
+    </section>
+
+    <!-- UAT & READINESS -->
+    <section id="uat">
+      <p class="pill">UAT &amp; readiness</p>
+      <h2 style="margin:0 0 16px;font-size:clamp(1.7rem,3.4vw,2.5rem)">Not just "are there bugs" — <span style="font-style:italic;color:var(--gold)">is it ready for real users?</span></h2>
+      <p style="color:var(--muted);font-size:16px;line-height:1.7;max-width:720px">Fagun's primary job is a release decision. It experiences the product as real customers, validates that they can actually finish what they came to do, then scores readiness across 16 dimensions and gives a verdict — from <b style="color:var(--text)">Ready</b> to <b style="color:var(--text)">Critical issues block release</b>.</p>
+      <div class="grid g3" style="margin-top:24px">
+        <div class="card"><div style="font-size:22px">🎭</div><h3 style="margin:.4em 0 .3em;font-size:17px;color:var(--text)">11 end-user personas</h3><p style="margin:0;color:var(--muted);font-size:14px;line-height:1.6">Become a first-time, mobile, tablet, slow-internet, low-end, keyboard-only, screen-reader, dark-mode, or international user — real device, network + CPU throttle, and media prefs, not just a resized window.</p></div>
+        <div class="card"><div style="font-size:22px">🧭</div><h3 style="margin:.4em 0 .3em;font-size:17px;color:var(--text)">Complete user journeys</h3><p style="margin:0;color:var(--muted);font-size:14px;line-height:1.6">Walk login, signup, search, checkout, password-reset and more step-by-step. Each step records pass/fail, a screenshot, console errors, failed requests and timing — a step only "passes" if the browser actually did it.</p></div>
+        <div class="card"><div style="font-size:22px">📊</div><h3 style="margin:.4em 0 .3em;font-size:17px;color:var(--text)">Readiness scorecard</h3><p style="margin:0;color:var(--muted);font-size:14px;line-height:1.6">16 category scores (UX, UI, business logic, reliability, a11y, performance, security, mobile…) + a release verdict + prioritized fixes (why it matters, how to fix). Rendered to Markdown / HTML / JSON / JUnit XML.</p></div>
+        <div class="card"><div style="font-size:22px">🔐</div><h3 style="margin:.4em 0 .3em;font-size:17px;color:var(--text)">Test behind login</h3><p style="margin:0;color:var(--muted);font-size:14px;line-height:1.6">Log in once, <code>save_session</code>, then <code>load_session</code> restores it — so crawl, deep test and security scan run <b style="color:var(--text)">as the logged-in user</b>: dashboards, checkout, and authorization surface.</p></div>
+        <div class="card"><div style="font-size:22px">⌨️</div><h3 style="margin:.4em 0 .3em;font-size:17px;color:var(--text)">Keyboard walk</h3><p style="margin:0;color:var(--muted);font-size:14px;line-height:1.6">Tab through the page like a keyboard-only / screen-reader user — focus reachability, missing visible focus, and focus traps, with evidence.</p></div>
+        <div class="card"><div style="font-size:22px">🔎</div><h3 style="margin:.4em 0 .3em;font-size:17px;color:var(--text)">Tech fingerprint</h3><p style="margin:0;color:var(--muted);font-size:14px;line-height:1.6"><code>fingerprint</code> detects server, hosting, framework, CMS and analytics from real headers + DOM signals — so the hunt is tuned to the actual stack.</p></div>
       </div>
     </section>
 
@@ -160,15 +176,25 @@ section{scroll-margin-top:80px}
 <span style="color:#7fb0e8">/plugin</span> <span style="color:var(--muted)">marketplace add mejbaurbahar/fagun</span>
 <span style="color:#7fb0e8">/plugin</span> <span style="color:var(--muted)">install fagun@fagun</span>
       </div>
-      <p style="color:var(--muted);font-size:13px;margin-top:14px">Env toggles: <code>FAGUN_TERSE=0</code> full JSON · <code>FAGUN_HEADLESS=0</code> show the browser · <code>FAGUN_BROWSER=firefox|webkit</code> · <code>FAGUN_CDP_URL</code> attach to your own Chrome.</p>
+      <p style="color:var(--muted);font-size:13px;margin-top:14px">Env toggles: <code>FAGUN_TERSE=0</code> full JSON · <code>FAGUN_HEADLESS=0</code> show the browser · <code>FAGUN_BROWSER=firefox|webkit</code> · <code>FAGUN_CDP_URL</code> attach to your own Chrome · <code>FAGUN_SCOPE=host1,host2</code> restrict active probes to authorized hosts (<code>FAGUN_SCOPE_DENY</code> always wins).</p>
     </section>
 
     <!-- TOOLS -->
     <section id="tools">
-      <p class="pill">All 30 MCP tools</p>
+      <p class="pill">All 42 MCP tools</p>
       <h2 style="margin:0 0 20px;font-size:clamp(1.7rem,3.4vw,2.5rem)">Everything it can do.</h2>
 
-      <h3 style="font-size:16px;color:var(--gold);margin:0 0 8px">Browse &amp; debug</h3>
+      <h3 style="font-size:16px;color:var(--gold);margin:0 0 8px">UAT &amp; end-user simulation</h3>
+      <div class="card" style="padding:0;overflow-x:auto"><table>
+        <tr><th>Tool</th><th>What it does</th></tr>
+        <tr><td><code>list_personas</code> · <code>emulate_persona</code></td><td>Reconfigure the browser to experience the site as a real user type — 11 presets (first-time, mobile, tablet, slow-internet, low-end, keyboard-only, screen-reader, dark-mode, international…) with real device, network/CPU throttle &amp; media prefs.</td></tr>
+        <tr><td><code>run_journey</code></td><td>Walk a full flow step-by-step; per-step pass/fail, screenshot, console errors, failed requests &amp; timing. A step passes only if the browser actually did it.</td></tr>
+        <tr><td><code>list_journeys</code> · <code>journey_template</code></td><td>Built-in journey scaffolds (login, register, password-reset, search, checkout, contact) to copy and fill in.</td></tr>
+        <tr><td><code>keyboard_walk</code></td><td>Tab through like a keyboard-only user — focus reachability, invisible focus, traps.</td></tr>
+        <tr><td><code>readiness_report</code></td><td>16-category readiness scorecard + release verdict + prioritized fixes from collected findings.</td></tr>
+      </table></div>
+
+      <h3 style="font-size:16px;color:var(--gold);margin:26px 0 8px">Browse &amp; debug</h3>
       <div class="card" style="padding:0;overflow-x:auto"><table>
         <tr><th>Tool</th><th>What it does</th></tr>
         <tr><td><code>open_browser</code></td><td>Launch (or attach to) the browser.</td></tr>
@@ -189,18 +215,27 @@ section{scroll-margin-top:80px}
         <tr><td><code>test_forms</code></td><td>Static form audit (security / validation / a11y) — no submit.</td></tr>
         <tr><td><code>fuzz_forms</code></td><td><b style="color:var(--text)">Active</b>: fills each field with the labelled test-data catalog, reads the browser's real validity verdict, flags gaps. <code>submit=true</code> opt-in.</td></tr>
         <tr><td><code>list_test_data</code></td><td>Show the test cases used for a field type.</td></tr>
-        <tr><td><code>deep_test</code></td><td>The big one: crawl + per-page QA + forms + full security + real vitals → one report.</td></tr>
-        <tr><td><code>full_qa_sweep</code> · <code>write_report</code></td><td>Multi-page QA / write a Markdown report from results.</td></tr>
+        <tr><td><code>deep_test</code></td><td>The big one: crawl + per-page QA + forms + full security + real vitals + keyboard + <b style="color:var(--text)">readiness verdict</b> → one report (.md/.html/.json/.xml).</td></tr>
+        <tr><td><code>full_qa_sweep</code> · <code>write_report</code></td><td>Multi-page QA / write a report (Markdown, HTML, JSON, or JUnit XML by extension).</td></tr>
       </table></div>
 
       <h3 style="font-size:16px;color:var(--gold);margin:26px 0 8px">Performance, accessibility &amp; security</h3>
       <div class="card" style="padding:0;overflow-x:auto"><table>
         <tr><th>Tool</th><th>What it does</th></tr>
+        <tr><td><code>fingerprint</code></td><td>Detect server / hosting / framework / CMS / analytics from real headers + DOM signals — tune the hunt to the stack.</td></tr>
         <tr><td><code>perf_audit</code></td><td>Real Core Web Vitals (LCP, CLS, TBT, FCP, TTFB) + a Lighthouse-comparable 0-100 score. No estimates.</td></tr>
         <tr><td><code>a11y_audit</code></td><td>Deep WCAG 2.1 incl. real computed color-contrast, ARIA, labels, headings, focus order, zoom.</td></tr>
         <tr><td><code>security_headers</code></td><td>CSP, HSTS, X-Frame, nosniff, version/stack leaks.</td></tr>
         <tr><td><code>security_scan</code></td><td>Full non-destructive scan (core + advanced, see below).</td></tr>
         <tr><td><code>advanced_security</code></td><td>Advanced probe battery only.</td></tr>
+      </table></div>
+
+      <h3 style="font-size:16px;color:var(--gold);margin:26px 0 8px">Authenticated sessions</h3>
+      <div class="card" style="padding:0;overflow-x:auto"><table>
+        <tr><th>Tool</th><th>What it does</th></tr>
+        <tr><td><code>save_session</code></td><td>Save the current logged-in session (cookies + localStorage) to disk after you log in.</td></tr>
+        <tr><td><code>load_session</code></td><td>Restore a saved session into a fresh context — crawl / deep test / security scan then run authenticated.</td></tr>
+        <tr><td><code>list_sessions</code> · <code>delete_session</code></td><td>Manage saved sessions.</td></tr>
       </table></div>
 
       <h3 style="font-size:16px;color:var(--gold);margin:26px 0 8px">Power &amp; self-healing</h3>
@@ -250,7 +285,7 @@ section{scroll-margin-top:80px}
     <section id="security">
       <p class="pill">Security classes</p>
       <h2 style="margin:0 0 10px;font-size:clamp(1.7rem,3.4vw,2.5rem)">Bug-bounty-grade, non-destructive.</h2>
-      <p style="color:var(--muted);font-size:14px;line-height:1.6;max-width:720px">GET/HEAD/OPTIONS only. No writes, no attacks on third parties, unique harmless markers. Every finding quotes what was actually seen. <b style="color:var(--text)">Run only against systems you're authorized to test.</b></p>
+      <p style="color:var(--muted);font-size:14px;line-height:1.6;max-width:720px">GET/HEAD/OPTIONS only. No writes, no attacks on third parties, unique harmless markers. Every finding quotes what was actually seen. Set <code>FAGUN_SCOPE</code> to fence probes to authorized hosts. <b style="color:var(--text)">Run only against systems you're authorized to test.</b></p>
       <div style="margin-top:18px">
         <span class="tag">Exposed files (.git/.env/.aws)</span><span class="tag">Leaked secrets (AWS/Stripe/JWT…)</span><span class="tag">CORS misconfig</span><span class="tag">Reflected XSS</span><span class="tag">Open redirect</span><span class="tag">SQLi error signals</span><span class="tag">Cookie flags</span><span class="tag">CSP quality</span><span class="tag">Clickjacking</span><span class="tag">Risky HTTP methods / TRACE</span><span class="tag">Mixed content</span><span class="tag">Missing SRI</span><span class="tag">Sensitive-page caching</span><span class="tag">Host-header injection</span><span class="tag">CRLF injection</span><span class="tag">Path traversal / LFI</span><span class="tag">SSTI (7*7=49)</span><span class="tag">Command injection signals</span><span class="tag">GraphQL introspection</span><span class="tag">Error / stack-trace disclosure</span><span class="tag">Sensitive data in URL</span><span class="tag">Security headers</span>
       </div>
@@ -261,12 +296,12 @@ section{scroll-margin-top:80px}
       <p class="pill">Example prompts</p>
       <h2 style="margin:0 0 16px;font-size:clamp(1.7rem,3.4vw,2.5rem)">Just talk to it.</h2>
       <div class="grid g2">
-        <div class="card mono" style="font-size:13.5px;line-height:1.7;color:var(--muted)">"deep test https://example.com and write the report to ./report.md"</div>
-        <div class="card mono" style="font-size:13.5px;line-height:1.7;color:var(--muted)">"fuzz the signup form on staging.myapp.com — try invalid and edge inputs"</div>
-        <div class="card mono" style="font-size:13.5px;line-height:1.7;color:var(--muted)">"perf audit our landing page and tell me what's hurting LCP"</div>
-        <div class="card mono" style="font-size:13.5px;line-height:1.7;color:var(--muted)">"a11y audit this page for WCAG AA contrast and label issues"</div>
-        <div class="card mono" style="font-size:13.5px;line-height:1.7;color:var(--muted)">"security scan example.com — I own it — and rank by severity"</div>
-        <div class="card mono" style="font-size:13.5px;line-height:1.7;color:var(--muted)">"connect to my Chrome, log in, then check the dashboard for console errors"</div>
+        <div class="card mono" style="font-size:13.5px;line-height:1.7;color:var(--muted)">"deep test https://example.com and give me a readiness verdict + report to ./report.html"</div>
+        <div class="card mono" style="font-size:13.5px;line-height:1.7;color:var(--muted)">"experience acme.store as a slow-internet mobile user — where would they give up?"</div>
+        <div class="card mono" style="font-size:13.5px;line-height:1.7;color:var(--muted)">"run the checkout journey on staging and tell me if a real user can finish it"</div>
+        <div class="card mono" style="font-size:13.5px;line-height:1.7;color:var(--muted)">"log into my app, save the session, then deep test the dashboard as that user"</div>
+        <div class="card mono" style="font-size:13.5px;line-height:1.7;color:var(--muted)">"fingerprint example.com, then security scan it — I own it — and rank by severity"</div>
+        <div class="card mono" style="font-size:13.5px;line-height:1.7;color:var(--muted)">"a11y audit + keyboard walk this page for WCAG AA and focus issues"</div>
       </div>
     </section>
 
@@ -312,7 +347,7 @@ section{scroll-margin-top:80px}
 
 <footer style="border-top:1px solid var(--line);padding:26px 0">
   <div class="wrap" style="display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap;color:var(--muted);font-size:13px">
-    <span>🦊 Fagun v0.7.0 · MIT © <a href="https://github.com/mejbaurbahar" style="color:var(--muted)">Mejbaur Bahar Fagun</a></span>
+    <span>🦊 Fagun v0.9.0 · MIT © <a href="https://github.com/mejbaurbahar" style="color:var(--muted)">Mejbaur Bahar Fagun</a></span>
     <span><a href="https://github.com/mejbaurbahar/fagun" style="color:var(--muted)">GitHub</a> · <a href="https://pypi.org/project/fagun/" style="color:var(--muted)">PyPI</a> · <a href="./index.html" style="color:var(--muted)">Home</a></span>
   </div>
 </footer>
