@@ -3,14 +3,14 @@
   "owner": { "name": "Mejbaur Bahar Fagun", "url": "https://github.com/mejbaurbahar" },
   "metadata": {
     "description": "Fagun — give any AI a browser to run UAT, use a site as real users, hunt bugs, and score product readiness.",
-    "version": "0.8.0"
+    "version": "0.9.0"
   },
   "plugins": [
     {
       "name": "fagun",
       "source": "./",
       "description": "End-user simulation + UAT + full QA + bug-hunting + product-readiness scorecard in one MCP server. Installs the fagun MCP server (via uvx) and the /fagun skill together.",
-      "version": "0.8.0",
+      "version": "0.9.0",
       "author": { "name": "Mejbaur Bahar Fagun" },
       "homepage": "https://github.com/mejbaurbahar/fagun",
       "license": "MIT"

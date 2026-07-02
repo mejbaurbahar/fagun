@@ -5,6 +5,10 @@ Env vars:
   FAGUN_CDP_URL    connect to an already-running Chrome via CDP instead of
                    launching a fresh one, e.g. http://127.0.0.1:9222
   FAGUN_BROWSER    chromium | firefox | webkit  (default chromium)
+  FAGUN_SCOPE      comma-separated hostnames Fagun is allowed to probe (incl.
+                   subdomains). When set, any other host is refused — keeps
+                   active security probes on authorized targets only.
+  FAGUN_SCOPE_DENY comma-separated hostnames always refused, even if allowed.
 """
 
 from __future__ import annotations

@@ -1,6 +1,6 @@
 {
   "name": "fagun",
-  "version": "0.8.0",
+  "version": "0.9.0",
   "description": "Give any AI a browser to use a site as real end users, run full UAT, validate user journeys, hunt real bugs, and deliver a product-readiness verdict. QA + a11y + perf + security + readiness scorecard in one MCP server. Token-lean by default.",
   "author": { "name": "Mejbaur Bahar Fagun", "url": "https://github.com/mejbaurbahar" },
   "homepage": "https://github.com/mejbaurbahar/fagun",

@@ -187,6 +187,11 @@ Wrong password → clear error, no crash, no user enumeration; session persists 
 reload; logout truly clears it; protected URL while logged out → redirect not leak;
 IDOR smell (change an id → someone else's data? observe, don't mass-enumerate);
 password over GET/http → high.
+**Test behind login:** drive the login once (`run_journey` / `fill`+`click`), then
+`save_session("name")` — Fagun stores cookies + localStorage. Later (or after a
+reset) `load_session("name")` restores an authenticated context, so `deep_test` /
+`crawl` / `security_scan` run AS the logged-in user (dashboards, checkout,
+authorization surface). `list_sessions` / `delete_session` to manage them.
 
 ### F. Accessibility (WCAG 2.1 — `a11y_audit(url)` + `keyboard_walk(url)`)
 Real DOM checks: missing alt, unlabeled controls, empty buttons/links, computed
@@ -204,6 +209,10 @@ Re-check under `emulate_persona("slow-internet")` / `"low-end"`.
 Overflow, overlap, cut-off text, broken images, dark-mode/zoom-200% breakage.
 
 ### I. Security (bug-bounty grade — AUTHORIZED targets only)
+Start with **`fingerprint(url)`** — server/hosting/framework/CMS/analytics — to tune
+the hunt (WordPress → wp-json/xmlrpc; Next.js → /_next/data; version-leaking Server
+header → CVE lookup). **Scope:** set `FAGUN_SCOPE=host1,host2` (subdomains included)
+so active probes refuse any out-of-scope host; `FAGUN_SCOPE_DENY` always wins.
 **`security_scan(url)`** (advanced on by default), or `advanced_security(url)`.
 Classes: exposed files (`/.git/config`, `/.env`, `/.aws/credentials`, backups,
 `/actuator/env`, swagger); leaked secrets (AWS/`sk_live_`/Google/`ghp_`/JWT/keys —
@@ -261,8 +270,9 @@ hypothesis as confirmed.
 **UAT/end-user:** `list_personas` · `emulate_persona` · `run_journey` ·
 `list_journeys` · `journey_template` · `keyboard_walk` · `readiness_report`
 **QA:** `crawl` · `run_qa` · `check_links` · `test_forms` · `fuzz_forms` ·
-`list_test_data` · `perf_audit` · `a11y_audit` · `security_headers` ·
+`list_test_data` · `fingerprint` · `perf_audit` · `a11y_audit` · `security_headers` ·
 `security_scan` · `advanced_security` · `deep_test` · `full_qa_sweep` · `write_report`
+**Auth sessions:** `save_session` · `load_session` · `list_sessions` · `delete_session`
 **Browser:** `fagun_start` · `open_browser` · `navigate` · `click` · `fill` ·
 `press_key` · `screenshot` · `evaluate_js` · `get_console` · `get_network` · `close_browser`
 **Power:** `browser_exec` · `save_helper` · `list_helpers` · `load_helper` · `connect_chrome`

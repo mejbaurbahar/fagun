@@ -7,6 +7,8 @@ can use them. The `fagun` prompt is the entry point users invoke.
 
 from __future__ import annotations
 
+import functools
+import inspect
 import json
 import os
 import tempfile
@@ -18,11 +20,14 @@ from . import __version__
 from . import format as fmt
 from . import healing
 from . import readiness as _readiness
+from . import scope as _scope
+from . import session as _session
 from . import testdata as _testdata
 from . import uat as _uat
 from .a11y import audit as _a11y_audit
 from .advsec import advanced_scan as _advanced_scan
 from .browser import launch_debuggable_chrome, manager
+from .fingerprint import fingerprint as _fingerprint
 from .forms import fuzz_forms as _fuzz_forms
 from .security import security_scan as _security_scan
 from .vitals import measure as _measure
@@ -36,6 +41,28 @@ from .report import build_markdown
 from .report import write_report as _write_report
 
 mcp = FastMCP("fagun")
+
+
+def _browser_tool(fn):
+    """Wrap a browser-touching tool so calls are (1) scope-guarded on any ``url``
+    argument and (2) serialized on the shared browser lock. ``functools.wraps``
+    keeps the original signature visible to FastMCP's schema generator (it follows
+    ``__wrapped__``), so tool schemas are unchanged."""
+    sig = inspect.signature(fn)
+
+    @functools.wraps(fn)
+    async def wrapper(*args, **kwargs):
+        try:
+            bound = sig.bind_partial(*args, **kwargs)
+            url = bound.arguments.get("url")
+        except TypeError:
+            url = None
+        if isinstance(url, str) and url:
+            _scope.guard(url)
+        async with manager.lock:
+            return await fn(*args, **kwargs)
+
+    return wrapper
 
 MENU = f"""🦊 **Fagun v{__version__}** — end-user + UAT + QA agent, ready.
 
@@ -70,10 +97,16 @@ whole user journeys, and give you a product-readiness verdict. Ask me to:
 - `security scan <url>` — full: exposed files, secrets, CORS, XSS, redirect,
   SQLi, CSP, clickjacking, HTTP methods, CRLF, LFI, SSTI, cmdi, GraphQL, more
 - `advanced security <url>` — advanced probe battery only
+- `fingerprint <url>` — detect server / framework / CMS / analytics stack
 - `list test data <type>` — see the test-case catalog fuzz_forms uses
 - `deep test <url>` — crawl + QA + forms + security + vitals + keyboard +
   readiness scorecard, one report (.md/.html/.json/.xml by extension)
 - `write the report to <path>`
+
+**Authenticated testing**
+- log in once (drive it or `run journey`), then `save session` — Fagun stores
+  cookies + localStorage and can `load session` later to crawl / deep test /
+  security scan AS the logged-in user (dashboards, checkout, authorization)
 
 **Power / self-healing**
 - `connect to my Chrome` — auto-launches debuggable Chrome, no manual setup
@@ -98,12 +131,14 @@ def fagun_start() -> str:
 
 # ---------------------------------------------------------------- browser tools
 @mcp.tool()
+@_browser_tool
 async def open_browser(headless: bool = True) -> str:
     """Launch (or attach to) the browser."""
     return await manager.start(headless=headless)
 
 
 @mcp.tool()
+@_browser_tool
 async def navigate(url: str) -> str:
     """Go to a URL."""
     page = await manager.page()
@@ -112,6 +147,7 @@ async def navigate(url: str) -> str:
 
 
 @mcp.tool()
+@_browser_tool
 async def click(target: str) -> str:
     """Click an element by CSS selector or visible text."""
     page = await manager.page()
@@ -123,6 +159,7 @@ async def click(target: str) -> str:
 
 
 @mcp.tool()
+@_browser_tool
 async def fill(selector: str, value: str) -> str:
     """Type text into a form field (CSS selector or label/placeholder text)."""
     page = await manager.page()
@@ -134,6 +171,7 @@ async def fill(selector: str, value: str) -> str:
 
 
 @mcp.tool()
+@_browser_tool
 async def press_key(key: str) -> str:
     """Press a keyboard key, e.g. 'Enter', 'Tab', 'Escape'."""
     page = await manager.page()
@@ -142,6 +180,7 @@ async def press_key(key: str) -> str:
 
 
 @mcp.tool()
+@_browser_tool
 async def screenshot(full_page: bool = False) -> str:
     """Take a screenshot; saves a PNG and returns its path."""
     page = await manager.page()
@@ -151,6 +190,7 @@ async def screenshot(full_page: bool = False) -> str:
 
 
 @mcp.tool()
+@_browser_tool
 async def evaluate_js(code: str) -> str:
     """Run JavaScript in the page and return the result as JSON."""
     page = await manager.page()
@@ -194,6 +234,7 @@ async def get_network(only_problems: bool = False, limit: int = 60) -> str:
 
 
 @mcp.tool()
+@_browser_tool
 async def close_browser() -> str:
     """Close the browser and free resources."""
     return await manager.stop()
@@ -203,6 +244,7 @@ async def close_browser() -> str:
 # All QA tools default to TERSE output (compact text) to save the AI's tokens.
 # Pass verbose=True for full JSON.
 @mcp.tool()
+@_browser_tool
 async def crawl(url: str, max_pages: int = 20, verbose: bool = False) -> str:
     """Crawl a site within the same host, up to max_pages."""
     r = await _crawl(url, max_pages)
@@ -215,12 +257,14 @@ async def crawl(url: str, max_pages: int = 20, verbose: bool = False) -> str:
 
 
 @mcp.tool()
+@_browser_tool
 async def run_qa(url: str, verbose: bool = False) -> str:
     """Run the QA sweep on a single page (console, network, a11y, perf, SEO)."""
     return fmt.render_qa(await _run_qa(url), terse=not verbose and fmt.is_terse())
 
 
 @mcp.tool()
+@_browser_tool
 async def full_qa_sweep(url: str, max_pages: int = 10, report_path: Optional[str] = None) -> str:
     """Crawl a site, run QA on each page, and (optionally) write a Markdown report."""
     crawl_result = await _crawl(url, max_pages)
@@ -236,6 +280,7 @@ async def full_qa_sweep(url: str, max_pages: int = 10, report_path: Optional[str
 
 
 @mcp.tool()
+@_browser_tool
 async def security_headers(url: str, verbose: bool = False) -> str:
     """Check a page for missing/weak security headers (CSP, HSTS, X-Frame, etc.)."""
     r = await _security_headers(url)
@@ -245,6 +290,7 @@ async def security_headers(url: str, verbose: bool = False) -> str:
 
 
 @mcp.tool()
+@_browser_tool
 async def check_links(url: str, max_links: int = 100, verbose: bool = False) -> str:
     """Find broken links (4xx/5xx/unreachable) among the links on a page."""
     r = await _check_links(url, max_links)
@@ -254,6 +300,7 @@ async def check_links(url: str, max_links: int = 100, verbose: bool = False) -> 
 
 
 @mcp.tool()
+@_browser_tool
 async def test_forms(url: str, verbose: bool = False) -> str:
     """Audit every form on a page for security, validation and a11y issues (no submit)."""
     r = await _test_forms(url)
@@ -263,6 +310,7 @@ async def test_forms(url: str, verbose: bool = False) -> str:
 
 
 @mcp.tool()
+@_browser_tool
 async def deep_test(url: str, max_pages: int = 8, report_path: Optional[str] = None,
                     security: bool = True, perf: bool = True, keyboard: bool = True,
                     verbose: bool = False) -> str:
@@ -286,6 +334,7 @@ async def deep_test(url: str, max_pages: int = 8, report_path: Optional[str] = N
 
 
 @mcp.tool()
+@_browser_tool
 async def security_scan(url: str, advanced: bool = True, verbose: bool = False) -> str:
     """Active-but-safe security scan. Core: exposed files, leaked secrets, CORS,
     cookie flags, reflected-XSS, open redirect, SQLi error signals. With
@@ -315,6 +364,7 @@ async def security_scan(url: str, advanced: bool = True, verbose: bool = False) 
 
 
 @mcp.tool()
+@_browser_tool
 async def advanced_security(url: str, verbose: bool = False) -> str:
     """Advanced security probes only (CSP/clickjacking/HTTP-methods/mixed-content/
     SRI/cache/host-header/CRLF/path-traversal/SSTI/cmdi/GraphQL/error-disclosure).
@@ -326,6 +376,23 @@ async def advanced_security(url: str, verbose: bool = False) -> str:
 
 
 @mcp.tool()
+@_browser_tool
+async def fingerprint(url: str, verbose: bool = False) -> str:
+    """Detect the tech stack of a URL — server/proxy, hosting (Vercel/Netlify/
+    Cloudflare/…), JS frameworks (React/Next/Vue/Angular/…), CMS/platform
+    (WordPress/Shopify/…), and analytics — from real headers + DOM/JS signals.
+    Use it before hunting to tune checks and to give the report context."""
+    r = await _fingerprint(url)
+    if verbose or not fmt.is_terse():
+        return fmt.dumps(r)
+    head = f"{url} | {r['summary']}"
+    if r.get("findings"):
+        return head + "\n" + fmt.findings_block(url, r["findings"], meta="tech")
+    return head
+
+
+@mcp.tool()
+@_browser_tool
 async def perf_audit(url: str, verbose: bool = False) -> str:
     """Measure REAL Core Web Vitals (LCP, CLS, TBT, FCP, TTFB, INP) via the
     browser's Performance APIs and return a Lighthouse-comparable perf score
@@ -341,6 +408,7 @@ async def perf_audit(url: str, verbose: bool = False) -> str:
 
 
 @mcp.tool()
+@_browser_tool
 async def a11y_audit(url: str, verbose: bool = False) -> str:
     """Deep accessibility audit — real WCAG 2.1 checks in the live DOM including
     computed color-contrast, labels, ARIA roles, headings, focus order, zoom.
@@ -352,6 +420,7 @@ async def a11y_audit(url: str, verbose: bool = False) -> str:
 
 
 @mcp.tool()
+@_browser_tool
 async def fuzz_forms(url: str, submit: bool = False, verbose: bool = False) -> str:
     """Actively fuzz every form field with labelled test data (valid/invalid/edge/
     boundary/out-of-box/injection) and report REAL validation gaps read from the
@@ -385,6 +454,7 @@ def list_personas() -> str:
 
 
 @mcp.tool()
+@_browser_tool
 async def emulate_persona(name: str) -> str:
     """Reconfigure the browser to experience the site AS a given user type — real
     device viewport/touch, network + CPU throttling, and media prefs (reduced
@@ -398,6 +468,7 @@ async def emulate_persona(name: str) -> str:
 
 
 @mcp.tool()
+@_browser_tool
 async def run_journey(steps_json: str, name: str = "journey", screenshots: bool = True,
                       verbose: bool = False) -> str:
     """Walk a complete user journey step-by-step and report whether a real user
@@ -450,6 +521,7 @@ def journey_template(name: str) -> str:
 
 
 @mcp.tool()
+@_browser_tool
 async def keyboard_walk(url: str, verbose: bool = False) -> str:
     """Tab through a page like a keyboard-only / screen-reader user. Reports focus
     reachability, missing visible focus indicators, and focus traps — real
@@ -495,6 +567,7 @@ async def readiness_report(results_json: str, report_path: Optional[str] = None,
 
 # ------------------------------------------------- self-healing / power tools
 @mcp.tool()
+@_browser_tool
 async def browser_exec(code: str) -> str:
     """Run async Python against the live page (`page`, `context`, `manager` in scope;
     assign `result` or return a value). Use when a built-in tool can't do what you
@@ -520,7 +593,39 @@ async def load_helper(name: str) -> str:
     return healing.load_helper(name)
 
 
+# ---------------------------------------------------- authenticated sessions
 @mcp.tool()
+@_browser_tool
+async def save_session(name: str = "default") -> str:
+    """Save the CURRENT logged-in browser session (cookies + localStorage) to
+    disk under `name`. Log in first (e.g. via run_journey), then save — later
+    calls to load_session restore it so you can test behind auth."""
+    return await _session.save_session(name)
+
+
+@mcp.tool()
+@_browser_tool
+async def load_session(name: str = "default") -> str:
+    """Restore a saved session into a fresh browser context so the browser is
+    authenticated. Then crawl / deep_test / security_scan run AS that user —
+    unlocking dashboards, account pages, checkout, and authorization testing."""
+    return await _session.load_session(name)
+
+
+@mcp.tool()
+def list_sessions() -> str:
+    """List saved authenticated sessions (name + cookie/localStorage counts)."""
+    return _session.list_sessions()
+
+
+@mcp.tool()
+def delete_session(name: str) -> str:
+    """Delete a saved session by name."""
+    return _session.delete_session(name)
+
+
+@mcp.tool()
+@_browser_tool
 async def connect_chrome(port: int = 9222) -> str:
     """Launch YOUR real Chrome with remote debugging on and attach to it — fully
     automatic, no manual chrome://inspect step. Uses a dedicated Fagun profile."""

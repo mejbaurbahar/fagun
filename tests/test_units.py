@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import re
 
+import pytest
+
 from fagun import format as fmt
 from fagun import testdata
 from fagun.report import build_markdown
@@ -123,3 +125,89 @@ def test_ssti_expectations_are_49():
     for payload, expect in _SSTI:
         assert expect == "49"
         assert "7*7" in payload
+
+
+# --------------------------------------------------------------------- scope
+def test_scope_allows_all_by_default(monkeypatch):
+    from fagun import scope
+
+    monkeypatch.delenv("FAGUN_SCOPE", raising=False)
+    monkeypatch.delenv("FAGUN_SCOPE_DENY", raising=False)
+    assert scope.in_scope("https://anything.example/x")
+    assert scope.in_scope("file:///tmp/x.html")  # local fixtures never blocked
+    assert not scope.is_configured()
+
+
+def test_scope_allowlist_includes_subdomains(monkeypatch):
+    from fagun import scope
+
+    monkeypatch.setenv("FAGUN_SCOPE", "example.com")
+    monkeypatch.delenv("FAGUN_SCOPE_DENY", raising=False)
+    assert scope.in_scope("https://example.com/a")
+    assert scope.in_scope("https://api.example.com/a")
+    assert not scope.in_scope("https://evil.test/a")
+    with pytest.raises(PermissionError):
+        scope.guard("https://evil.test/a")
+
+
+def test_scope_deny_overrides_allow(monkeypatch):
+    from fagun import scope
+
+    monkeypatch.setenv("FAGUN_SCOPE", "example.com")
+    monkeypatch.setenv("FAGUN_SCOPE_DENY", "internal.example.com")
+    assert scope.in_scope("https://example.com/a")
+    assert not scope.in_scope("https://internal.example.com/a")
+
+
+# ------------------------------------------------------------ secret severity
+def test_jwt_secret_is_medium_not_high():
+    # a bare JWT is often a public/anon token — should not be a "high" leak.
+    import asyncio
+    from unittest.mock import AsyncMock, patch
+
+    from fagun import security
+
+    jwt = "eyJ" + "a" * 20 + "." + "b" * 20 + "." + "c" * 20
+    html = f"<script>const t='{jwt}';</script>"
+
+    class _Page:
+        async def goto(self, *a, **k):
+            return None
+
+        async def content(self):
+            return html
+
+        async def eval_on_selector_all(self, *a, **k):
+            return []
+
+    with patch.object(security.manager, "page", new_callable=AsyncMock, return_value=_Page()):
+        findings = asyncio.run(security.scan_secrets("https://x.test"))
+    jwts = [f for f in findings if "JWT" in f["detail"]]
+    assert jwts and all(f["severity"] == "medium" for f in jwts)
+
+
+# ------------------------------------------------------------- sitemap parsing
+def test_sitemap_and_robots_regexes():
+    from fagun.qa import _LOC_RE, _SITEMAP_RE
+
+    xml = "<urlset><url><loc>https://x.test/a</loc></url><url><loc> https://x.test/b </loc></url></urlset>"
+    assert _LOC_RE.findall(xml) == ["https://x.test/a", "https://x.test/b"]
+    robots = "User-agent: *\nDisallow: /admin\nSitemap: https://x.test/sitemap.xml\n"
+    assert _SITEMAP_RE.findall(robots) == ["https://x.test/sitemap.xml"]
+
+
+# ------------------------------------------------------------------- sessions
+def test_session_summary_counts():
+    from fagun import session
+
+    state = {"cookies": [{"name": "a"}, {"name": "b"}],
+             "origins": [{"origin": "https://x", "localStorage": [{"name": "k"}]}]}
+    s = session._summary(state)
+    assert "2 cookie" in s and "1 localStorage" in s and "1 origin" in s
+
+
+def test_session_name_is_sanitized():
+    from fagun import session
+
+    assert session._safe("acme/../etc") == "acmeetc"
+    assert session._safe("") == "default"

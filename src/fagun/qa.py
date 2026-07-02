@@ -6,6 +6,7 @@ the report writer.
 
 from __future__ import annotations
 
+import re
 import time
 from typing import Any
 from urllib.parse import urldefrag, urljoin, urlparse
@@ -20,11 +21,65 @@ def _same_site(a: str, b: str) -> bool:
     return urlparse(a).netloc == urlparse(b).netloc
 
 
+_LOC_RE = re.compile(r"<loc>\s*([^<\s]+)\s*</loc>", re.I)
+_SITEMAP_RE = re.compile(r"(?im)^\s*sitemap:\s*(\S+)")
+
+
+async def _seed_from_sitemap(start_url: str, max_urls: int = 200) -> list[str]:
+    """Discover same-site URLs from robots.txt (Sitemap: lines) and /sitemap.xml.
+    Surfaces pages not linked from the homepage. Best-effort — returns [] on any
+    error. Only follows one level of sitemap-index nesting to stay bounded."""
+    p = urlparse(start_url)
+    root = f"{p.scheme}://{p.netloc}"
+    page = await manager.page()
+
+    async def _fetch(u: str) -> str:
+        try:
+            r = await page.request.get(u, timeout=12000, fail_on_status_code=False)
+            return (await r.text())[:500000] if r.status == 200 else ""
+        except Exception:
+            return ""
+
+    sitemaps: list[str] = []
+    robots = await _fetch(root + "/robots.txt")
+    sitemaps += _SITEMAP_RE.findall(robots)
+    sitemaps.append(root + "/sitemap.xml")
+
+    found: list[str] = []
+    seen_sm: set[str] = set()
+    for sm in sitemaps[:5]:
+        if sm in seen_sm:
+            continue
+        seen_sm.add(sm)
+        body = await _fetch(sm)
+        locs = _LOC_RE.findall(body)
+        # A sitemap index points at more sitemaps; fetch one level of them.
+        nested = [l for l in locs if l.rstrip("/").endswith(".xml")]
+        for n in nested[:5]:
+            if n not in seen_sm:
+                seen_sm.add(n)
+                locs += _LOC_RE.findall(await _fetch(n))
+        for loc in locs:
+            loc = urldefrag(loc)[0]
+            if loc.endswith(".xml"):
+                continue
+            if _same_site(start_url, loc) and loc not in found:
+                found.append(loc)
+            if len(found) >= max_urls:
+                return found
+    return found
+
+
 async def crawl(start_url: str, max_pages: int = 20) -> dict[str, Any]:
-    """Breadth-first crawl within the same host. Returns discovered pages."""
+    """Breadth-first crawl within the same host, seeded from sitemap/robots so
+    unlinked pages are still discovered. Returns discovered pages."""
     page = await manager.page()
     seen: set[str] = set()
-    queue: list[str] = [urldefrag(start_url)[0]]
+    start = urldefrag(start_url)[0]
+    queue: list[str] = [start]
+    for u in await _seed_from_sitemap(start_url):
+        if u != start:
+            queue.append(u)
     pages: list[dict[str, Any]] = []
 
     while queue and len(pages) < max_pages:
@@ -239,10 +294,15 @@ async def check_links(url: str, max_links: int = 100) -> dict[str, Any]:
         try:
             r = await page.request.head(h, timeout=15000)
             st = r.status
-            if st == 405:  # HEAD not allowed -> retry GET
+            # Many servers reject HEAD (405/501) or bot HEADs (403/401) yet serve
+            # the resource fine on GET — retry before calling it broken.
+            if st in (401, 403, 405, 501):
                 r = await page.request.get(h, timeout=15000)
                 st = r.status
             checked += 1
+            # 401/403 = reachable but access-controlled, not a dead link.
+            if st in (401, 403):
+                continue
             if st >= 400:
                 findings.append(
                     {"severity": "medium", "type": "broken-link", "detail": f"{st} → {h}"}

@@ -8,6 +8,7 @@ against a target the user is authorized to test.
 
 from __future__ import annotations
 
+import asyncio
 import re
 from typing import Any
 from urllib.parse import parse_qsl, urlencode, urljoin, urlparse, urlunparse
@@ -112,11 +113,22 @@ async def scan_secrets(url: str) -> list[dict[str, Any]]:
                 if key in seen:
                     continue
                 seen.add(key)
-                findings.append({
-                    "severity": "high",
-                    "type": "leaked-secret",
-                    "detail": f"{label} in page/JS: {token[:10]}…",
-                })
+                # A bare JWT in client code is often a *public* token (anon API
+                # keys, feature flags) — reflect uncertainty instead of crying
+                # "high". Real credential formats (AKIA…, sk_live_…) stay high.
+                if label == "JWT":
+                    findings.append({
+                        "severity": "medium",
+                        "type": "leaked-secret",
+                        "detail": f"JWT in page/JS: {token[:10]}… — verify it is not a "
+                                  f"privileged/server token (public anon tokens are OK)",
+                    })
+                else:
+                    findings.append({
+                        "severity": "high",
+                        "type": "leaked-secret",
+                        "detail": f"{label} in page/JS: {token[:10]}…",
+                    })
     return findings
 
 
@@ -240,20 +252,29 @@ async def probe_sqli_error(url: str) -> list[dict[str, Any]]:
 
 
 async def security_scan(url: str) -> dict[str, Any]:
-    """Run all safe security probes and aggregate findings."""
-    findings: list[dict[str, Any]] = []
-    checks = [
-        ("exposed-files", scan_exposed_files(url)),
-        ("secrets", scan_secrets(url)),
-        ("cors", check_cors(url)),
-        ("cookies", check_cookies(url)),
-        ("reflection", probe_reflection(url)),
-        ("open-redirect", probe_open_redirect(url)),
-        ("sqli", probe_sqli_error(url)),
-    ]
-    for name, coro in checks:
+    """Run all safe security probes and aggregate findings.
+
+    scan_secrets is the only probe that navigates the shared page (goto + read
+    DOM), so it runs ALONE first — no page-context operation ever overlaps a
+    navigation. The remaining probes use the navigation-independent request
+    context and run concurrently. This keeps the parallelism safe by
+    construction, not by an implicit "only one navigator" assumption."""
+
+    async def _run(name, fn):
         try:
-            findings.extend(await coro)
+            return await fn(url)
         except Exception as e:
-            findings.append({"severity": "low", "type": "scan-error", "detail": f"{name}: {e}"})
+            return [{"severity": "low", "type": "scan-error", "detail": f"{name}: {e}"}]
+
+    findings: list[dict[str, Any]] = await _run("secrets", scan_secrets)
+    parallel = [
+        ("exposed-files", scan_exposed_files),
+        ("cors", check_cors),
+        ("cookies", check_cookies),
+        ("reflection", probe_reflection),
+        ("open-redirect", probe_open_redirect),
+        ("sqli", probe_sqli_error),
+    ]
+    groups = await asyncio.gather(*(_run(name, fn) for name, fn in parallel))
+    findings += [f for g in groups for f in g]
     return {"url": url, "findings": findings}

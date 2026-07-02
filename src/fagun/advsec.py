@@ -15,6 +15,7 @@ Only run against targets you are authorized to test.
 
 from __future__ import annotations
 
+import asyncio
 import re
 from typing import Any
 from urllib.parse import parse_qsl, urlencode, urljoin, urlparse, urlunparse
@@ -394,19 +395,36 @@ _CHECKS = [
 ]
 
 
+# Probes that read the live DOM via page.evaluate (bound to the page's execution
+# context). These run sequentially on the loaded page — a concurrent navigation
+# would destroy their execution context. Everything else uses the independent
+# request context and is safe to run concurrently.
+_DOM_CHECKS = {"mixed-content", "sri"}
+
+
 async def advanced_scan(url: str) -> dict[str, Any]:
-    """Run every advanced probe and aggregate. Loads the page once first so DOM
-    checks (mixed content, SRI) see the rendered page."""
+    """Run every advanced probe and aggregate. Loads the page once, runs the
+    DOM-reading probes serially on that page, then runs the request-context
+    probes concurrently. No page-context read ever overlaps a navigation."""
     page = await manager.page()
     try:
         await page.goto(url, wait_until="load", timeout=30000)
     except Exception:
         pass
+
+    async def _run(name, fn):
+        try:
+            return await fn(url)
+        except Exception as e:
+            return [{"severity": "low", "type": "scan-error",
+                     "detail": f"{name}: {e}", "evidence": "probe raised"}]
+
     findings: list[dict[str, Any]] = []
     for name, fn in _CHECKS:
-        try:
-            findings.extend(await fn(url))
-        except Exception as e:
-            findings.append({"severity": "low", "type": "scan-error",
-                             "detail": f"{name}: {e}", "evidence": "probe raised"})
+        if name in _DOM_CHECKS:
+            findings += await _run(name, fn)
+    groups = await asyncio.gather(
+        *(_run(name, fn) for name, fn in _CHECKS if name not in _DOM_CHECKS)
+    )
+    findings += [f for g in groups for f in g]
     return {"url": url, "findings": findings}

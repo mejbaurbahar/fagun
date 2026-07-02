@@ -6,6 +6,7 @@ and the AI can inspect them at any time.
 
 from __future__ import annotations
 
+import asyncio
 import os
 import subprocess
 import sys
@@ -139,8 +140,14 @@ class BrowserManager:
     _browser: Optional[Browser] = None
     _context: Optional[BrowserContext] = None
     _page: Optional[Page] = None
+    _cdp_attached: bool = False
     console: "deque[ConsoleEntry]" = field(default_factory=lambda: deque(maxlen=_LOG_CAP))
     network: "deque[NetworkEntry]" = field(default_factory=lambda: deque(maxlen=_LOG_CAP))
+    # Serializes page-mutating tool calls. One browser + one page can't safely
+    # service concurrent navigations; without this, parallel MCP tool calls race
+    # ("interrupted by another navigation"). Held at the tool boundary only, so
+    # engine functions that call each other never re-enter it.
+    lock: asyncio.Lock = field(default_factory=asyncio.Lock)
 
     @property
     def is_open(self) -> bool:
@@ -176,6 +183,7 @@ class BrowserManager:
                     await asyncio.sleep(0.5)
             if last is not None:
                 raise RuntimeError(f"Could not connect to Chrome at {cdp}: {last}")
+            self._cdp_attached = True
             self._context = (
                 self._browser.contexts[0]
                 if self._browser.contexts
@@ -193,6 +201,7 @@ class BrowserManager:
                 ensure_browser_installed(engine)
                 auto_installed = True
                 self._browser = await launcher.launch(headless=headless)
+            self._cdp_attached = False
             self._context = await self._browser.new_context()
 
         self._page = (
@@ -251,7 +260,10 @@ class BrowserManager:
         if self._browser is None:
             await self.start()
         # Drop the old context so its listeners/state don't leak into the new one.
-        if self._context is not None:
+        # BUT when attached to the user's real Chrome over CDP, contexts[0] holds
+        # their live tabs — closing it would nuke their session. Leave it open and
+        # just spin up a fresh isolated context on the connected browser instead.
+        if self._context is not None and not self._cdp_attached:
             try:
                 await self._context.close()
             except Exception:
@@ -271,12 +283,24 @@ class BrowserManager:
         except Exception:
             return None
 
+    async def storage_state(self, path: Optional[str] = None) -> Any:
+        """Dump the current context's cookies + localStorage (Playwright
+        storage_state). Writes to ``path`` if given. Used to persist a logged-in
+        session so later runs can test behind auth."""
+        if self._context is None:
+            await self.start()
+        return await self._context.storage_state(path=path)  # type: ignore[union-attr]
+
     def clear_logs(self) -> None:
         self.console.clear()
         self.network.clear()
 
     async def stop(self) -> str:
-        for closer in (self._context, self._browser):
+        # When attached to the user's real Chrome over CDP, don't close their
+        # context (their tabs). Disconnecting the Playwright browser handle leaves
+        # the real Chrome process and its tabs running.
+        closers = (self._browser,) if self._cdp_attached else (self._context, self._browser)
+        for closer in closers:
             try:
                 if closer is not None:
                     await closer.close()
@@ -288,6 +312,7 @@ class BrowserManager:
             except Exception:
                 pass
         self._pw = self._browser = self._context = self._page = None
+        self._cdp_attached = False
         self.clear_logs()
         return "Browser closed."
 

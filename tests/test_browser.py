@@ -115,6 +115,36 @@ async def test_keyboard_walk_finds_focusables():
     assert isinstance(r["findings"], list)
 
 
+async def test_concurrent_tool_calls_are_serialized():
+    # Two page-mutating tools fired at once must not race the shared page
+    # ("interrupted by another navigation"). The server lock serializes them.
+    import asyncio
+
+    from fagun import server
+
+    results = await asyncio.gather(
+        server.run_qa(FIXTURE),
+        server.run_qa(FIXTURE),
+        return_exceptions=True,
+    )
+    for r in results:
+        assert not isinstance(r, Exception), r
+        assert isinstance(r, str) and r  # rendered output, no crash
+
+
+async def test_out_of_scope_url_is_refused():
+    import os
+
+    from fagun import server
+
+    os.environ["FAGUN_SCOPE"] = "example.com"
+    try:
+        with pytest.raises(PermissionError):
+            await server.navigate("https://not-in-scope.test/")
+    finally:
+        del os.environ["FAGUN_SCOPE"]
+
+
 async def test_emulate_persona_sets_mobile_viewport():
     from fagun.uat import emulate_persona
 
@@ -125,3 +155,38 @@ async def test_emulate_persona_sets_mobile_viewport():
     assert page.viewport_size["width"] == 390
     # reset to desktop so later ordering doesn't matter
     await emulate_persona("desktop")
+
+
+# ---------------------------------------------------------- Phase 2 additions
+async def test_session_save_load_roundtrip(tmp_path, monkeypatch):
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path))
+    from fagun import server
+
+    await server.navigate(FIXTURE)
+    msg = await server.save_session("pytest_tmp")
+    assert "pytest_tmp" in msg
+    assert (tmp_path / "fagun" / "sessions" / "pytest_tmp.json").exists()
+    assert "pytest_tmp" in server.list_sessions()
+
+    loaded = await server.load_session("pytest_tmp")
+    assert "authenticated" in loaded.lower() or "loaded" in loaded.lower()
+    # browser must still work after the context swap
+    assert isinstance(await server.navigate(FIXTURE), str)
+    assert "Deleted" in server.delete_session("pytest_tmp")
+
+
+async def test_fingerprint_returns_summary():
+    from fagun.fingerprint import fingerprint
+
+    r = await fingerprint(FIXTURE)
+    assert "tech" in r and "summary" in r
+    assert isinstance(r["findings"], list)
+
+
+async def test_parallel_scanners_do_not_crash():
+    from fagun.advsec import advanced_scan
+    from fagun.security import security_scan
+
+    for scan in (security_scan, advanced_scan):
+        r = await scan(FIXTURE)
+        assert isinstance(r.get("findings"), list)
