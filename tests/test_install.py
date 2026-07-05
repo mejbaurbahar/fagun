@@ -67,3 +67,23 @@ def test_codex_writer_uses_windows_cmd_shape(tmp_path, monkeypatch):
     assert 'command = "cmd"' in text
     assert 'args = ["/c", "npx", "-y", "chrome-devtools-mcp@latest", "--auto-connect", "--no-usage-statistics"]' in text
     assert 'SystemRoot = "C:\\\\Windows"' in text
+
+
+def test_init_next_steps_do_not_require_manual_connect(monkeypatch, capsys):
+    import shutil
+
+    from fagun import browser
+
+    monkeypatch.setattr(browser, "ensure_browser_installed", lambda _engine: None)
+    monkeypatch.setattr(shutil, "which", lambda name: "/bin/true" if name in {"npx", "claude"} else None)
+    monkeypatch.setattr(install, "_install_claude_code", lambda: None)
+    monkeypatch.setattr(install, "_install_claude_code_chrome_devtools", lambda: None)
+    monkeypatch.setattr(install, "_install_skill", lambda _path: None)
+    monkeypatch.setattr(install, "_open_remote_debugging_setup", lambda: None)
+    monkeypatch.setattr(install, "_app_exists", lambda _name: False)
+
+    install.init()
+
+    out = capsys.readouterr().out
+    assert "fagun connect to my Chrome" not in out
+    assert "Chrome DevTools MCP auto-connects during deep tests" in out

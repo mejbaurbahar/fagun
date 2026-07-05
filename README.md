@@ -152,6 +152,8 @@ The `-y` flag prevents `npx` from asking the user to confirm package download.
 `--auto-connect` makes Chrome DevTools MCP attach to the user's running Chrome.
 On first setup, Fagun opens `chrome://inspect/#remote-debugging`; turn on remote
 debugging there, then click **Allow** when Chrome shows the permission popup.
+Users do not need to run `fagun connect to my Chrome` first; `fagun deep test <url>`
+should auto-use Chrome DevTools MCP when the AI client exposes it.
 Fagun opts out of Chrome DevTools MCP usage statistics and update-check noise in
 generated configs.
 
@@ -231,11 +233,12 @@ network/console dumps — burning tokens fast. Fagun is built to be **token-lean
   many manual `navigate` + `get_console` + `get_network` round-trips.
 - **Capped & deduped** — long link/console/network lists are truncated with a
   `+N more` marker; duplicate findings are collapsed.
-- **Reports go to disk, not context** — pass `report_path` and the full detail is
-  written to a file while only a compact summary returns to the AI.
+- **Reports go to disk, not context** — pass `report_path` and raw detail is
+  written there; the final chat answer still shows the full user-facing result:
+  verdict, all findings, evidence, fixes, coverage, and report link.
 
 > 💡 Cheapest workflow: `deep test <url> and save the report to ./report.md`
-> → one call, tiny summary in context, full report on disk.
+> → one call, full Fagun answer in chat, raw evidence/report on disk.
 
 ## ⚙️ Options (optional)
 
@@ -313,11 +316,11 @@ GET/HEAD only, no attacks on third parties:
 
 ## 🔌 Use your own logged-in Chrome (self-healing + sessions)
 
-- Chrome DevTools MCP uses `--auto-connect` so it can reuse your already-signed-in
-  default Chrome after you allow remote debugging. Great for testing behind a
-  login without giving credentials to the AI.
-- `connect to my Chrome` → fallback path that launches a dedicated debuggable
-  Chrome profile and attaches to it.
+- Chrome DevTools MCP uses `--auto-connect` during normal deep tests, so it can
+  reuse your already-signed-in default Chrome after you allow remote debugging.
+  Great for testing behind a login without giving credentials to the AI.
+- `connect to my Chrome` is only a troubleshooting fallback that launches a
+  dedicated debuggable Chrome profile and attaches to it.
 - `browser_exec` → when no built-in tool fits, the AI writes Python against the live
   page (full Playwright). `save_helper` persists what works, so Fagun gets smarter
   every run.

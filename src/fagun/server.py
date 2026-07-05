@@ -86,6 +86,10 @@ Chrome DevTools MCP is configured for `--auto-connect`, so when Chrome asks
 signed-in default Chrome session. That means logged-in dashboards can be tested
 without sharing passwords with the AI.
 
+You do **not** need to run `fagun connect to my Chrome` first. A normal
+`fagun deep test <url>` should use Chrome DevTools MCP auto-connect when the
+client exposes it, then fall back to Fagun's own browser if needed.
+
 **Fast commands**
 - `deep test <url> and save the report to ./fagun-report.html`
 - `run QA on <url>` · `check links on <url>` · `test forms on <url>`
@@ -99,8 +103,9 @@ without sharing passwords with the AI.
 `secrets/exposed files` · `GraphQL` · `readiness score`
 
 **Token-lean mode**
-Use `report_path` for full evidence on disk. Chat stays compact by default.
-Set `FAGUN_TERSE=mini` for extra-short summaries in small-context models.
+Use `report_path` for raw evidence on disk. The final chat answer should still
+show the full Fagun user-facing result: verdict, all findings, evidence, fixes,
+coverage, and report link.
 
 **Fagun Style**
 For any AI/model, call `fagun_style_prompt` once and use it as the response

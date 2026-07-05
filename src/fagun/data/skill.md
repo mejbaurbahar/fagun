@@ -31,6 +31,22 @@ Fagun configures Chrome DevTools MCP with `--auto-connect`, so it can reuse the
 user's signed-in Chrome after they enable `chrome://inspect/#remote-debugging`
 and click Chrome's **Allow remote debugging** popup. Do not ask for login
 credentials if the signed-in browser session is available.
+
+## Automatic Chrome behavior
+When the user says `fagun deep test <url>`, `fagun audit <url>`, `fagun security
+scan <url>`, or any equivalent URL test request, automatically try the
+Chrome DevTools MCP path first if the client exposes it. Do not ask the user to
+run `fagun connect to my Chrome`. The expected flow is:
+1. Start/open the target URL through Chrome DevTools MCP auto-connect when
+   available, so Chrome can show its native **Allow remote debugging?** popup.
+2. If Chrome DevTools MCP is unavailable or attach fails, fall back to Fagun's own
+   browser tools and continue.
+3. Only mention `connect_chrome` as a fallback troubleshooting tool, not as a
+   required user step.
+
+If Chrome asks for permission, tell the user to click **Allow**. Never ask them
+for passwords when their signed-in Chrome session can be reused.
+
 **Evidence or it didn't happen** — every finding, score, and verdict must trace
 to a tool result (a console error, a status code, a DOM fact, a screenshot, a
 measured number, a journey step that failed). Never fabricate. If you can't
@@ -92,12 +108,27 @@ cards/panels from that structure. For chat/custom instructions, call
   security + real vitals + keyboard + **readiness scorecard**. Report format follows
   the extension: `.md` / `.html` / `.json` / `.xml` (JUnit for CI).
 - Output is **terse by default**; pass `verbose=true` only when you need full JSON.
-- For long sessions or small-context models, set/use **`FAGUN_TERSE=mini`** and keep
-  chat summaries tiny. Full evidence should go to `report_path`.
+- For long sessions or small-context models, keep raw tool output compact, but the
+  final answer must still show the full Fagun user-facing result: verdict, score,
+  all findings, severity, evidence, reproduction, impact, fixes, test coverage,
+  accessibility, performance, security, API/network, and final recommendation.
 - Respect token budgets: `FAGUN_FINDING_CAP`, `FAGUN_PAGE_CAP`,
   `FAGUN_DETAIL_CHARS`, and `FAGUN_URL_CHARS` cap chat output only; reports still
   contain the full data.
-- Push big detail to `report_path` on disk, not into context. Don't re-fetch.
+- Put raw logs/screenshots/large JSON in `report_path`; do not hide the actual
+  human-readable result behind only an artifact link.
+
+## Final output requirement
+After every `deep_test`, `full_qa_sweep`, UAT audit, or security audit, always
+print a complete Fagun-style final answer in chat. A report/artifact link is
+extra, not a replacement. Include:
+- Verdict and readiness score.
+- Counts by severity and category.
+- Every reproduced finding, not just the top three.
+- Evidence observed, reproduction steps, user/business impact, and one-line fix.
+- Accessibility, performance, security, network/API, forms, and journey coverage.
+- What was not tested and why.
+- Path or URL of any generated report.
 
 ## Golden rules
 1. **Evidence or it didn't happen.** Finding = what you did + what you saw + why it's
@@ -188,7 +219,8 @@ not a defect list; it's a better product.
 **0. Scope** — confirm URL(s), staging vs production, what matters most.
 **1. Recon** — `open_browser` → `navigate` → `screenshot`; `crawl(url, max_pages)` to
 map the surface (auth, forms, listings, detail, checkout, dashboard).
-**2. Broad sweep** — `deep_test(url, report_path="report.html")` (baseline: QA +
+**2. Broad sweep** — automatically use Chrome DevTools MCP auto-connect when
+available, then call `deep_test(url, report_path="report.html")` (baseline: QA +
 forms + security + vitals + keyboard + readiness). Then `check_links`, `fuzz_forms`,
 `perf_audit`/`a11y_audit` for focus.
 **3. UAT** — personas + journeys + keyboard walk + business checks (Part 1).
@@ -267,7 +299,9 @@ impact. Reproduce twice, prove impact, never weaponize, never touch data you don
 ### J. Self-healing (write what's missing)
 **`browser_exec`** runs Python against the live page (full Playwright: intercept/replay
 requests, multi-tab, storage). **`save_helper(name, code)`** to reuse next run.
-**`connect_chrome`** attaches to your own logged-in Chrome for gated pages.
+**`connect_chrome`** is only a fallback troubleshooting tool. For normal
+`fagun deep test <url>` runs, use Chrome DevTools MCP auto-connect automatically
+when the client exposes it.
 
 ### K. Edge cases & resilience
 Reload mid-flow; back/forward after actions; offline/slow behavior; duplicate tabs;

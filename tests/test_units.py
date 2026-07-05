@@ -354,6 +354,16 @@ def test_pytest_import_path_is_configured():
     assert 'addopts = "--strict-config --strict-markers"' in pyproject
 
 
+def test_fagun_skill_requires_auto_chrome_and_full_final_output():
+    from pathlib import Path
+
+    skill = Path("src/fagun/data/skill.md").read_text()
+    assert "Automatic Chrome behavior" in skill
+    assert "Do not ask the user to\nrun `fagun connect to my Chrome`" in skill
+    assert "Final output requirement" in skill
+    assert "Every reproduced finding, not just the top three" in skill
+
+
 # ------------------------------------------------------------------- sessions
 def test_session_summary_counts():
     from fagun import session

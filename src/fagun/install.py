@@ -232,8 +232,8 @@ def init() -> None:
         print("       fagun deep test https://example.com")
         print("       fagun security scan https://example.com")
         print("       fagun check links on https://example.com")
-        print("       fagun connect to my Chrome")
         print("       fagun test the signup form on https://example.com")
+        print("     Chrome DevTools MCP auto-connects during deep tests when available.")
     else:
         print("No AI tools detected automatically. Run one of:")
         print("   uvx fagun install claude-code | cursor | claude | vscode")

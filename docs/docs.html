@@ -172,14 +172,14 @@ section{scroll-margin-top:80px}
 <span style="color:var(--gold)">$</span> <span style="color:var(--text)">uvx fagun install claude-code</span>       <span style="color:#6f6784"># or target one tool</span>
 <span style="color:var(--gold)">$</span> <span style="color:var(--text)">uvx fagun install chrome-devtools</span>   <span style="color:#6f6784"># Chrome DevTools MCP only</span>
       </div>
-      <p style="color:var(--muted);font-size:13px;margin-top:14px">Chrome DevTools MCP auto-connects to the user's running Chrome. Fagun opens <code>chrome://inspect/#remote-debugging</code>; enable remote debugging there, then click <b>Allow</b> when Chrome shows the permission popup. This lets tests reuse logged-in sessions without asking for credentials. Generated configs opt out of usage statistics and update-check noise.</p>
+      <p style="color:var(--muted);font-size:13px;margin-top:14px">Chrome DevTools MCP auto-connects to the user's running Chrome during normal deep tests. Fagun opens <code>chrome://inspect/#remote-debugging</code>; enable remote debugging there, then click <b>Allow</b> when Chrome shows the permission popup. Users do not need to run <code>fagun connect to my Chrome</code> first. This lets tests reuse logged-in sessions without asking for credentials. Generated configs opt out of usage statistics and update-check noise.</p>
       <p style="color:var(--muted);font-size:14px;margin:16px 0 6px">Inside Claude Code, as a plugin:</p>
       <div class="cmd">
 <span style="color:#7fb0e8">/plugin</span> <span style="color:var(--muted)">marketplace add mejbaurbahar/fagun</span>
 <span style="color:#7fb0e8">/plugin</span> <span style="color:var(--muted)">install fagun@fagun</span>
       </div>
       <p style="color:var(--muted);font-size:13px;margin-top:14px">Env toggles: <code>FAGUN_TERSE=0</code> full JSON · <code>FAGUN_HEADLESS=0</code> show the browser · <code>FAGUN_BROWSER=firefox|webkit</code> · <code>FAGUN_CDP_URL</code> attach to your own Chrome · <code>FAGUN_SCOPE=host1,host2</code> restrict active probes to authorized hosts (<code>FAGUN_SCOPE_DENY</code> always wins).</p>
-      <p style="color:var(--muted);font-size:13px;margin-top:8px">Token controls: <code>FAGUN_TERSE=mini</code> extra-short summaries · <code>FAGUN_FINDING_CAP</code> findings per page · <code>FAGUN_PAGE_CAP</code> pages in chat · <code>FAGUN_DETAIL_CHARS</code> and <code>FAGUN_URL_CHARS</code> trim lines. Use <code>report_path</code> for full evidence on disk.</p>
+      <p style="color:var(--muted);font-size:13px;margin-top:8px">Token controls: <code>FAGUN_TERSE=mini</code> extra-short raw tool summaries · <code>FAGUN_FINDING_CAP</code> findings per page · <code>FAGUN_PAGE_CAP</code> pages in chat · <code>FAGUN_DETAIL_CHARS</code> and <code>FAGUN_URL_CHARS</code> trim lines. Use <code>report_path</code> for raw evidence on disk; final answers still include the full user-facing verdict, findings, evidence, fixes, coverage, and report link.</p>
       <p style="color:var(--muted);font-size:13px;margin-top:8px">Style controls: <code>fagun_style_prompt</code> gives any model the Fagun response format · <code>fagun_style_schema</code> returns the JSON contract for custom renderers · <code>fagun_render_response</code> converts JSON/plain output into Fagun-style Markdown.</p>
       <p style="color:var(--muted);font-size:13px;margin-top:8px">Security orchestration: <code>fagun_security_prompt</code> returns the advanced authorized-testing prompt · <code>list_external_security_tools</code> shows the adapter catalog · <code>recommend_security_tools</code> picks the smallest relevant plan for Loxs, Shannon, Lonkero, recon-skills, BeeXSS, TimeVault, NextSploit, payload corpora, and related tools.</p>
     </section>
@@ -236,7 +236,7 @@ section{scroll-margin-top:80px}
         <tr><td><code>test_forms</code></td><td>Static form audit (security / validation / a11y) — no submit.</td></tr>
         <tr><td><code>fuzz_forms</code></td><td><b style="color:var(--text)">Active</b>: fills each field with the labelled test-data catalog, reads the browser's real validity verdict, flags gaps. <code>submit=true</code> opt-in.</td></tr>
         <tr><td><code>list_test_data</code></td><td>Show the test cases used for a field type.</td></tr>
-        <tr><td><code>deep_test</code></td><td>The big one: crawl + per-page QA + forms + full security + real vitals + keyboard + <b style="color:var(--text)">readiness verdict</b> → one report (.md/.html/.json/.xml).</td></tr>
+        <tr><td><code>deep_test</code></td><td>The big one: auto-use Chrome DevTools MCP when available, then crawl + per-page QA + forms + full security + real vitals + keyboard + <b style="color:var(--text)">readiness verdict</b> → full final answer plus one report (.md/.html/.json/.xml).</td></tr>
         <tr><td><code>full_qa_sweep</code> · <code>write_report</code></td><td>Multi-page QA / write a report (Markdown, HTML, JSON, or JUnit XML by extension).</td></tr>
       </table></div>
 
