@@ -109,7 +109,7 @@ Every tool gets two MCP servers:
 
 | Tool | How |
 |------|-----|
-| **Claude Code** | `claude mcp add fagun -- uvx fagun` and `claude mcp add chrome-devtools -- npx -y chrome-devtools-mcp@latest` |
+| **Claude Code** | `claude mcp add fagun -- uvx fagun` and `claude mcp add chrome-devtools -- npx -y chrome-devtools-mcp@latest --no-usage-statistics` |
 | **Claude Desktop** | add the JSON below to `claude_desktop_config.json` |
 | **Cursor** | `uvx fagun install cursor` (writes `~/.cursor/mcp.json`) |
 | **VS Code (Copilot)** | `uvx fagun install vscode` (writes `.vscode/mcp.json`) |
@@ -123,7 +123,11 @@ Every tool gets two MCP servers:
     "fagun": { "command": "uvx", "args": ["fagun"] },
     "chrome-devtools": {
       "command": "npx",
-      "args": ["-y", "chrome-devtools-mcp@latest"]
+      "args": ["-y", "chrome-devtools-mcp@latest", "--no-usage-statistics"],
+      "env": {
+        "CHROME_DEVTOOLS_MCP_NO_USAGE_STATISTICS": "1",
+        "CHROME_DEVTOOLS_MCP_NO_UPDATE_CHECKS": "1"
+      }
     }
   }
 }
@@ -137,12 +141,16 @@ args = ["fagun"]
 
 [mcp_servers.chrome-devtools]
 command = "npx"
-args = ["-y", "chrome-devtools-mcp@latest"]
+args = ["-y", "chrome-devtools-mcp@latest", "--no-usage-statistics"]
+env = { CHROME_DEVTOOLS_MCP_NO_USAGE_STATISTICS = "1", CHROME_DEVTOOLS_MCP_NO_UPDATE_CHECKS = "1" }
+startup_timeout_ms = 20_000
 ```
 
 The `-y` flag prevents `npx` from asking the user to confirm package download.
 By default Chrome DevTools MCP launches its own dedicated Chrome profile, so no
 manual `chrome://inspect` setup is needed.
+Fagun opts out of Chrome DevTools MCP usage statistics and update-check noise in
+generated configs.
 
 **Restart the tool after adding it.** Then type `fagun`.
 

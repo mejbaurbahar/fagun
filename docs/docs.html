@@ -166,13 +166,13 @@ section{scroll-margin-top:80px}
     <section id="install">
       <p class="pill">Install</p>
       <h2 style="margin:0 0 16px;font-size:clamp(1.7rem,3.4vw,2.5rem)">One line. Nothing to configure.</h2>
-      <p style="color:var(--muted);font-size:15px;line-height:1.6;max-width:680px">No Python, no pip — <code style="color:var(--gold-soft)">uv</code> brings its own runtime, and Chromium auto-installs on first run. Fagun auto-detects every AI tool on your machine and wires up the Fagun MCP server, Chrome DevTools MCP via <code style="color:var(--gold-soft)">npx -y chrome-devtools-mcp@latest</code>, and the <code style="color:var(--gold-soft)">/fagun</code> skill.</p>
+      <p style="color:var(--muted);font-size:15px;line-height:1.6;max-width:680px">No Python, no pip — <code style="color:var(--gold-soft)">uv</code> brings its own runtime, and Chromium auto-installs on first run. Fagun auto-detects every AI tool on your machine and wires up the Fagun MCP server, Chrome DevTools MCP via <code style="color:var(--gold-soft)">npx -y chrome-devtools-mcp@latest --no-usage-statistics</code>, and the <code style="color:var(--gold-soft)">/fagun</code> skill.</p>
       <div class="cmd" style="margin-top:18px">
 <span style="color:var(--gold)">$</span> <span style="color:var(--text)">uvx fagun init</span>                    <span style="color:#6f6784"># browser + Fagun MCP + Chrome DevTools MCP + skill</span>
 <span style="color:var(--gold)">$</span> <span style="color:var(--text)">uvx fagun install claude-code</span>       <span style="color:#6f6784"># or target one tool</span>
 <span style="color:var(--gold)">$</span> <span style="color:var(--text)">uvx fagun install chrome-devtools</span>   <span style="color:#6f6784"># Chrome DevTools MCP only</span>
       </div>
-      <p style="color:var(--muted);font-size:13px;margin-top:14px">Chrome DevTools MCP launches its own dedicated Chrome profile by default, so users do not need to open <code>chrome://inspect</code> or enable remote debugging by hand. The <code>-y</code> flag prevents <code>npx</code> confirmation prompts.</p>
+      <p style="color:var(--muted);font-size:13px;margin-top:14px">Chrome DevTools MCP launches its own dedicated Chrome profile by default, so users do not need to open <code>chrome://inspect</code> or enable remote debugging by hand. The <code>-y</code> flag prevents <code>npx</code> confirmation prompts. Generated configs opt out of usage statistics and update-check noise.</p>
       <p style="color:var(--muted);font-size:14px;margin:16px 0 6px">Inside Claude Code, as a plugin:</p>
       <div class="cmd">
 <span style="color:#7fb0e8">/plugin</span> <span style="color:var(--muted)">marketplace add mejbaurbahar/fagun</span>

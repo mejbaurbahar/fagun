@@ -16,7 +16,11 @@ def test_json_writer_adds_fagun_and_chrome_devtools(tmp_path):
     assert data["mcpServers"]["fagun"] == {"command": "uvx", "args": ["fagun"]}
     assert data["mcpServers"]["chrome-devtools"] == {
         "command": "npx",
-        "args": ["-y", "chrome-devtools-mcp@latest"],
+        "args": ["-y", "chrome-devtools-mcp@latest", "--no-usage-statistics"],
+        "env": {
+            "CHROME_DEVTOOLS_MCP_NO_USAGE_STATISTICS": "1",
+            "CHROME_DEVTOOLS_MCP_NO_UPDATE_CHECKS": "1",
+        },
     }
 
 
@@ -30,7 +34,11 @@ def test_vscode_json_writer_adds_stdio_type(tmp_path):
     assert data["servers"]["chrome-devtools"] == {
         "type": "stdio",
         "command": "npx",
-        "args": ["-y", "chrome-devtools-mcp@latest"],
+        "args": ["-y", "chrome-devtools-mcp@latest", "--no-usage-statistics"],
+        "env": {
+            "CHROME_DEVTOOLS_MCP_NO_USAGE_STATISTICS": "1",
+            "CHROME_DEVTOOLS_MCP_NO_UPDATE_CHECKS": "1",
+        },
     }
 
 
@@ -44,4 +52,18 @@ def test_codex_writer_adds_both_servers_and_is_idempotent(tmp_path):
     assert text.count("[mcp_servers.fagun]") == 1
     assert text.count("[mcp_servers.chrome-devtools]") == 1
     assert 'command = "uvx"' in text
-    assert 'args = ["-y", "chrome-devtools-mcp@latest"]' in text
+    assert 'args = ["-y", "chrome-devtools-mcp@latest", "--no-usage-statistics"]' in text
+    assert 'CHROME_DEVTOOLS_MCP_NO_USAGE_STATISTICS = "1"' in text
+    assert "startup_timeout_ms = 20_000" in text
+
+
+def test_codex_writer_uses_windows_cmd_shape(tmp_path, monkeypatch):
+    path = tmp_path / "config.toml"
+    monkeypatch.setattr(install.sys, "platform", "win32")
+
+    install._write_codex(path)
+
+    text = path.read_text()
+    assert 'command = "cmd"' in text
+    assert 'args = ["/c", "npx", "-y", "chrome-devtools-mcp@latest", "--no-usage-statistics"]' in text
+    assert 'SystemRoot = "C:\\\\Windows"' in text

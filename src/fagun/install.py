@@ -14,7 +14,16 @@ import sys
 from pathlib import Path
 
 SERVER_BLOCK = {"command": "uvx", "args": ["fagun"]}
-CHROME_DEVTOOLS_BLOCK = {"command": "npx", "args": ["-y", "chrome-devtools-mcp@latest"]}
+CHROME_DEVTOOLS_ARGS = ["-y", "chrome-devtools-mcp@latest", "--no-usage-statistics"]
+CHROME_DEVTOOLS_ENV = {
+    "CHROME_DEVTOOLS_MCP_NO_USAGE_STATISTICS": "1",
+    "CHROME_DEVTOOLS_MCP_NO_UPDATE_CHECKS": "1",
+}
+CHROME_DEVTOOLS_BLOCK = {
+    "command": "npx",
+    "args": CHROME_DEVTOOLS_ARGS,
+    "env": CHROME_DEVTOOLS_ENV,
+}
 
 CLAUDE = json.dumps({"mcpServers": {"fagun": SERVER_BLOCK, "chrome-devtools": CHROME_DEVTOOLS_BLOCK}}, indent=2)
 CURSOR = json.dumps({"mcpServers": {"fagun": SERVER_BLOCK, "chrome-devtools": CHROME_DEVTOOLS_BLOCK}}, indent=2)
@@ -30,7 +39,9 @@ args = ["fagun"]
 
 [mcp_servers.chrome-devtools]
 command = "npx"
-args = ["-y", "chrome-devtools-mcp@latest"]"""
+args = ["-y", "chrome-devtools-mcp@latest", "--no-usage-statistics"]
+env = { CHROME_DEVTOOLS_MCP_NO_USAGE_STATISTICS = "1", CHROME_DEVTOOLS_MCP_NO_UPDATE_CHECKS = "1" }
+startup_timeout_ms = 20_000"""
 
 HELP = f"""🦊 Fagun install — add this MCP server to your AI tool, then say "fagun".
 
@@ -41,7 +52,7 @@ Prereqs (once) — no Python/pip needed, uv brings its own:
 
 ────────────────────────────────────────────────────────────────────
 Claude Code        →  run:  claude mcp add fagun -- uvx fagun
-                       claude mcp add chrome-devtools -- npx -y chrome-devtools-mcp@latest
+                       claude mcp add chrome-devtools -- npx -y chrome-devtools-mcp@latest --no-usage-statistics
 Claude Desktop     →  ~/Library/Application Support/Claude/claude_desktop_config.json
 Cursor             →  ~/.cursor/mcp.json   (or .cursor/mcp.json in project)
 Windsurf / Cline / Antigravity  →  their MCP settings, same JSON as Cursor
@@ -68,8 +79,8 @@ Codex CLI          →  ~/.codex/config.toml
   /plugin install fagun@fagun
 ────────────────────────────────────────────────────────────────────
 Fagun also registers Chrome DevTools MCP automatically. It uses `npx -y
-chrome-devtools-mcp@latest`, so Chrome DevTools can launch its own dedicated
-Chrome profile without user-side chrome://inspect setup.
+chrome-devtools-mcp@latest --no-usage-statistics`, so Chrome DevTools can launch
+its own dedicated Chrome profile without user-side chrome://inspect setup.
 
 After adding: restart the tool, then type  fagun  to start.
 """
@@ -107,13 +118,10 @@ def _default_servers() -> dict[str, dict]:
 
 def _write_codex(path: Path) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
+    chrome_block = _codex_chrome_devtools_block()
     blocks = {
         "fagun": '\n[mcp_servers.fagun]\ncommand = "uvx"\nargs = ["fagun"]\n',
-        "chrome-devtools": (
-            '\n[mcp_servers.chrome-devtools]\n'
-            'command = "npx"\n'
-            'args = ["-y", "chrome-devtools-mcp@latest"]\n'
-        ),
+        "chrome-devtools": chrome_block,
     }
     existing = path.read_text(encoding="utf-8") if path.exists() else ""
     changed = False
@@ -148,7 +156,7 @@ def init() -> None:
         print(f"  ⚠️  browser install failed: {e}")
 
     if shutil.which("npx"):
-        print("• Chrome DevTools MCP ready via npx -y chrome-devtools-mcp@latest")
+        print("• Chrome DevTools MCP ready via npx -y chrome-devtools-mcp@latest --no-usage-statistics")
     else:
         print("• Chrome DevTools MCP needs Node.js/npx on PATH — install Node.js, then rerun `uvx fagun init`")
 
@@ -338,7 +346,26 @@ def _run_cli_mcp_add(cli_name: str, server_name: str, command: list[str]) -> Non
 
 def _install_claude_code_chrome_devtools() -> None:
     """Register Chrome DevTools MCP in Claude Code with zero install prompts."""
-    _run_cli_mcp_add("claude", "chrome-devtools", ["npx", "-y", "chrome-devtools-mcp@latest"])
+    _run_cli_mcp_add("claude", "chrome-devtools", ["npx", *CHROME_DEVTOOLS_ARGS])
+
+
+def _codex_chrome_devtools_block() -> str:
+    if sys.platform.startswith("win"):
+        return (
+            '\n[mcp_servers.chrome-devtools]\n'
+            'command = "cmd"\n'
+            'args = ["/c", "npx", "-y", "chrome-devtools-mcp@latest", "--no-usage-statistics"]\n'
+            'env = { SystemRoot = "C:\\\\Windows", PROGRAMFILES = "C:\\\\Program Files", '
+            'CHROME_DEVTOOLS_MCP_NO_USAGE_STATISTICS = "1", CHROME_DEVTOOLS_MCP_NO_UPDATE_CHECKS = "1" }\n'
+            "startup_timeout_ms = 20_000\n"
+        )
+    return (
+        '\n[mcp_servers.chrome-devtools]\n'
+        'command = "npx"\n'
+        'args = ["-y", "chrome-devtools-mcp@latest", "--no-usage-statistics"]\n'
+        'env = { CHROME_DEVTOOLS_MCP_NO_USAGE_STATISTICS = "1", CHROME_DEVTOOLS_MCP_NO_UPDATE_CHECKS = "1" }\n'
+        "startup_timeout_ms = 20_000\n"
+    )
 
 
 def _install_chrome_devtools_only() -> None:
@@ -358,13 +385,7 @@ def _install_chrome_devtools_only() -> None:
         existing = path.read_text(encoding="utf-8") if path.exists() else ""
         if "[mcp_servers.chrome-devtools]" not in existing:
             path.parent.mkdir(parents=True, exist_ok=True)
-            path.write_text(
-                existing
-                + '\n[mcp_servers.chrome-devtools]\n'
-                  'command = "npx"\n'
-                  'args = ["-y", "chrome-devtools-mcp@latest"]\n',
-                encoding="utf-8",
-            )
+            path.write_text(existing + _codex_chrome_devtools_block(), encoding="utf-8")
             print(f"✅ wrote Chrome DevTools MCP to {path}")
     _install_claude_code_chrome_devtools()
 
