@@ -143,6 +143,8 @@ extra, not a replacement. Include:
 - Accessibility, performance, security, network/API, forms, and journey coverage.
 - What was not tested and why.
 - Path or URL of any generated report.
+- A Jira-ready bug ticket for every confirmed bug: summary, priority, severity,
+  environment, steps, observed, expected, impact, evidence, screenshot path, and fix.
 
 ## Golden rules
 1. **Evidence or it didn't happen.** Finding = what you did + what you saw + why it's
@@ -182,6 +184,12 @@ reset, onboarding, profile setup, search, filtering, browsing, purchasing,
 checkout, payments, booking, scheduling, messaging, notifications, file uploads,
 reports, dashboards, settings, integrations, account deletion, logout, and error
 recovery.** Test each start→finish.
+
+Do not call a feature "tested" until its complete cycle is covered: entry point →
+required inputs → validation states → success path → error path → persistence or
+side effect → reload/back/forward behavior → cancellation/recovery. If a flow is
+unsafe to complete on production (payment, disconnect, delete, email blast), stop
+before the destructive action and mark the untested step clearly.
 
 Journey step actions: `goto`, `click`, `fill`, `select`, `press`, `wait`,
 `assert_text`, `assert_no_text`, `assert_url`, `assert_visible`, `screenshot`.
@@ -261,11 +269,14 @@ events, duplicate/N+1, missing loading states, mixed content.
 `test_forms` (static, no submit) then **`fuzz_forms(url)`** (active — fills every
 field with the labelled catalog and reads the browser's REAL Constraint-Validation
 verdict; a gap is reported only when the browser accepted a value it should reject —
-never fabricated). Categories (`list_test_data(type)`): valid, invalid, edge,
-boundary, outofbox (unicode/emoji/RTL/homoglyph/null-byte/format-string/IDN),
-injection (`'"><script>`, `{{7*7}}`, `' OR '1'='1`, `../../etc/passwd`, CRLF —
-observe reflection only). `fuzz_forms(url, submit=true)` submits once + watches 5xx
-(authorized only). Also test double-submit races and client-vs-server mismatch.
+never fabricated). Categories (`list_test_data(type)`): valid, invalid, negative,
+empty, whitespace, special characters, unicode, emoji, RTL, homoglyph, null byte,
+very long boundary values, out-of-range values, and injection (`'"><script>`,
+`{{7*7}}`, `' OR '1'='1`, `../../etc/passwd`, CRLF — observe reflection only).
+Reports must include the scenario matrix: field, category, exact test data label,
+expected result, browser verdict, and screenshot for failures. `fuzz_forms(url,
+submit=true)` submits once + watches 5xx (authorized only). Also test double-submit
+races and client-vs-server mismatch.
 
 ### E. Authentication / session / authorization
 Wrong password → clear error, no crash, no user enumeration; session persists on

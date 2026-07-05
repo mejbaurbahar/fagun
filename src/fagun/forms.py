@@ -13,6 +13,9 @@ targets you are authorized to test and that you don't mind receiving a request.
 
 from __future__ import annotations
 
+import os
+import tempfile
+import time
 from typing import Any
 
 from .browser import manager
@@ -72,11 +75,13 @@ async def fuzz_forms(url: str, submit: bool = False, max_cases_per_field: int = 
     forms = await page.evaluate(_FIELD_META_JS)
     findings: list[dict[str, Any]] = []
     tested = 0
+    matrix: list[dict[str, Any]] = []
 
     for form in forms:
         ftag = f"form#{form['idx']} ({form['method'].upper()} {form['action']})"
         for fld in form["fields"]:
             cases = cases_for(fld["type"], fld["name"])[:max_cases_per_field]
+            field_runs: list[dict[str, Any]] = []
             for case in cases:
                 marker = "fagunX" if case.category == "injection" else ""
                 try:
@@ -89,7 +94,32 @@ async def fuzz_forms(url: str, submit: bool = False, max_cases_per_field: int = 
                 if res.get("error"):
                     continue
                 tested += 1
-                findings.extend(_judge(ftag, fld, case, res))
+                verdict = {
+                    "category": case.category,
+                    "label": case.label,
+                    "expect": case.expect or "observe",
+                    "browser_valid": bool(res.get("valid", True)),
+                    "message": res.get("message", ""),
+                    "stored_len": res.get("storedLen"),
+                }
+                field_runs.append(verdict)
+                new_findings = _judge(ftag, fld, case, res)
+                if new_findings:
+                    shot = await _capture_evidence(page, f"form-{form['idx']}-{fld['idx']}-{case.category}")
+                    for f in new_findings:
+                        if shot:
+                            f["screenshot"] = shot
+                            f.setdefault("evidence", "")
+                            f["evidence"] = (f["evidence"] + f"; screenshot: {shot}").strip("; ")
+                    findings.extend(new_findings)
+            matrix.append({
+                "form": ftag,
+                "field": fld["name"],
+                "type": fld["type"],
+                "required": fld.get("required", False),
+                "cases": field_runs,
+                "summary": _matrix_summary(field_runs),
+            })
 
         if submit:
             findings.extend(await _submit_probe(page, form, ftag))
@@ -102,7 +132,30 @@ async def fuzz_forms(url: str, submit: bool = False, max_cases_per_field: int = 
         if k not in seen:
             seen.add(k)
             uniq.append(f)
-    return {"url": url, "forms": len(forms), "cases_tested": tested, "findings": uniq}
+    return {"url": url, "forms": len(forms), "cases_tested": tested,
+            "scenario_matrix": matrix, "findings": uniq}
+
+
+async def _capture_evidence(page, tag: str) -> str | None:
+    try:
+        safe = "".join(c for c in tag if c.isalnum() or c in "-_")[:40] or "form"
+        path = os.path.join(tempfile.gettempdir(), f"fagun-{safe}-{int(time.time()*1000) % 10**7}.png")
+        await page.screenshot(path=path)
+        return path
+    except Exception:
+        return None
+
+
+def _matrix_summary(cases: list[dict[str, Any]]) -> dict[str, int]:
+    out = {"total": len(cases), "valid": 0, "invalid": 0, "accepted_reject_cases": 0}
+    for c in cases:
+        if c.get("browser_valid"):
+            out["valid"] += 1
+            if c.get("expect") == "reject":
+                out["accepted_reject_cases"] += 1
+        else:
+            out["invalid"] += 1
+    return out
 
 
 def _judge(ftag: str, fld: dict, case, res: dict) -> list[dict[str, Any]]:

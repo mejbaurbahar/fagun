@@ -113,6 +113,38 @@ def test_reports_render_action_timeline():
     assert "/tmp/shot.png" in html
 
 
+def test_reports_render_form_matrix_and_jira_tickets():
+    results = [{
+        "url": "https://x.test/login",
+        "scenario_matrix": [{
+            "form": "form#0 (GET https://x.test/login)",
+            "field": "email",
+            "type": "email",
+            "cases": [
+                {"category": "valid", "label": "email: standard", "expect": "accept", "browser_valid": True},
+                {"category": "invalid", "label": "email: missing @", "expect": "reject", "browser_valid": True},
+            ],
+            "summary": {"total": 2, "valid": 2, "invalid": 0, "accepted_reject_cases": 1},
+        }],
+        "findings": [{
+            "severity": "high",
+            "type": "form-validation-gap",
+            "detail": "email accepts missing @",
+            "evidence": "browser checkValidity()=true",
+            "screenshot": "/tmp/fagun-email.png",
+        }],
+    }]
+    md = report.build_report(results, fmt="md")
+    html = report.build_report(results, fmt="html")
+    assert "Form Scenario Matrix" in md
+    assert "accepted reject-cases: 1" in md
+    assert "Jira Bug Tickets" in md
+    assert "Steps to Reproduce" in md
+    assert "/tmp/fagun-email.png" in md
+    assert "Jira Bug Tickets" in html
+    assert "Form Scenario Matrix" in html
+
+
 # --------------------------------------------------------------------- uat
 def test_personas_and_journeys_exist():
     names = {p["name"] for p in uat.list_personas()}

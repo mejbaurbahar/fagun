@@ -35,6 +35,72 @@ def _action_steps(r: dict[str, Any]) -> list[dict[str, Any]]:
     return steps if isinstance(steps, list) else []
 
 
+def _jira_ticket(url: str, f: dict[str, Any], idx: int) -> dict[str, str]:
+    sev = str(f.get("severity", "low")).lower()
+    priority = {"high": "P0", "medium": "P1", "low": "P2"}.get(sev, "P2")
+    title = f"[{priority}] {f.get('type', 'bug')} on {url}"
+    detail = str(f.get("detail", ""))
+    evidence = str(f.get("evidence") or f.get("screenshot") or "")
+    steps = f.get("steps") or [
+        f"Open {url}",
+        "Reproduce the affected flow or field described in the finding.",
+        "Observe the issue and compare against the expected behavior.",
+    ]
+    if not isinstance(steps, list):
+        steps = [str(steps)]
+    return {
+        "key": f"FAGUN-{idx}",
+        "summary": title[:180],
+        "priority": priority,
+        "severity": sev,
+        "issue_type": "Bug",
+        "description": detail,
+        "steps": "\n".join(f"{i}. {s}" for i, s in enumerate(steps, 1)),
+        "observed": detail,
+        "expected": _expected_for(f),
+        "impact": _impact_for(f),
+        "evidence": evidence,
+        "fix": _fix_for(f),
+    }
+
+
+def _expected_for(f: dict[str, Any]) -> str:
+    typ = str(f.get("type", ""))
+    if "form" in typ or "validation" in typ:
+        return "Invalid, empty, boundary, and malicious inputs are rejected with clear inline errors; valid inputs are accepted."
+    if "keyboard" in typ or "a11y" in typ:
+        return "All users can identify, reach, and operate the control with keyboard and assistive technology."
+    if "request" in typ or "network" in typ:
+        return "Required requests complete successfully or fail gracefully without breaking the user journey."
+    if "sec" in typ or "xss" in typ or "csp" in typ:
+        return "Security controls prevent credential leakage, injection, and browser-side exploit paths."
+    return "The feature completes the user/business workflow without errors or confusion."
+
+
+def _impact_for(f: dict[str, Any]) -> str:
+    sev = f.get("severity", "low")
+    if sev == "high":
+        return "Can block a core journey, leak sensitive data, or create a serious trust/security risk."
+    if sev == "medium":
+        return "Degrades usability, reliability, or confidence for a meaningful user segment."
+    return "Polish or hardening issue that should be fixed before production maturity."
+
+
+def _fix_for(f: dict[str, Any]) -> str:
+    typ = str(f.get("type", ""))
+    if "form-security" in typ:
+        return "Use POST over HTTPS for sensitive submissions; never place passwords or tokens in query strings."
+    if "form-validation" in typ:
+        return "Add client and server validation for required, invalid, negative, boundary, special-character, and injection cases."
+    if "a11y-inputLabel" in typ or "form-a11y" in typ:
+        return "Add explicit labels or aria-labelledby/aria-label and verify with a screen reader."
+    if "keyboard" in typ:
+        return "Fix focus order and escape/Tab handling; verify full keyboard journey."
+    if "sec-header" in typ:
+        return "Add hardened CSP/HSTS/frame/referrer/content-type policies at the edge or app server."
+    return "Fix the root cause, add a regression test, and rerun the same Fagun scenario."
+
+
 # ----------------------------------------------------------------- Markdown
 def build_markdown(results: list[dict[str, Any]], title: str = "Fagun QA Report",
                    scorecard: dict[str, Any] | None = None) -> str:
@@ -89,6 +155,18 @@ def build_markdown(results: list[dict[str, Any]], title: str = "Fagun QA Report"
                 if extras:
                     lines.append(f"   - {' · '.join(extras)}")
             lines.append("")
+        matrix = r.get("scenario_matrix") or []
+        if matrix:
+            lines += ["### Form Scenario Matrix", ""]
+            for m in matrix:
+                s = m.get("summary", {})
+                lines.append(f"- **{m.get('form')} → {m.get('field')}** ({m.get('type')})")
+                lines.append(f"  - cases: {s.get('total', 0)} · browser-valid: {s.get('valid', 0)} · browser-invalid: {s.get('invalid', 0)} · accepted reject-cases: {s.get('accepted_reject_cases', 0)}")
+                for c in (m.get("cases") or [])[:18]:
+                    lines.append(f"  - `{c.get('category')}` {c.get('label')} → expect {c.get('expect')} / browser_valid={c.get('browser_valid')}")
+                if len(m.get("cases") or []) > 18:
+                    lines.append(f"  - … +{len(m['cases']) - 18} more cases")
+            lines.append("")
         fs = sorted(r.get("findings", []), key=lambda f: _SEV_ORDER.get(f.get("severity", "low"), 3))
         if not fs:
             lines.append("✅ No findings.")
@@ -99,7 +177,30 @@ def build_markdown(results: list[dict[str, Any]], title: str = "Fagun QA Report"
                 lines.append(f"- {icon} **{f.get('type')}**: {f.get('detail')}{extra}")
                 if f.get("evidence"):
                     lines.append(f"  - _evidence:_ {f['evidence']}")
+                if f.get("screenshot"):
+                    lines.append(f"  - _screenshot:_ `{f['screenshot']}`")
         lines.append("")
+
+    tickets = [_jira_ticket(url, f, i) for i, (url, f) in enumerate(all_findings, 1)]
+    if tickets:
+        lines += ["## Jira Bug Tickets", ""]
+        for t in tickets:
+            lines += [
+                f"### {t['key']} — {t['summary']}",
+                "",
+                f"- Issue Type: {t['issue_type']}",
+                f"- Priority: {t['priority']}",
+                f"- Severity: {t['severity']}",
+                f"- Description: {t['description']}",
+                "- Steps to Reproduce:",
+                t["steps"],
+                f"- Observed: {t['observed']}",
+                f"- Expected: {t['expected']}",
+                f"- Impact: {t['impact']}",
+                f"- Evidence: {t['evidence'] or 'See linked report screenshot/tool output.'}",
+                f"- Suggested Fix: {t['fix']}",
+                "",
+            ]
 
     return "\n".join(lines)
 
@@ -248,6 +349,14 @@ code{{background:#20232c;padding:1px 5px;border-radius:5px}}
                 parts.append(f'<div class="rec"><span class="tag" style="background:{c}">{escape(ok)}</span>'
                              f'<b>{label}</b> — {detail}'
                              f'<div class="ev">{escape(" · ".join(extras))}</div></div>')
+        matrix = r.get("scenario_matrix") or []
+        if matrix:
+            parts.append("<h3>Form Scenario Matrix</h3>")
+            for m in matrix:
+                s = m.get("summary", {})
+                parts.append(f'<div class="rec"><b>{escape(str(m.get("form")))} → {escape(str(m.get("field")))}</b>'
+                             f'<div class="ev">type: {escape(str(m.get("type")))} · cases: {s.get("total", 0)} · '
+                             f'valid: {s.get("valid", 0)} · invalid: {s.get("invalid", 0)} · accepted reject-cases: {s.get("accepted_reject_cases", 0)}</div></div>')
         fs = sorted(r.get("findings", []), key=lambda f: _SEV_ORDER.get(f.get("severity", "low"), 3))
         if not fs:
             parts.append('<div class="sub">✅ No findings.</div>')
@@ -258,7 +367,23 @@ code{{background:#20232c;padding:1px 5px;border-radius:5px}}
                          f'<b>{escape(str(f.get("type")))}</b>: {escape(str(f.get("detail","")))}')
             if f.get("evidence"):
                 parts.append(f'<div class="ev">evidence: {escape(str(f["evidence"]))}</div>')
+            if f.get("screenshot"):
+                parts.append(f'<div class="ev">screenshot: {escape(str(f["screenshot"]))}</div>')
             parts.append("</div>")
+    all_findings = _all_findings(results)
+    if all_findings:
+        parts.append("<h2>Jira Bug Tickets</h2>")
+        for i, (url, f) in enumerate(all_findings, 1):
+            t = _jira_ticket(url, f, i)
+            parts.append(f'<div class="rec"><span class="tag">{escape(t["priority"])}</span>'
+                         f'<b>{escape(t["key"])} — {escape(t["summary"])}</b>'
+                         f'<div class="ev"><b>Description:</b> {escape(t["description"])}</div>'
+                         f'<div class="ev"><b>Steps:</b><br><pre>{escape(t["steps"])}</pre></div>'
+                         f'<div class="ev"><b>Observed:</b> {escape(t["observed"])}</div>'
+                         f'<div class="ev"><b>Expected:</b> {escape(t["expected"])}</div>'
+                         f'<div class="ev"><b>Impact:</b> {escape(t["impact"])}</div>'
+                         f'<div class="ev"><b>Evidence:</b> {escape(t["evidence"] or "See linked report screenshot/tool output.")}</div>'
+                         f'<div class="ev"><b>Suggested Fix:</b> {escape(t["fix"])}</div></div>')
     parts.append("</div></body></html>")
     return "\n".join(parts)
 

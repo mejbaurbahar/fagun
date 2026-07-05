@@ -235,7 +235,7 @@ section{scroll-margin-top:80px}
       <div class="card" style="padding:0;overflow-x:auto"><table>
         <tr><th>Tool</th><th>What it does</th></tr>
         <tr><td><code>list_personas</code> · <code>emulate_persona</code></td><td>Reconfigure the browser to experience the site as a real user type — 11 presets (first-time, mobile, tablet, slow-internet, low-end, keyboard-only, screen-reader, dark-mode, international…) with real device, network/CPU throttle &amp; media prefs.</td></tr>
-        <tr><td><code>run_journey</code></td><td>Walk a full flow step-by-step; per-step pass/fail, screenshot, console errors, failed requests &amp; timing. A step passes only if the browser actually did it.</td></tr>
+        <tr><td><code>run_journey</code></td><td>Walk a full flow step-by-step; per-step pass/fail, screenshot, console errors, failed requests &amp; timing. A feature is not complete until entry point, inputs, validation, success, error path, persistence/side effect, reload/back behavior, and recovery are covered.</td></tr>
         <tr><td><code>list_journeys</code> · <code>journey_template</code></td><td>Built-in journey scaffolds (login, register, password-reset, search, checkout, contact) to copy and fill in.</td></tr>
         <tr><td><code>keyboard_walk</code></td><td>Tab through like a keyboard-only user — focus reachability, invisible focus, traps.</td></tr>
         <tr><td><code>readiness_report</code></td><td>16-category readiness scorecard + release verdict + prioritized fixes from collected findings.</td></tr>
@@ -284,10 +284,10 @@ section{scroll-margin-top:80px}
         <tr><td><code>run_qa</code></td><td>Single-page sweep: console, network, WCAG a11y, SEO, load time, visual overflow, clipped text, small targets, and blocking overlays.</td></tr>
         <tr><td><code>check_links</code></td><td>Probe every link; report 4xx / 5xx / unreachable.</td></tr>
         <tr><td><code>test_forms</code></td><td>Static form audit (security / validation / a11y) — no submit.</td></tr>
-        <tr><td><code>fuzz_forms</code></td><td><b style="color:var(--text)">Active</b>: fills each field with the labelled test-data catalog, reads the browser's real validity verdict, flags gaps. <code>submit=true</code> opt-in.</td></tr>
+        <tr><td><code>fuzz_forms</code></td><td><b style="color:var(--text)">Active</b>: fills each field with valid, invalid, negative, empty, whitespace, special-character, unicode, boundary, out-of-box, and injection-observation cases; returns a field-by-field scenario matrix, browser verdicts, screenshots for failures, and validation gaps. <code>submit=true</code> opt-in.</td></tr>
         <tr><td><code>list_test_data</code></td><td>Show the test cases used for a field type.</td></tr>
         <tr><td><code>deep_test</code></td><td>The big one: auto-use Chrome DevTools MCP when available, then crawl + per-page QA + forms + full security + real vitals + keyboard + <b style="color:var(--text)">readiness verdict</b> → full final answer plus one report (.md/.html/.json/.xml).</td></tr>
-        <tr><td><code>full_qa_sweep</code> · <code>write_report</code></td><td>Multi-page QA / write a report (Markdown, HTML, JSON, or JUnit XML by extension).</td></tr>
+        <tr><td><code>full_qa_sweep</code> · <code>write_report</code></td><td>Multi-page QA / write a report (Markdown, HTML, JSON, or JUnit XML by extension). Markdown/HTML include action timelines, form scenario matrices, screenshots, and Jira-ready bug tickets for each confirmed finding.</td></tr>
       </table></div>
 
       <h3 style="font-size:16px;color:var(--gold);margin:26px 0 8px">Performance, accessibility &amp; security</h3>
@@ -340,7 +340,7 @@ section{scroll-margin-top:80px}
     <section id="testdata">
       <p class="pill">Test data</p>
       <h2 style="margin:0 0 16px;font-size:clamp(1.7rem,3.4vw,2.5rem)">Every case, labelled &amp; traceable.</h2>
-      <p style="color:var(--muted);font-size:15px;line-height:1.7;max-width:720px"><code>fuzz_forms</code> generates the right cases for each field type (email, number, tel, url, date, password, text…). Every value is tagged so a finding always names the exact case that produced it — no guesswork.</p>
+      <p style="color:var(--muted);font-size:15px;line-height:1.7;max-width:720px"><code>fuzz_forms</code> generates the right cases for each field type (email, number, tel, url, date, password, text…). Every value is tagged so a finding always names the exact case that produced it, the expected result, the browser verdict, and any screenshot evidence — no guesswork.</p>
       <div class="card" style="padding:0;overflow-x:auto;margin-top:18px"><table>
         <tr><th>Category</th><th>Examples</th></tr>
         <tr><td><code>valid</code></td><td>well-formed values that should be accepted — <code>user@example.com</code>, <code>+8801712345678</code>, <code>2024-02-29</code></td></tr>

@@ -12,6 +12,8 @@ AI can open a real browser and:
   auth state, and likely revenue/conversion flows before judging it.
 - **Run User Acceptance Testing** — walk complete journeys (signup, login, search,
   checkout, password reset…) step by step and confirm a real user can finish them.
+- **Fuzz every input field** — valid, invalid, negative, empty, whitespace,
+  special-character, unicode, boundary, and injection-observation cases.
 - **Hunt real, reproducible bugs** — broken links, console/JS errors, failed requests,
   form-validation gaps, accessibility violations, slow pages, security misconfig.
 - **Deliver a product-readiness verdict** — a 16-category scorecard (UX, UI, business
@@ -380,9 +382,11 @@ GET/HEAD only, no attacks on third parties:
 
 **What's new in v0.7.0 — deeper, smarter, evidence-backed:**
 - **`fuzz_forms`** — actively fills every form field with a labelled test-data
-  catalog (valid / invalid / edge / boundary / out-of-box / injection) and reads
-  the browser's *real* Constraint-Validation verdict. A validation gap is reported
-  only when the browser itself accepted a value it should have rejected.
+  catalog (valid / invalid / negative / empty / whitespace / special character /
+  unicode / boundary / out-of-box / injection) and reads the browser's *real*
+  Constraint-Validation verdict. Reports include a field-by-field scenario matrix
+  and screenshots for failed cases. A validation gap is reported only when the
+  browser itself accepted a value it should have rejected.
 - **`perf_audit`** — real Core Web Vitals (LCP, CLS, TBT, FCP, TTFB) from the
   browser's Performance APIs + a Lighthouse-comparable 0-100 score. No estimates.
 - **`a11y_audit`** — deep WCAG 2.1 checks incl. real computed color-contrast.
@@ -390,6 +394,9 @@ GET/HEAD only, no attacks on third parties:
   risky HTTP methods, mixed content, missing SRI, sensitive-page caching, host-
   header injection, CRLF, path-traversal/LFI, SSTI, command-injection, GraphQL
   introspection, error/stack-trace disclosure, sensitive-data-in-URL.
+- **Jira bug reports** — every confirmed finding in Markdown/HTML reports gets a
+  Jira-ready ticket: summary, priority, severity, steps, observed, expected,
+  impact, evidence, screenshot path, and suggested fix.
 - Every finding carries **evidence** — nothing is fabricated; unreproducible = not reported.
 
 ---
