@@ -1,8 +1,7 @@
 {
   "mcpServers": {
     "fagun": {
-      "command": "uvx",
-      "args": ["fagun"]
+      "command": "/Users/mejbaurbaharfagun/Desktop/Personal/fagun/.venv/bin/fagun"
     }
   }
 }

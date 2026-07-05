@@ -15,6 +15,7 @@ from . import a11y as _a11y
 from . import advsec as _advsec
 from . import vitals as _vitals
 from .browser import manager
+from .forms import fuzz_forms as _fuzz_forms
 
 
 def _same_site(a: str, b: str) -> bool:
@@ -25,10 +26,10 @@ _LOC_RE = re.compile(r"<loc>\s*([^<\s]+)\s*</loc>", re.I)
 _SITEMAP_RE = re.compile(r"(?im)^\s*sitemap:\s*(\S+)")
 
 
-async def _seed_from_sitemap(start_url: str, max_urls: int = 200) -> list[str]:
+async def _seed_from_sitemap(start_url: str, max_urls: int = 500) -> list[str]:
     """Discover same-site URLs from robots.txt (Sitemap: lines) and /sitemap.xml.
     Surfaces pages not linked from the homepage. Best-effort — returns [] on any
-    error. Only follows one level of sitemap-index nesting to stay bounded."""
+    error. Follows two levels of sitemap-index nesting to catch deep sitemaps."""
     p = urlparse(start_url)
     root = f"{p.scheme}://{p.netloc}"
     page = await manager.page()
@@ -36,29 +37,39 @@ async def _seed_from_sitemap(start_url: str, max_urls: int = 200) -> list[str]:
     async def _fetch(u: str) -> str:
         try:
             r = await page.request.get(u, timeout=12000, fail_on_status_code=False)
-            return (await r.text())[:500000] if r.status == 200 else ""
+            return (await r.text())[:1000000] if r.status == 200 else ""
         except Exception:
             return ""
 
     sitemaps: list[str] = []
     robots = await _fetch(root + "/robots.txt")
     sitemaps += _SITEMAP_RE.findall(robots)
-    sitemaps.append(root + "/sitemap.xml")
+    # Common sitemap locations
+    for candidate in ["/sitemap.xml", "/sitemap_index.xml", "/sitemap-index.xml",
+                      "/sitemaps/sitemap.xml", "/wp-sitemap.xml", "/news-sitemap.xml"]:
+        sitemaps.append(root + candidate)
 
     found: list[str] = []
     seen_sm: set[str] = set()
-    for sm in sitemaps[:5]:
+    for sm in sitemaps[:10]:
         if sm in seen_sm:
             continue
         seen_sm.add(sm)
         body = await _fetch(sm)
         locs = _LOC_RE.findall(body)
-        # A sitemap index points at more sitemaps; fetch one level of them.
-        nested = [l for l in locs if l.rstrip("/").endswith(".xml")]
-        for n in nested[:5]:
+        # Sitemap index: follow two levels of nested sitemaps
+        nested_l1 = [l for l in locs if l.rstrip("/").endswith(".xml")]
+        for n in nested_l1[:10]:
             if n not in seen_sm:
                 seen_sm.add(n)
-                locs += _LOC_RE.findall(await _fetch(n))
+                body2 = await _fetch(n)
+                locs2 = _LOC_RE.findall(body2)
+                nested_l2 = [l for l in locs2 if l.rstrip("/").endswith(".xml")]
+                for n2 in nested_l2[:5]:
+                    if n2 not in seen_sm:
+                        seen_sm.add(n2)
+                        locs2 += _LOC_RE.findall(await _fetch(n2))
+                locs += locs2
         for loc in locs:
             loc = urldefrag(loc)[0]
             if loc.endswith(".xml"):
@@ -70,16 +81,158 @@ async def _seed_from_sitemap(start_url: str, max_urls: int = 200) -> list[str]:
     return found
 
 
-async def crawl(start_url: str, max_pages: int = 20) -> dict[str, Any]:
-    """Breadth-first crawl within the same host, seeded from sitemap/robots so
-    unlinked pages are still discovered. Returns discovered pages."""
+async def _seed_from_spa_routes(start_url: str) -> list[str]:
+    """Extract client-side routes from SPA frameworks (Next.js, Nuxt, React Router,
+    Vue Router, Angular). Catches pages not linked from the DOM at load time."""
+    page = await manager.page()
+    _p = urlparse(start_url)
+    root = f"{_p.scheme}://{_p.netloc}"  # noqa: F841 — kept for clarity
+    try:
+        await page.goto(start_url, wait_until="networkidle", timeout=30000)
+    except Exception:
+        return []
+
+    try:
+        routes = await page.evaluate(
+            """() => {
+                const routes = new Set();
+                const origin = location.origin;
+
+                // Next.js: __NEXT_DATA__ build manifest
+                try {
+                    const nd = window.__NEXT_DATA__;
+                    if (nd && nd.buildId) {
+                        const manifestUrl = `${origin}/_next/static/${nd.buildId}/_buildManifest.js`;
+                        // can't fetch sync; record sitemap-style hrefs we can see
+                    }
+                    if (nd && nd.page) routes.add(nd.page);
+                    // pages-manifest in SSG
+                    if (nd && nd.props && nd.props.pageProps) {
+                        const paths = nd.props.pageProps.__N_SSP || nd.props.pageProps.__N_SSG || [];
+                        paths.forEach && paths.forEach(p => routes.add(p));
+                    }
+                } catch(e){}
+
+                // Nuxt.js
+                try {
+                    const nc = window.__NUXT__;
+                    if (nc && nc.routePath) routes.add(nc.routePath);
+                } catch(e){}
+
+                // React Router / Vue Router: scan all <a> including client-rendered
+                document.querySelectorAll('a[href]').forEach(a => {
+                    try {
+                        const u = new URL(a.href, location.href);
+                        if (u.origin === origin && !u.pathname.match(/\\.(?:js|css|png|jpg|gif|svg|ico|woff|ttf|map)$/)) {
+                            routes.add(u.pathname + u.search);
+                        }
+                    } catch(e){}
+                });
+
+                // Angular router outlet links & data-routerlink
+                document.querySelectorAll('[routerlink],[data-routerlink],[ng-href]').forEach(el => {
+                    const r = el.getAttribute('routerlink') || el.getAttribute('data-routerlink') || el.getAttribute('ng-href');
+                    if (r && r.startsWith('/')) routes.add(r);
+                });
+
+                // data-href, data-url, data-to attributes (various frameworks)
+                document.querySelectorAll('[data-href],[data-url],[data-to]').forEach(el => {
+                    const r = el.getAttribute('data-href') || el.getAttribute('data-url') || el.getAttribute('data-to');
+                    if (r && (r.startsWith('/') || r.startsWith(origin))) {
+                        try { routes.add(new URL(r, location.href).pathname); } catch(e){}
+                    }
+                });
+
+                // Next.js Link elements (rendered as <a> but catch data-* too)
+                // Scan nav/menu/sidebar/footer for ALL links including JS-driven menus
+                const navSelectors = 'nav a, header a, footer a, [role="navigation"] a, [aria-label*="nav" i] a, .sidebar a, .menu a, .drawer a, aside a';
+                document.querySelectorAll(navSelectors).forEach(a => {
+                    try {
+                        const u = new URL(a.href, location.href);
+                        if (u.origin === origin) routes.add(u.pathname + u.search);
+                    } catch(e){}
+                });
+
+                return [...routes].filter(r => r && r !== '/').slice(0, 300);
+            }"""
+        )
+        p_parsed = urlparse(start_url)
+        root_real = f"{p_parsed.scheme}://{p_parsed.netloc}"
+        found = []
+        for r in (routes or []):
+            if r.startswith("http"):
+                abs_url = urldefrag(r)[0]
+            else:
+                abs_url = urldefrag(root_real + r)[0]
+            if _same_site(start_url, abs_url):
+                found.append(abs_url)
+        return found
+    except Exception:
+        return []
+
+
+async def _seed_from_nav_links(start_url: str) -> list[str]:
+    """Harvest all navigation, sidebar, footer, and menu links from the loaded page.
+    Ensures top-level sections not in sitemap are still discovered."""
+    page = await manager.page()
+    p_parsed = urlparse(start_url)
+    root = f"{p_parsed.scheme}://{p_parsed.netloc}"
+    found = []
+    try:
+        hrefs = await page.eval_on_selector_all(
+            "a[href]", "els => [...new Set(els.map(e => e.href))]"
+        )
+        for h in hrefs:
+            if not h or not h.startswith("http"):
+                continue
+            abs_url = urldefrag(h)[0]
+            if _same_site(start_url, abs_url):
+                found.append(abs_url)
+    except Exception:
+        pass
+    return found
+
+
+async def crawl(start_url: str, max_pages: int = 50) -> dict[str, Any]:
+    """Breadth-first crawl within the same host. Seeded from four sources so that
+    unlinked pages, SPA routes, and sitemap-only pages are all discovered:
+    1. sitemap.xml / robots.txt (including nested sitemap-index)
+    2. SPA framework routes (Next.js, Nuxt, React Router, Angular, Vue)
+    3. All navigation/sidebar/footer/menu links on the homepage
+    4. BFS link-following during the crawl itself
+    Returns all discovered pages up to max_pages."""
     page = await manager.page()
     seen: set[str] = set()
     start = urldefrag(start_url)[0]
-    queue: list[str] = [start]
-    for u in await _seed_from_sitemap(start_url):
-        if u != start:
-            queue.append(u)
+
+    # Seed phase: collect candidate URLs from all discovery methods before BFS.
+    seed_urls: list[str] = [start]
+
+    # 1. Sitemap / robots.txt
+    try:
+        for u in await _seed_from_sitemap(start_url):
+            if u not in seen and u not in seed_urls:
+                seed_urls.append(u)
+    except Exception:
+        pass
+
+    # 2. SPA routes (loads the page once for JS route discovery)
+    try:
+        for u in await _seed_from_spa_routes(start_url):
+            if u not in seen and u not in seed_urls:
+                seed_urls.append(u)
+    except Exception:
+        pass
+
+    # 3. Nav/sidebar/footer links from homepage (already loaded above)
+    try:
+        for u in await _seed_from_nav_links(start_url):
+            if u not in seen and u not in seed_urls:
+                seed_urls.append(u)
+    except Exception:
+        pass
+
+    queue: list[str] = seed_urls
     pages: list[dict[str, Any]] = []
 
     while queue and len(pages) < max_pages:
@@ -95,6 +248,7 @@ async def crawl(start_url: str, max_pages: int = 20) -> dict[str, Any]:
             pages.append({"url": url, "status": None, "error": str(e)})
             continue
 
+        # BFS: discover more links from each visited page
         hrefs = await page.eval_on_selector_all(
             "a[href]", "els => els.map(e => e.getAttribute('href'))"
         )
@@ -111,32 +265,50 @@ async def crawl(start_url: str, max_pages: int = 20) -> dict[str, Any]:
             {"url": url, "status": status, "title": title, "links_found": len(links)}
         )
 
-    return {"start": start_url, "crawled": len(pages), "pages": pages}
+    return {
+        "start": start_url,
+        "crawled": len(pages),
+        "pages": pages,
+        "seed_sources": ["sitemap/robots", "spa-routes", "nav-links", "bfs"],
+    }
 
 
 async def _seo_checks(page) -> list[dict[str, Any]]:
-    """Real SEO/meta signals read from the loaded document."""
+    """Real SEO/meta signals read from the loaded document — core, OG, Twitter, JSON-LD."""
     data = await page.evaluate(
         """() => {
             const g = (s, a='content') => { const e = document.querySelector(s); return e ? (e.getAttribute(a)||'') : null; };
+            const jsonLd = [...document.querySelectorAll('script[type="application/ld+json"]')]
+                .map(s => { try { return JSON.parse(s.textContent); } catch(_) { return null; } })
+                .filter(Boolean);
             return {
                 title: (document.title||'').trim(),
                 desc: g('meta[name="description"]'),
                 canonical: g('link[rel="canonical"]','href'),
                 robots: g('meta[name="robots"]'),
-                ogTitle: g('meta[property="og:title"]'),
                 viewport: g('meta[name="viewport"]'),
                 h1: document.querySelectorAll('h1').length,
+                ogTitle: g('meta[property="og:title"]'),
+                ogDesc: g('meta[property="og:description"]'),
+                ogImage: g('meta[property="og:image"]'),
+                ogType: g('meta[property="og:type"]'),
+                twCard: g('meta[name="twitter:card"]'),
+                twTitle: g('meta[name="twitter:title"]'),
+                jsonLdCount: jsonLd.length,
+                jsonLdTypes: jsonLd.map(j => j['@type'] || '').filter(Boolean).slice(0,5),
             };
         }"""
     )
     out: list[dict[str, Any]] = []
+    # Core SEO
     if not data["title"]:
         out.append({"severity": "medium", "type": "seo", "detail": "Missing <title>"})
     elif len(data["title"]) > 60:
         out.append({"severity": "low", "type": "seo", "detail": f"<title> {len(data['title'])} chars (>60 truncates in SERP)"})
     if data["desc"] is None:
         out.append({"severity": "low", "type": "seo", "detail": "Missing meta description"})
+    elif len(data["desc"]) > 160:
+        out.append({"severity": "low", "type": "seo", "detail": f"Meta description {len(data['desc'])} chars (>160 truncates)"})
     if data["canonical"] is None:
         out.append({"severity": "low", "type": "seo", "detail": "No canonical link"})
     if data["h1"] == 0:
@@ -147,6 +319,19 @@ async def _seo_checks(page) -> list[dict[str, Any]]:
         out.append({"severity": "low", "type": "seo", "detail": "No viewport meta (not mobile-friendly)"})
     if (data["robots"] or "").lower().find("noindex") >= 0:
         out.append({"severity": "medium", "type": "seo", "detail": "Page is noindex — excluded from search"})
+    # Open Graph
+    if not data["ogTitle"]:
+        out.append({"severity": "low", "type": "seo-og", "detail": "Missing og:title — poor social sharing preview"})
+    if not data["ogDesc"]:
+        out.append({"severity": "low", "type": "seo-og", "detail": "Missing og:description"})
+    if not data["ogImage"]:
+        out.append({"severity": "low", "type": "seo-og", "detail": "Missing og:image — no thumbnail on social share"})
+    # Twitter Card
+    if not data["twCard"]:
+        out.append({"severity": "low", "type": "seo-twitter", "detail": "Missing twitter:card — no Twitter rich card"})
+    # JSON-LD structured data
+    if data["jsonLdCount"] == 0:
+        out.append({"severity": "low", "type": "seo-jsonld", "detail": "No JSON-LD structured data — no rich results eligibility"})
     return out
 
 
@@ -443,27 +628,87 @@ async def test_forms(url: str) -> dict[str, Any]:
     return {"url": url, "forms": len(forms), "findings": findings}
 
 
+async def _mobile_ux_check(url: str) -> list[dict[str, Any]]:
+    """Re-run visual/UX checks at a 375×812 mobile viewport. Catches responsive
+    breakage that only appears on small screens. Restores desktop viewport after."""
+    page = await manager.page()
+    findings: list[dict[str, Any]] = []
+    try:
+        await page.set_viewport_size({"width": 375, "height": 812})
+        await page.goto(url, wait_until="domcontentloaded", timeout=20000)
+        mobile_findings = await _ux_render_checks(page)
+        for f in mobile_findings:
+            f["viewport"] = "mobile-375"
+            f["type"] = "mobile-" + f.get("type", "ux")
+        findings.extend(mobile_findings)
+        # Check for fixed/sticky elements that cover >50% of mobile viewport
+        overlay = await page.evaluate(
+            """() => {
+                const vw = window.innerWidth, vh = window.innerHeight;
+                const blocking = [];
+                document.querySelectorAll('*').forEach(el => {
+                    const s = getComputedStyle(el);
+                    if ((s.position === 'fixed' || s.position === 'sticky')) {
+                        const r = el.getBoundingClientRect();
+                        if (r.width * r.height > vw * vh * 0.4) {
+                            const id = el.id ? '#'+el.id : '';
+                            blocking.push(el.tagName.toLowerCase() + id);
+                        }
+                    }
+                });
+                return blocking.slice(0, 5);
+            }"""
+        )
+        if overlay:
+            findings.append({
+                "severity": "medium", "type": "mobile-overlay",
+                "detail": f"Fixed/sticky element covers >40% of 375px mobile viewport",
+                "evidence": "e.g. " + "; ".join(overlay[:3]),
+                "viewport": "mobile-375",
+            })
+    except Exception as e:
+        findings.append({"severity": "low", "type": "check-error",
+                         "detail": f"mobile-ux: {e}", "viewport": "mobile-375"})
+    finally:
+        # Restore desktop viewport
+        try:
+            await page.set_viewport_size({"width": 1280, "height": 800})
+        except Exception:
+            pass
+    return findings
+
+
 async def deep_test(
     url: str,
-    max_pages: int = 8,
+    max_pages: int = 50,
     security: bool = True,
     perf: bool = True,
     keyboard: bool = True,
+    fuzz: bool = True,
 ) -> dict[str, Any]:
-    """Everything, per page: QA (console/network/a11y/SEO) + forms + security
-    headers + advanced security probes + real Core Web Vitals + keyboard
-    reachability. Aggregated into one result set. Every finding is
-    evidence-backed — no fabricated results."""
+    """Comprehensive test: crawl ALL discoverable pages (sitemap + SPA routes +
+    nav links + BFS), then per page run:
+      - QA: console errors, network failures, a11y (WCAG 2.1), SEO (incl. OG/Twitter/JSON-LD)
+      - Forms: static audit + active fuzz (injection/unicode/boundary/invalid data)
+      - Security: headers + advanced probes (CSP, SSTI, LFI, CRLF, host-header, GraphQL)
+      - Performance: real Core Web Vitals (LCP/CLS/TBT/FCP/TTFB)
+      - Keyboard: reachability and focus-trap detection
+      - Mobile: responsive layout check at 375px viewport
+    Every finding is evidence-backed — no fabricated results.
+    Pass max_pages=200 or higher for very large sites.
+    Set fuzz=False to skip active form fuzzing (faster, less intrusive)."""
     from . import uat as _uat
 
     crawl_result = await crawl(url, max_pages)
     results: list[dict[str, Any]] = []
+
     for p in crawl_result["pages"]:
         if p.get("error") or (p.get("status") and p["status"] >= 400):
             continue
         page_url = p["url"]
         merged = await run_qa(page_url)
 
+        # Core checks: static form audit + security headers
         checks = [test_forms, security_headers]
         if security:
             checks.append(_advsec.advanced_scan)
@@ -477,6 +722,19 @@ async def deep_test(
                     {"severity": "low", "type": "check-error", "detail": f"{check.__name__} failed: {e}"}
                 )
 
+        # Active form fuzzing: injection / unicode / boundary / invalid data per field
+        if fuzz:
+            try:
+                fuzz_result = await _fuzz_forms(page_url)
+                merged["findings"].extend(fuzz_result.get("findings", []))
+                merged["fuzz_cases_tested"] = fuzz_result.get("cases_tested", 0)
+                merged["fuzz_scenario_matrix"] = fuzz_result.get("scenario_matrix", [])
+            except Exception as e:
+                merged["findings"].append(
+                    {"severity": "low", "type": "check-error", "detail": f"fuzz_forms failed: {e}"}
+                )
+
+        # Performance vitals
         if perf:
             try:
                 v = await _vitals.measure(page_url)
@@ -485,6 +743,15 @@ async def deep_test(
                 merged["findings"].extend(v.get("findings", []))
             except Exception as e:
                 merged["findings"].append({"severity": "low", "type": "check-error", "detail": f"vitals: {e}"})
+
+        # Mobile viewport responsive check (375px)
+        try:
+            mobile_findings = await _mobile_ux_check(page_url)
+            merged["findings"].extend(mobile_findings)
+        except Exception as e:
+            merged["findings"].append(
+                {"severity": "low", "type": "check-error", "detail": f"mobile-ux failed: {e}"}
+            )
 
         # Dedup after merging many sources.
         seen: set[tuple[str, str]] = set()
@@ -497,16 +764,19 @@ async def deep_test(
         merged["findings"] = uniq
         results.append(merged)
 
+    tested_set = {r.get("url") for r in results}
+    skipped_urls = [
+        p.get("url") for p in crawl_result.get("pages", [])
+        if p.get("url") not in tested_set
+    ]
     coverage = {
         "start": url,
         "crawl_pages": crawl_result.get("crawled", 0),
+        "seed_sources": crawl_result.get("seed_sources", []),
         "pages_tested": len(results),
         "max_pages": max_pages,
         "tested_urls": [r.get("url") for r in results],
-        "skipped_urls": [
-            p.get("url") for p in crawl_result.get("pages", [])
-            if p.get("url") not in {r.get("url") for r in results}
-        ],
+        "skipped_urls": skipped_urls,
         "complete": bool(results) and len(results) >= min(crawl_result.get("crawled", 0), max_pages),
     }
     if len(results) <= 1:
@@ -514,22 +784,31 @@ async def deep_test(
         coverage["reason"] = (
             "Only one reachable page was tested. If the product has an authenticated "
             "dashboard or private workflows, log in or load a saved session before "
-            "rerunning deep_test."
+            "rerunning deep_test. For SPA apps with JS-only routes, increase max_pages "
+            "and ensure the app is fully loaded before crawl."
         )
         coverage["not_tested"] = [
-            "authenticated dashboard",
+            "authenticated dashboard and all private routes",
             "account/workspace authorization and IDOR surface",
             "campaign or primary business creation flow",
             "settings, integrations, billing, and role permissions",
             "saved-data persistence, reload/back behavior, and recovery paths",
+            "dynamic routes only reachable after user interaction",
         ]
-    elif not coverage["complete"]:
+    elif skipped_urls:
         coverage["status"] = "partial"
-        coverage["reason"] = "Some discovered pages were skipped or max_pages was reached before full coverage."
-        coverage["not_tested"] = coverage["skipped_urls"][:20]
+        coverage["reason"] = (
+            f"max_pages={max_pages} reached before all discovered pages were tested. "
+            f"{len(skipped_urls)} pages were discovered but not tested. "
+            "Increase max_pages or run deep_test on skipped_urls individually."
+        )
+        coverage["not_tested"] = skipped_urls[:50]
     else:
         coverage["status"] = "complete"
-        coverage["reason"] = "All discovered in-scope pages within max_pages were tested."
+        coverage["reason"] = (
+            "All discovered in-scope pages (via sitemap, SPA routes, nav links, and BFS) "
+            "were tested within max_pages."
+        )
         coverage["not_tested"] = []
 
     if results:

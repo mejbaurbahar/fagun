@@ -455,15 +455,19 @@ async def test_forms(url: str, verbose: bool = False) -> str:
 
 @mcp.tool()
 @_browser_tool
-async def deep_test(url: str, max_pages: int = 8, report_path: Optional[str] = None,
+async def deep_test(url: str, max_pages: int = 50, report_path: Optional[str] = None,
                     security: bool = True, perf: bool = True, keyboard: bool = True,
-                    verbose: bool = False) -> str:
-    """Full site audit: crawl + per-page QA (console/network/WCAG a11y/SEO) + form
-    audit + full security battery + real Core Web Vitals + keyboard reachability,
-    then a product-readiness scorecard (category scores + release verdict). One
-    aggregated report. Report format follows the file extension: .md / .html /
-    .json / .xml(JUnit). Every finding is evidence-backed."""
-    result = await _deep_test(url, max_pages, security=security, perf=perf, keyboard=keyboard)
+                    fuzz: bool = True, verbose: bool = False) -> str:
+    """Full site audit: crawl ALL pages (sitemap + SPA routes + nav links + BFS) then
+    per page: QA (console/network/WCAG a11y/SEO+OG/Twitter/JSON-LD) + static form audit
+    + active form fuzzing (injection/unicode/boundary/select/checkbox) + security headers
+    + advanced security probes (SSTI/LFI/CRLF/host-header/GraphQL) + real Core Web Vitals
+    + keyboard reachability + mobile viewport (375px) responsive check.
+    Produces a 16-category product-readiness scorecard + release verdict.
+    Set fuzz=False for faster scans. Report format: .md / .html / .json / .xml(JUnit).
+    Every finding is evidence-backed — no fabricated results."""
+    result = await _deep_test(url, max_pages, security=security, perf=perf,
+                              keyboard=keyboard, fuzz=fuzz)
     scorecard = _readiness.build_scorecard(result["results"], meta={"target": url, "pages": result["pages_tested"]})
     prefix = ""
     if report_path:
@@ -782,9 +786,19 @@ def delete_session(name: str) -> str:
 async def connect_chrome(port: int = 9222) -> str:
     """Launch YOUR real Chrome with remote debugging on and attach to it — fully
     automatic, no manual chrome://inspect step. Uses a dedicated Fagun profile."""
+    import os as _os
     cdp = launch_debuggable_chrome(port)
     await manager.stop()
-    msg = await manager.start()
+    try:
+        msg = await manager.start()
+    except Exception as e:
+        # Chrome launched but CDP connect failed — clear the env var so subsequent
+        # tools fall back to headless rather than retrying the broken CDP address.
+        _os.environ.pop("FAGUN_CDP_URL", None)
+        return f"Chrome launched at {cdp} but could not attach ({e}). Fagun will use its own headless browser."
+    # Verify we actually connected over CDP (not fell back to headless).
+    if not manager._cdp_attached:
+        return f"Chrome at {cdp} unreachable; using Fagun headless browser instead."
     return f"Chrome launched with debugging at {cdp}. {msg}"
 
 

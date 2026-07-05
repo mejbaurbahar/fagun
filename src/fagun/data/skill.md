@@ -118,9 +118,17 @@ cards/panels from that structure. For chat/custom instructions, call
 `fagun_render_response`.
 
 ## Token discipline
-- Prefer **`deep_test(url, report_path=...)`** — one call = crawl + QA + forms +
-  security + real vitals + keyboard + **readiness scorecard**. Report format follows
-  the extension: `.md` / `.html` / `.json` / `.xml` (JUnit for CI).
+- Prefer **`deep_test(url, report_path=...)`** — one call = crawl ALL pages (sitemap
+  + SPA routes + nav links + BFS) + QA + forms + security + real vitals + keyboard +
+  **readiness scorecard**. Default `max_pages=50` covers most apps. For large sites
+  pass `max_pages=200`. Report format follows the extension: `.md` / `.html` / `.json`
+  / `.xml` (JUnit for CI).
+- **NEVER stop at the homepage.** Every page discovered by crawl must be tested.
+  If `coverage.status` is `"partial"`, re-run with a higher `max_pages` or run
+  `deep_test` on each URL in `coverage.skipped_urls`.
+- If `coverage.status` is `"limited"` (only 1 page tested), the app likely requires
+  login. Load a saved session or log in, then rerun — otherwise authenticated flows
+  (dashboards, settings, checkout) are completely untested.
 - Output is **terse by default**; pass `verbose=true` only when you need full JSON.
 - For long sessions or small-context models, keep raw tool output compact, but the
   final answer must still show the full Fagun user-facing result: verdict, score,
@@ -249,12 +257,17 @@ not a defect list; it's a better product.
 ## Workflow
 **0. Scope** — confirm URL(s), staging vs production, what matters most.
 **1. Recon** — `product_map(url)` → `auth_status(url)` → `open_browser` →
-`navigate` → `screenshot`; `crawl(url, max_pages)` to map the surface (auth,
-forms, listings, detail, checkout, dashboard).
+`navigate` → `screenshot`; run `crawl(url, max_pages=100)` to map ALL pages via
+sitemap + SPA routes + nav links + BFS. Inspect `coverage.seed_sources` and
+`coverage.crawled`. If `crawled < 5` and app has many features → login required.
 **2. Broad sweep** — automatically use Chrome DevTools MCP auto-connect when
-available, then call `deep_test(url, report_path="report.html")` (baseline: QA +
-forms + security + vitals + keyboard + readiness). Then `check_links`, `fuzz_forms`,
-`perf_audit`/`a11y_audit` for focus.
+available, then call `deep_test(url, max_pages=50, report_path="report.html")`
+(baseline: crawl ALL pages + QA + forms + security + vitals + keyboard + readiness).
+For large sites use `max_pages=200`. Then `check_links`, `fuzz_forms`,
+`perf_audit`/`a11y_audit` for focus. Always check `coverage.status` in the result:
+- `"complete"` → all pages tested, proceed.
+- `"partial"` → re-run with higher `max_pages` or test `skipped_urls` manually.
+- `"limited"` → only 1 page reached; login required; do NOT present as full-product test.
 **3. UAT** — personas + journeys + keyboard walk + business checks (Part 1).
 **4. Targeted hunting** — drive flows with `click`/`fill`/`press_key`/`evaluate_js`;
 after EACH interaction check `get_console(only_errors=True)` and

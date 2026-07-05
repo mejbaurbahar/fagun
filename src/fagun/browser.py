@@ -182,14 +182,20 @@ class BrowserManager:
                     last = e
                     await asyncio.sleep(0.5)
             if last is not None:
-                raise RuntimeError(f"Could not connect to Chrome at {cdp}: {last}")
-            self._cdp_attached = True
-            self._context = (
-                self._browser.contexts[0]
-                if self._browser.contexts
-                else await self._browser.new_context()
-            )
-        else:
+                # CDP target unreachable — clear the stale env var and fall back
+                # to headless so all tools continue working normally.
+                os.environ.pop("FAGUN_CDP_URL", None)
+                cdp = None  # triggers the headless branch below
+            else:
+                self._cdp_attached = True
+                self._context = (
+                    self._browser.contexts[0]
+                    if self._browser.contexts
+                    else await self._browser.new_context()
+                )
+
+        if not cdp:
+            # Headless launch (either no CDP configured or CDP fallback after failure).
             if headless is None:
                 headless = os.environ.get("FAGUN_HEADLESS", "1") != "0"
             try:

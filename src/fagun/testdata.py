@@ -199,6 +199,35 @@ def _password() -> list[TestCase]:
     ]
 
 
+def _select(name: str = "select") -> list[TestCase]:
+    """Option-tampering cases for <select> elements."""
+    return [
+        TestCase("", "edge", f"{name}: empty value"),
+        TestCase("0", "boundary", f"{name}: numeric zero (often invalid option)"),
+        TestCase("-1", "boundary", f"{name}: negative (sentinel)"),
+        TestCase("99999", "boundary", f"{name}: out-of-range id"),
+        TestCase("' OR '1'='1", "injection", f"{name}: SQLi option tamper"),
+        TestCase("<script>fagunX()</script>", "injection", f"{name}: XSS option tamper"),
+        TestCase("../admin", "injection", f"{name}: path option tamper"),
+        TestCase(_LONG[:50], "outofbox", f"{name}: long option value"),
+        TestCase(_UNICODE, "outofbox", f"{name}: unicode option"),
+    ]
+
+
+def _checkbox(name: str = "checkbox") -> list[TestCase]:
+    """Checkbox/radio value cases — tests both on/off and unexpected values."""
+    return [
+        TestCase("true", "valid", f"{name}: true"),
+        TestCase("false", "edge", f"{name}: false"),
+        TestCase("1", "valid", f"{name}: 1"),
+        TestCase("0", "edge", f"{name}: 0"),
+        TestCase("on", "valid", f"{name}: on"),
+        TestCase("off", "edge", f"{name}: off"),
+        TestCase("yes", "outofbox", f"{name}: yes string"),
+        TestCase("' OR '1'='1", "injection", f"{name}: SQLi"),
+    ]
+
+
 _FIELD_BUILDERS = {
     "email": _email,
     "number": _number,
@@ -209,6 +238,10 @@ _FIELD_BUILDERS = {
     "datetime-local": _date,
     "month": _date,
     "password": _password,
+    "select-one": _select,
+    "select-multiple": _select,
+    "checkbox": _checkbox,
+    "radio": _checkbox,
 }
 
 
@@ -220,6 +253,9 @@ def cases_for(field_type: str, name: str = "", include: Iterable[str] = CATEGORI
     """
     ft = (field_type or "text").lower()
     nm = (name or "").lower()
+    # Normalise browser-reported types for select elements
+    if ft in ("select", "select-one", "select-multiple"):
+        ft = "select-one"
     builder = _FIELD_BUILDERS.get(ft)
     if builder is None:
         # Heuristic: infer intent from the field name for generic text inputs.

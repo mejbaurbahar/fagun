@@ -30,14 +30,39 @@ _PROBE_JS = r"""
   if (!form) return {error: 'no form'};
   const el = form.elements[fieldIdx];
   if (!el) return {error: 'no field'};
-  const nativeSetter = Object.getOwnPropertyDescriptor(
-    el.tagName === 'TEXTAREA' ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype, 'value');
+  const tag = el.tagName.toLowerCase();
+  const type = (el.type || 'text').toLowerCase();
+
   try {
-    if (nativeSetter && nativeSetter.set) nativeSetter.set.call(el, value); else el.value = value;
-    el.dispatchEvent(new Event('input', {bubbles: true}));
-    el.dispatchEvent(new Event('change', {bubbles: true}));
-    el.dispatchEvent(new Event('blur', {bubbles: true}));
+    if (tag === 'select') {
+      // Attempt to set an out-of-range option value (option-tampering)
+      const existing = [...el.options].some(o => o.value === value);
+      if (!existing) {
+        const opt = document.createElement('option');
+        opt.value = value; opt.text = value;
+        el.appendChild(opt);
+        el.value = value;
+        el.dispatchEvent(new Event('change', {bubbles: true}));
+      } else {
+        el.value = value;
+        el.dispatchEvent(new Event('change', {bubbles: true}));
+      }
+    } else if (type === 'checkbox' || type === 'radio') {
+      el.checked = (value === 'true' || value === '1' || value === 'on');
+      el.dispatchEvent(new Event('change', {bubbles: true}));
+    } else if (type === 'file') {
+      // Can't set file input value directly — just verify it's accessible
+      el.dispatchEvent(new Event('focus', {bubbles: true}));
+    } else {
+      const proto = tag === 'textarea' ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype;
+      const nativeSetter = Object.getOwnPropertyDescriptor(proto, 'value');
+      if (nativeSetter && nativeSetter.set) nativeSetter.set.call(el, value); else el.value = value;
+      el.dispatchEvent(new Event('input', {bubbles: true}));
+      el.dispatchEvent(new Event('change', {bubbles: true}));
+      el.dispatchEvent(new Event('blur', {bubbles: true}));
+    }
   } catch (e) { return {error: String(e)}; }
+
   const v = el.validity || {};
   const reflectedRaw = marker ? document.body && document.body.innerHTML.includes('<'+marker) : false;
   return {
@@ -49,6 +74,8 @@ _PROBE_JS = r"""
     maxLength: el.maxLength && el.maxLength > 0 ? el.maxLength : null,
     storedLen: (el.value || '').length,
     reflectedUnescaped: reflectedRaw,
+    fieldType: type,
+    fieldTag: tag,
   };
 }
 """
@@ -58,12 +85,20 @@ _FIELD_META_JS = r"""
   idx: fi,
   action: f.getAttribute('action') || location.href,
   method: (f.getAttribute('method') || 'get').toLowerCase(),
-  fields: [...f.elements].map((e, i) => ({
-    idx: i, name: e.name || e.id || ('field'+i), type: (e.type||'text').toLowerCase(),
-    required: !!e.required, tag: e.tagName.toLowerCase(),
-    maxLength: e.maxLength && e.maxLength > 0 ? e.maxLength : null,
-  })).filter(e => !['hidden','submit','button','reset','image','file','radio',
-                    'checkbox','color','select-one','select-multiple'].includes(e.type)),
+  fields: [...f.elements].map((e, i) => {
+    const t = (e.type||'text').toLowerCase();
+    const tag = e.tagName.toLowerCase();
+    // For select: capture available options for option-tampering test
+    const opts = tag === 'select'
+      ? [...e.options].map(o => o.value).slice(0, 10)
+      : null;
+    return {
+      idx: i, name: e.name || e.id || ('field'+i), type: t, tag: tag,
+      required: !!e.required,
+      maxLength: e.maxLength && e.maxLength > 0 ? e.maxLength : null,
+      options: opts,
+    };
+  }).filter(e => !['hidden','submit','button','reset','image','color'].includes(e.type)),
 }))
 """
 

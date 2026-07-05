@@ -112,6 +112,24 @@ _AUDIT_JS = r"""
   const vc = vp ? (vp.getAttribute('content')||'').toLowerCase() : '';
   R.noZoom = {count: (/user-scalable\s*=\s*no|maximum-scale\s*=\s*1(\.0)?\b/.test(vc)) ? 1 : 0, ex: []};
 
+  // 13. iframes without a title attribute (screen readers can't identify them)
+  const badIframes = [...document.querySelectorAll('iframe')].filter(el => {
+    const t = (el.getAttribute('title') || '').trim();
+    return !t;
+  });
+  R.iframeTitle = {count: badIframes.length, ex: ex(badIframes)};
+
+  // 14. Interactive elements with no visible focus indicator (focus-visible check)
+  // We check if any interactive element has outline:none + no box-shadow fallback
+  const noFocus = [...document.querySelectorAll('a[href],button,input,select,textarea,[tabindex="0"]')]
+    .filter(el => {
+      const st = getComputedStyle(el);
+      const outline = st.outlineWidth && parseFloat(st.outlineWidth) > 0;
+      const boxShadow = st.boxShadow && st.boxShadow !== 'none';
+      return !outline && !boxShadow;
+    });
+  R.noFocusIndicator = {count: noFocus.length, ex: ex(noFocus)};
+
   return R;
 }
 """
@@ -131,6 +149,8 @@ _RULES = [
     ("targetBlank", "medium", "target=_blank links without rel=noopener"),
     ("badRole", "medium", "invalid ARIA role values"),
     ("noZoom", "medium", "viewport blocks pinch-zoom (user-scalable=no)"),
+    ("iframeTitle", "medium", "iframes without title attribute (screen readers can't identify)"),
+    ("noFocusIndicator", "low", "interactive elements with no visible focus indicator"),
 ]
 
 
