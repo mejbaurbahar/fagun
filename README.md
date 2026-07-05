@@ -23,8 +23,15 @@ You set it up **once**. It works in **every** AI tool. Chrome installs **itself*
 
 ## ⚡ One command sets up everything
 
+**Recommended, no Python needed:**
 ```bash
 uvx fagun init
+```
+
+**If you prefer pip/Python:**
+```bash
+pip install fagun
+fagun init
 ```
 
 That's the whole install. `fagun init` installs the Chrome engine **and** auto-detects
@@ -36,7 +43,14 @@ your signed-in default Chrome session.
 
 Then restart your AI tool and type **`fagun`** — followed by what you want tested.
 
-> Prefer pip? `pip install fagun && fagun init` does the same thing.
+After setup, use Fagun inside your AI tool:
+
+```text
+fagun deep test https://example.com
+fagun security scan https://example.com
+fagun check links on https://example.com
+fagun test the signup form on https://example.com
+```
 
 <details>
 <summary>Other ways to install</summary>
@@ -84,14 +98,12 @@ powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | ie
 
 **Step 2 — set up Fagun:**
 ```bash
-uvx fagun setup      # installs the Chrome engine automatically
-uvx fagun install    # shows the config to paste into your AI tool
+uvx fagun init       # installs browser + wires AI tools + Chrome DevTools MCP + /fagun skill
 ```
 
 That's it. Restart your AI tool, type **`fagun`**, and go.
 
-> **Already have `pip`/Python?** `pip install uv` also works — but the installer
-> above needs no Python at all, which is why we recommend it.
+> **Already have `pip`/Python?** Run `pip install fagun && fagun init`.
 
 > 💡 Don't want to think about config? Just tell your AI:
 > *"Install and set up fagun for me — follow https://github.com/mejbaurbahar/fagun/blob/main/install.md"*
@@ -201,7 +213,8 @@ Just talk to your AI in plain English:
 ### 🕵️ The `/fagun` bug hunter
 
 Fagun ships with a skill that turns your AI into a methodical QA tester. It sweeps
-**10 kinds of problems** and only reports bugs it can actually reproduce (no guessing):
+the full product-readiness surface and only reports bugs it can actually reproduce
+(no guessing):
 
 | # | Checks for |
 |---|-----------|
@@ -214,7 +227,14 @@ Fagun ships with a skill that turns your AI into a methodical QA tester. It swee
 | 7 | **Performance** — slow loads, heavy resources |
 | 8 | **Visual / responsive** — layout breakage, overflow, cut-off text |
 | 9 | **Security** — missing CSP/HSTS, exposed versions, secrets in code |
-| 10 | **Edge cases** — reloads, back button, huge inputs, offline |
+| 10 | **SEO / discoverability** — titles, H1s, metadata, crawlability |
+| 11 | **UX / product clarity** — confusing flows, blockers, weak empty states |
+| 12 | **Business logic** — wrong outcomes, bad totals, broken lead/checkout paths |
+| 13 | **Mobile / desktop parity** — breakpoint and device-specific failures |
+| 14 | **Keyboard / screen-reader use** — focus order, traps, labels, contrast |
+| 15 | **Headers / CORS / CSP** — browser security posture and misconfigurations |
+| 16 | **Edge cases** — reloads, back button, huge inputs, unicode, offline-ish states |
+| 17 | **AI/security orchestration** — optional safe tool planning for deeper authorized tests |
 
 Every finding comes with **steps to reproduce, what was observed, and the impact.**
 

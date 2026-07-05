@@ -18,6 +18,13 @@ uvx fagun init
 If `uv` is missing, install it first (macOS/Linux: `curl -LsSf https://astral.sh/uv/install.sh | sh`),
 then re-run. If that works, you're done — skip the steps below.
 
+If the user explicitly prefers pip/Python, use:
+
+```bash
+pip install fagun
+fagun init
+```
+
 ## The command users give you
 
 > Install or upgrade **fagun** to the latest stable version with `uv` using Python
@@ -55,14 +62,15 @@ If `fagun` is not on PyPI yet, install from GitHub:
 uv tool install --python 3.12 --upgrade "git+https://github.com/mejbaurbahar/fagun"
 ```
 
-## Step 3 — install the browser engine
+## Step 3 — run the full setup
 
 ```bash
-uvx fagun setup
+uvx fagun init
 ```
 
-(Optional — Fagun also auto-installs Chromium the first time it opens a browser,
-so this step just makes the first launch instant.)
+This installs the browser engine, writes the Fagun MCP server, writes Chrome
+DevTools MCP with `--auto-connect`, installs the `/fagun` skill where possible,
+and opens Chrome's remote-debugging setup page.
 
 ## Step 4 — register Fagun + Chrome DevTools MCP (pick the user's tool)
 
@@ -139,10 +147,20 @@ Copy `skills/fagun/SKILL.md` from this repo into the tool's skills directory
 (e.g. `~/.claude/skills/fagun/SKILL.md`). This makes `/fagun` available as a
 slash command. For tools without skills, the `fagun` MCP prompt is the entry point.
 
-## Step 6 — connect to the browser & verify
+## Step 6 — verify
 
-Restart the AI tool, then call the `fagun_start` tool (or say `fagun`). Fagun
-launches its own Chromium. To attach to an already-running Chrome instead, set:
+Restart the AI tool, then say:
+
+```text
+fagun deep test https://example.com
+```
+
+Fagun should automatically use Chrome DevTools MCP when the AI client exposes it.
+Chrome may ask the user to click **Allow remote debugging**. Do not ask the user to
+run a separate Chrome-connect command unless troubleshooting.
+
+Fallback: Fagun can launch its own Chromium. To attach to an already-running
+debuggable Chrome manually, set:
 
 ```bash
 export FAGUN_CDP_URL=http://127.0.0.1:9222   # Chrome started with --remote-debugging-port=9222

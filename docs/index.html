@@ -124,7 +124,7 @@ body{background:#0d0b16}
       <div>
         <p style="margin:0 0 12px;font-size:12px;font-weight:600;letter-spacing:.2em;color:var(--gold);text-transform:uppercase">Install in one line</p>
         <h2 style="margin:0 0 16px;font-family:Didot,'Bodoni MT','Playfair Display',Georgia,serif;font-weight:500;font-size:clamp(1.9rem,3.6vw,2.9rem);line-height:1.08;letter-spacing:-.01em">Nothing to configure.</h2>
-        <p style="margin:0;font-size:16px;line-height:1.6;color:var(--muted);max-width:420px">No Python, no pip — <span style="color:var(--text)">uv</span> brings its own. Chrome DevTools MCP auto-registers; deep tests auto-connect to Chrome when your AI client exposes it.</p>
+        <p style="margin:0;font-size:16px;line-height:1.6;color:var(--muted);max-width:420px">Choose one setup path: <span style="color:var(--text)">uvx fagun init</span> if you want no Python setup, or <span style="color:var(--text)">pip install fagun &amp;&amp; fagun init</span> if you already use pip. Then run Fagun inside your AI tool.</p>
       </div>
       <div style="background:#08060f;border:1px solid var(--line);border-radius:16px;padding:22px;box-shadow:0 24px 60px -30px rgba(0,0,0,.8);overflow:hidden">
         <div style="display:flex;gap:7px;margin-bottom:16px">
@@ -141,6 +141,9 @@ body{background:#0d0b16}
           <div><span style="color:var(--gold)">$</span> <span style="color:var(--text)">uvx fagun install claude-code</span></div>
           <div style="color:#6f6784"># or target one tool</div>
           <div style="height:14px"></div>
+          <div><span style="color:var(--gold)">$</span> <span style="color:var(--text)">pip install fagun &amp;&amp; fagun init</span></div>
+          <div style="color:#6f6784"># same setup if you prefer pip/Python</div>
+          <div style="height:14px"></div>
           <div><span style="color:var(--gold)">›</span> <span style="color:var(--text)">fagun deep test https://example.com</span></div>
           <div style="color:#6f6784"># auto Chrome MCP → full verdict + report</div>
         </div>
@@ -151,7 +154,8 @@ body{background:#0d0b16}
   <!-- ============ BAND 2 · WHAT IT FINDS ============ -->
   <section style="position:relative;z-index:2;max-width:1120px;margin:0 auto;padding:clamp(56px,9vh,110px) clamp(20px,5vw,44px) 0">
     <p style="margin:0 0 12px;font-size:12px;font-weight:600;letter-spacing:.2em;color:var(--gold);text-transform:uppercase">What it does</p>
-    <h2 style="margin:0 0 34px;font-family:Didot,'Bodoni MT','Playfair Display',Georgia,serif;font-weight:500;font-size:clamp(1.9rem,3.6vw,2.9rem);line-height:1.08;letter-spacing:-.01em;max-width:640px">Use it like a customer. Prove it's ready. Find every crack.</h2>
+    <h2 style="margin:0 0 14px;font-family:Didot,'Bodoni MT','Playfair Display',Georgia,serif;font-weight:500;font-size:clamp(1.9rem,3.6vw,2.9rem);line-height:1.08;letter-spacing:-.01em;max-width:640px">Use it like a customer. Prove it's ready. Find every crack.</h2>
+    <p style="margin:0 0 34px;font-size:15.5px;line-height:1.6;color:var(--muted);max-width:760px">Deep test covers the full readiness surface: journeys, auth, links, console, network/API, forms, validation, accessibility, performance, SEO, visual layout, responsive breakpoints, keyboard use, security headers, CORS/CSP, exposed files/secrets, XSS/redirect signals, reports, and safe external security-tool planning.</p>
     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:14px">
 
       <div style="display:flex;align-items:center;gap:13px;background:var(--card);border:1px solid rgba(232,176,75,.28);border-radius:14px;padding:16px 17px">
@@ -406,6 +410,8 @@ body{background:#0d0b16}
         {t:'  ⚠ P1 a11y      2 controls missing labels', c:y},
         {t:'  🧭 verdict: Not ready · 38/100 · 17 findings', c:gold},
         {t:'  📄 report: ./fagun-report.html', c:tx},
+        {t:'', c:dim},
+        {t:'# pip users can run: pip install fagun && fagun init', c:dim},
       ]},
       win: {label:'Windows', lines:[
         {t:'PS> irm https://astral.sh/uv/install.ps1 | iex', c:gold},

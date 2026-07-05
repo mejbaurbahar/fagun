@@ -87,3 +87,6 @@ def test_init_next_steps_do_not_require_manual_connect(monkeypatch, capsys):
     out = capsys.readouterr().out
     assert "fagun connect to my Chrome" not in out
     assert "Chrome DevTools MCP auto-connects during deep tests" in out
+    assert "FAGUN CLI" in out
+    assert "fagun deep test https://example.com" in out
+    assert "✓ Chromium browser" in out

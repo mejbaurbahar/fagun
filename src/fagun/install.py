@@ -53,10 +53,14 @@ startup_timeout_ms = 20_000"""
 
 HELP = f"""🦊 Fagun install — add this MCP server to your AI tool, then say "fagun".
 
-Prereqs (once) — no Python/pip needed, uv brings its own:
+Recommended setup (no Python/pip needed, uv brings its own):
   macOS/Linux:  curl -LsSf https://astral.sh/uv/install.sh | sh
   Windows:      powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
-  then:         uvx fagun setup     # installs the Chrome engine automatically
+  then:         uvx fagun init      # browser + MCP + Chrome DevTools + /fagun skill
+
+Prefer pip?
+  pip install fagun
+  fagun init
 
 ────────────────────────────────────────────────────────────────────
 Claude Code        →  run:  claude mcp add fagun -- uvx fagun
@@ -94,6 +98,26 @@ debugging permission popup on first attach.
 
 After adding: restart the tool, then type  fagun  to start.
 """
+
+
+def _ok(label: str, status: str = "Ready") -> str:
+    return f"  ✓ {label:<28} {status}"
+
+
+def _warn(label: str, status: str) -> str:
+    return f"  ! {label:<28} {status}"
+
+
+def _box(title: str, subtitle: str = "") -> str:
+    width = 58
+    lines = [
+        "╭" + "─" * width + "╮",
+        "│" + title.center(width) + "│",
+    ]
+    if subtitle:
+        lines.append("│" + subtitle.center(width) + "│")
+    lines.append("╰" + "─" * width + "╯")
+    return "\n".join(lines)
 
 
 def _server_block_for(key: str, name: str, block: dict) -> dict:
@@ -153,23 +177,29 @@ def init() -> None:
     import shutil
 
     home = Path.home()
-    print("🦊 Fagun init — setting up everything…\n")
+    print(_box("🦊 FAGUN CLI", "AI testing platform setup"))
+    print("\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+    print("🔧 Initializing Environment\n")
 
     # 1. Browser engine.
+    browser_status = "Ready"
     try:
         from .browser import ensure_browser_installed
 
-        print("• Installing Chromium engine…")
         ensure_browser_installed("chromium")
-        print("  ✅ browser ready")
+        print(_ok("Chromium browser"))
     except Exception as e:
-        print(f"  ⚠️  browser install failed: {e}")
+        browser_status = f"Failed: {type(e).__name__}"
+        print(_warn("Chromium browser", browser_status))
+        print(f"    {e}")
 
+    chrome_status = "Not found"
     if shutil.which("npx"):
-        print("• Chrome DevTools MCP ready via npx -y chrome-devtools-mcp@latest --auto-connect --no-usage-statistics")
+        chrome_status = "Auto-connect ready"
+        print(_ok("Chrome DevTools MCP", "--auto-connect"))
         _open_remote_debugging_setup()
     else:
-        print("• Chrome DevTools MCP needs Node.js/npx on PATH — install Node.js, then rerun `uvx fagun init`")
+        print(_warn("Chrome DevTools MCP", "Needs Node.js/npx"))
 
     wired = []
     skilled: set = set()  # dirs we've already dropped the skill into (avoid dupes)
@@ -185,8 +215,10 @@ def init() -> None:
         try:
             fn()
             wired.append(name)
+            print(_ok(name, "Connected"))
         except Exception as e:
-            print(f"• {name} skipped ({type(e).__name__}: {e})")
+            print(_warn(name, f"Skipped: {type(e).__name__}"))
+            print(f"    {e}")
 
     # 2. Claude Code (CLI).
     if shutil.which("claude"):
@@ -222,22 +254,38 @@ def init() -> None:
 
     reload_cmd = "open a new terminal window" if sys.platform.startswith("win") else "exec $SHELL   (or just open a new terminal)"
 
-    print("\n" + ("─" * 56))
-    if wired:
-        print("✅ Wired up: " + ", ".join(wired))
-        print("\n▶ NEXT STEPS")
-        print("  1. Restart your AI tool (quit & reopen it) so it loads Fagun.")
-        print(f"  2. Reload this terminal:  {reload_cmd}")
-        print("  3. In your AI tool, just type  fagun  then what to test, e.g.:")
-        print("       fagun deep test https://example.com")
-        print("       fagun security scan https://example.com")
-        print("       fagun check links on https://example.com")
-        print("       fagun test the signup form on https://example.com")
-        print("     Chrome DevTools MCP auto-connects during deep tests when available.")
+    print("\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+    print("📂 Installed Components\n")
+    print(_ok("Browser engine", browser_status))
+    print(_ok("Fagun MCP server", "uvx fagun"))
+    if chrome_status == "Auto-connect ready":
+        print(_ok("Chrome DevTools MCP", "npx --auto-connect"))
     else:
-        print("No AI tools detected automatically. Run one of:")
-        print("   uvx fagun install claude-code | cursor | claude | vscode")
-    print("─" * 56)
+        print(_warn("Chrome DevTools MCP", "Install Node.js/npx"))
+    if wired:
+        for name in wired:
+            print(_ok(name, "Configured"))
+    print("\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+    if wired:
+        print("🚀 Ready\n")
+        print("Next steps")
+        print("  1. Restart your AI tool so it loads Fagun.")
+        print(f"  2. Reload this terminal: {reload_cmd}")
+        print("  3. In your AI tool, type one command:")
+        print("\nCommands")
+        print("  fagun deep test https://example.com")
+        print("  fagun security scan https://example.com")
+        print("  fagun check links on https://example.com")
+        print("  fagun test the signup form on https://example.com")
+        print("\nChrome DevTools MCP auto-connects during deep tests when available.")
+    else:
+        print("No AI tools detected automatically.\n")
+        print("Run one of:")
+        print("  uvx fagun install claude-code")
+        print("  uvx fagun install cursor")
+        print("  uvx fagun install claude")
+        print("  uvx fagun install vscode")
+    print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
 
 
 def _app_exists(name: str) -> bool:
