@@ -175,6 +175,40 @@ body{background:#0d0b16}
     </div>
   </section>
 
+  <!-- ============ BAND 1.25 · LOCAL TEST REPORT ============ -->
+  <section style="position:relative;z-index:2;max-width:1120px;margin:0 auto;padding:clamp(40px,7vh,78px) clamp(20px,5vw,44px) 0">
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:clamp(20px,4vw,42px);align-items:stretch">
+      <div style="background:linear-gradient(180deg,rgba(31,27,40,.95),rgba(13,10,22,.95));border:1px solid rgba(232,176,75,.24);border-radius:18px;padding:clamp(22px,4vw,34px);box-shadow:0 24px 70px -34px rgba(0,0,0,.9)">
+        <p style="margin:0 0 12px;font-size:12px;font-weight:600;letter-spacing:.2em;color:var(--gold);text-transform:uppercase">Latest local report</p>
+        <h2 style="margin:0 0 14px;font-family:Didot,'Bodoni MT','Playfair Display',Georgia,serif;font-weight:500;font-size:clamp(1.7rem,3vw,2.45rem);line-height:1.08;letter-spacing:-.01em">See the website and its Fagun result together.</h2>
+        <p style="margin:0 0 22px;font-size:15.5px;line-height:1.6;color:var(--muted);max-width:680px">When this docs site is served locally, the generated full-site report is available as a normal website page. This avoids browser restrictions around opening <code style="color:var(--gold-soft)">file://</code> links from an HTTP page.</p>
+        <div style="display:flex;flex-wrap:wrap;gap:10px">
+          <a href="./local-report.html" style="display:inline-flex;align-items:center;gap:9px;border-radius:999px;padding:11px 15px;background:var(--gold);color:#171104;text-decoration:none;font-weight:700;font-size:14px">
+            <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3h7v7"/><path d="M10 14 21 3"/><path d="M21 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5"/></svg>
+            Open report
+          </a>
+          <a href="./docs.html" style="display:inline-flex;align-items:center;gap:9px;border-radius:999px;padding:11px 15px;border:1px solid var(--line);color:var(--text);text-decoration:none;font-weight:650;font-size:14px">
+            <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5V5a2 2 0 0 1 2-2h11l3 3v13.5a1.5 1.5 0 0 1-1.5 1.5H6a2 2 0 0 1-2-1.5z"/><path d="M14 3v4h4"/><path d="M8 11h8"/><path d="M8 15h8"/></svg>
+            Open docs page
+          </a>
+        </div>
+      </div>
+      <div style="background:#08060f;border:1px solid var(--line);border-radius:18px;padding:20px;box-shadow:0 24px 60px -30px rgba(0,0,0,.82);overflow:hidden">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:15px">
+          <span style="width:10px;height:10px;border-radius:50%;background:#f87171"></span>
+          <span style="width:10px;height:10px;border-radius:50%;background:#fbbf24"></span>
+          <span style="width:10px;height:10px;border-radius:50%;background:#4ade80"></span>
+          <span style="margin-left:6px;font-family:'SF Mono','JetBrains Mono',Menlo,monospace;font-size:12px;color:var(--muted)">report paths</span>
+        </div>
+        <div style="font-family:'SF Mono','JetBrains Mono',Menlo,Consolas,monospace;font-size:12.5px;line-height:1.85;color:var(--muted);overflow-x:auto;white-space:nowrap">
+          <div><span style="color:var(--gold)">served</span>  http://127.0.0.1:8765/local-report.html</div>
+          <div><span style="color:var(--gold)">source</span>  file:///private/tmp/fagun-full-site-check/fagun-local-docs-report.html</div>
+          <div><span style="color:var(--gold)">run</span>     python3 -m http.server 8765 --directory docs</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <!-- ============ BAND 1.5 · FULL WORKFLOW ============ -->
   <section id="workflow" style="position:relative;z-index:2;max-width:1120px;margin:0 auto;padding:clamp(56px,9vh,104px) clamp(20px,5vw,44px) 0">
     <p style="margin:0 0 12px;font-size:12px;font-weight:600;letter-spacing:.2em;color:var(--gold);text-transform:uppercase">Full workflow</p>
