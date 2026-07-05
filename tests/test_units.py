@@ -373,7 +373,8 @@ def test_website_documents_auto_chrome_and_full_output():
     assert "full findings + evidence printed in chat" in home
     assert "fagun deep test https://example.com" in docs
     assert "Users do not need to run <code>fagun connect to my Chrome</code> first" in docs
-    assert "pip install fagun &amp;&amp; fagun init" in home
+    assert "pip install --upgrade fagun" in home
+    assert "uvx --upgrade --reinstall fagun init" in home
     assert "safe external security-tool planning" in home
     assert 'id="workflow"' in home
     assert 'id="workflow"' in docs
@@ -387,11 +388,22 @@ def test_readme_and_install_docs_prefer_init_and_cover_pip():
     readme = Path("README.md").read_text()
     install_doc = Path("install.md").read_text()
     assert "uvx fagun init" in readme
-    assert "pip install fagun" in readme
+    assert "pip install --upgrade fagun" in readme
+    assert "uvx --upgrade --reinstall fagun init" in readme
     assert "uvx fagun setup      # installs" not in readme
     assert "uvx fagun init" in install_doc
-    assert "pip install fagun" in install_doc
+    assert "pip install --upgrade fagun" in install_doc
+    assert "uvx --upgrade --reinstall fagun init" in install_doc
     assert "uvx fagun setup" not in install_doc
+
+
+def test_package_version_bumped_for_release():
+    from pathlib import Path
+
+    pyproject = Path("pyproject.toml").read_text()
+    init_py = Path("src/fagun/__init__.py").read_text()
+    assert 'version = "0.9.1"' in pyproject
+    assert '__version__ = "0.9.1"' in init_py
 
 
 # ------------------------------------------------------------------- sessions

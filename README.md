@@ -28,9 +28,14 @@ You set it up **once**. It works in **every** AI tool. Chrome installs **itself*
 uvx fagun init
 ```
 
+**Already installed but still seeing old output? Force the newest release:**
+```bash
+uvx --upgrade --reinstall fagun init
+```
+
 **If you prefer pip/Python:**
 ```bash
-pip install fagun
+pip install --upgrade fagun
 fagun init
 ```
 
@@ -44,6 +49,10 @@ your signed-in default Chrome session.
 The setup output is a modern CLI dashboard: task, progress table, configuration
 files, final summary, and next commands. Paths are shortened with `~` so users can
 see exactly what changed without reading noisy logs.
+
+If your terminal still says `Fagun init — setting up everything…`, you are running
+an old cached package. Refresh it with `uvx --upgrade --reinstall fagun init` or
+`pip install --upgrade fagun && fagun init`.
 
 Then restart your AI tool and type **`fagun`** — followed by what you want tested.
 
@@ -107,7 +116,7 @@ uvx fagun init       # installs browser + wires AI tools + Chrome DevTools MCP +
 
 That's it. Restart your AI tool, type **`fagun`**, and go.
 
-> **Already have `pip`/Python?** Run `pip install fagun && fagun init`.
+> **Already have `pip`/Python?** Run `pip install --upgrade fagun && fagun init`.
 
 > 💡 Don't want to think about config? Just tell your AI:
 > *"Install and set up fagun for me — follow https://github.com/mejbaurbahar/fagun/blob/main/install.md"*

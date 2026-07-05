@@ -18,10 +18,16 @@ uvx fagun init
 If `uv` is missing, install it first (macOS/Linux: `curl -LsSf https://astral.sh/uv/install.sh | sh`),
 then re-run. If that works, you're done — skip the steps below.
 
+If an old terminal style appears, force `uvx` to refresh the package:
+
+```bash
+uvx --upgrade --reinstall fagun init
+```
+
 If the user explicitly prefers pip/Python, use:
 
 ```bash
-pip install fagun
+pip install --upgrade fagun
 fagun init
 ```
 

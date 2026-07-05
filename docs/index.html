@@ -129,7 +129,7 @@ body{background:#0d0b16}
       <div>
         <p style="margin:0 0 12px;font-size:12px;font-weight:600;letter-spacing:.2em;color:var(--gold);text-transform:uppercase">Install in one line</p>
         <h2 style="margin:0 0 16px;font-family:Didot,'Bodoni MT','Playfair Display',Georgia,serif;font-weight:500;font-size:clamp(1.9rem,3.6vw,2.9rem);line-height:1.08;letter-spacing:-.01em">Nothing to configure.</h2>
-        <p style="margin:0;font-size:16px;line-height:1.6;color:var(--muted);max-width:420px">Choose one setup path: <span style="color:var(--text)">uvx fagun init</span> if you want no Python setup, or <span style="color:var(--text)">pip install fagun &amp;&amp; fagun init</span> if you already use pip. Then run Fagun inside your AI tool.</p>
+        <p style="margin:0;font-size:16px;line-height:1.6;color:var(--muted);max-width:420px">Choose one setup path: <span style="color:var(--text)">uvx fagun init</span> if you want no Python setup, or <span style="color:var(--text)">pip install --upgrade fagun &amp;&amp; fagun init</span> if you already use pip. Seeing old output? Force refresh with <span style="color:var(--text)">uvx --upgrade --reinstall fagun init</span>.</p>
       </div>
       <div style="background:#08060f;border:1px solid var(--line);border-radius:16px;padding:22px;box-shadow:0 24px 60px -30px rgba(0,0,0,.8);overflow:hidden">
         <div style="display:flex;gap:7px;margin-bottom:16px">
@@ -148,6 +148,9 @@ body{background:#0d0b16}
           <div style="height:14px"></div>
           <div><span style="color:var(--gold)">$</span> <span style="color:var(--text)">pip install fagun &amp;&amp; fagun init</span></div>
           <div style="color:#6f6784"># same setup if you prefer pip/Python</div>
+          <div style="height:14px"></div>
+          <div><span style="color:var(--gold)">$</span> <span style="color:var(--text)">uvx --upgrade --reinstall fagun init</span></div>
+          <div style="color:#6f6784"># use this if old terminal output appears</div>
           <div style="height:14px"></div>
           <div><span style="color:var(--gold)">›</span> <span style="color:var(--text)">fagun deep test https://example.com</span></div>
           <div style="color:#6f6784"># auto Chrome MCP → full verdict + report</div>
