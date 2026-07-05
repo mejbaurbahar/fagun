@@ -19,13 +19,18 @@ body{background:#0d0b16}
 @keyframes fgFoxGlow{0%,100%{filter:drop-shadow(0 0 10px rgba(232,176,75,.15))}50%{filter:drop-shadow(0 0 26px rgba(232,176,75,.4))}}
 @keyframes fgBolt{0%,12%,100%{opacity:0}3%,7%{opacity:1}5%{opacity:.25}}
 @keyframes fgSkyFlash{0%,84%,100%{opacity:0}86%,90%{opacity:.16}88%{opacity:.04}}
+@keyframes fgFlowPulse{0%,100%{box-shadow:0 0 0 rgba(232,176,75,0);border-color:rgba(243,238,230,.12)}50%{box-shadow:0 0 34px -18px rgba(232,176,75,.85);border-color:rgba(232,176,75,.5)}}
+@keyframes fgFlowDash{to{stroke-dashoffset:-34}}
 .fg-bigeye{transform-origin:center;animation:fgBlink 5.5s ease-in-out infinite}
 .fg-ghpill:hover{border-color:rgba(232,176,75,.55)!important;background:rgba(255,255,255,.07)!important}
 .fg-btn-gold:hover{filter:brightness(1.08)}
 .fg-btn-gold:active{transform:scale(.97)}
 .fg-btn-ghost:hover{border-color:var(--gold)!important;background:rgba(232,176,75,.08)!important}
 .fg-footlink:hover{color:var(--text)!important}
-@media (prefers-reduced-motion:reduce){.fg-anim{animation:none !important;opacity:1 !important;transform:none !important}.fg-scan{display:none !important}.fg-eye{animation:none !important;opacity:.8 !important}.fg-bigeye,.fg-bigfox,.fg-bolt,.fg-skyflash{animation:none !important}.fg-skyflash,.fg-bolt{display:none !important}}
+.fg-flow-node{animation:fgFlowPulse 5.2s ease-in-out infinite}
+.fg-flow-node:nth-child(2){animation-delay:.4s}.fg-flow-node:nth-child(3){animation-delay:.8s}.fg-flow-node:nth-child(4){animation-delay:1.2s}.fg-flow-node:nth-child(5){animation-delay:1.6s}.fg-flow-node:nth-child(6){animation-delay:2s}
+.fg-flow-line{stroke-dasharray:8 10;animation:fgFlowDash 2.8s linear infinite}
+@media (prefers-reduced-motion:reduce){.fg-anim{animation:none !important;opacity:1 !important;transform:none !important}.fg-scan{display:none !important}.fg-eye{animation:none !important;opacity:.8 !important}.fg-bigeye,.fg-bigfox,.fg-bolt,.fg-skyflash,.fg-flow-node,.fg-flow-line{animation:none !important}.fg-skyflash,.fg-bolt{display:none !important}}
 </style>
 </head>
 <body>
@@ -146,6 +151,38 @@ body{background:#0d0b16}
           <div style="height:14px"></div>
           <div><span style="color:var(--gold)">›</span> <span style="color:var(--text)">fagun deep test https://example.com</span></div>
           <div style="color:#6f6784"># auto Chrome MCP → full verdict + report</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ BAND 1.5 · FULL WORKFLOW ============ -->
+  <section id="workflow" style="position:relative;z-index:2;max-width:1120px;margin:0 auto;padding:clamp(56px,9vh,104px) clamp(20px,5vw,44px) 0">
+    <p style="margin:0 0 12px;font-size:12px;font-weight:600;letter-spacing:.2em;color:var(--gold);text-transform:uppercase">Full workflow</p>
+    <h2 style="margin:0 0 14px;font-family:Didot,'Bodoni MT','Playfair Display',Georgia,serif;font-weight:500;font-size:clamp(1.9rem,3.6vw,2.9rem);line-height:1.08;letter-spacing:-.01em;max-width:720px">From install to full readiness report.</h2>
+    <p style="margin:0 0 30px;font-size:15.5px;line-height:1.6;color:var(--muted);max-width:760px">Users only need to install once, restart the AI tool, then type <span style="color:var(--text)">fagun deep test URL</span>. Fagun handles browser setup, Chrome DevTools MCP auto-connect, testing, evidence, and the final report.</p>
+    <div style="position:relative;background:rgba(8,6,15,.72);border:1px solid rgba(232,176,75,.2);border-radius:18px;padding:clamp(18px,3vw,28px);box-shadow:0 24px 70px -34px rgba(0,0,0,.9);overflow:hidden">
+      <svg aria-hidden="true" viewBox="0 0 1000 120" preserveAspectRatio="none" style="position:absolute;left:32px;right:32px;top:86px;width:calc(100% - 64px);height:90px;pointer-events:none;opacity:.65">
+        <path class="fg-flow-line" d="M20 60 C160 10 240 110 380 60 S620 10 760 60 S900 110 980 58" fill="none" stroke="#E8B04B" stroke-width="2"/>
+      </svg>
+      <div style="position:relative;display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px">
+        <div class="fg-flow-node" style="min-height:142px;background:rgba(255,255,255,.035);border:1px solid var(--line);border-radius:14px;padding:15px">
+          <div style="font-size:24px">📦</div><h3 style="margin:10px 0 6px;font-size:15px;color:var(--text)">Install</h3><p style="margin:0;color:var(--muted);font-size:13px;line-height:1.55"><code>uvx fagun init</code><br>or <code>pip install fagun &amp;&amp; fagun init</code></p>
+        </div>
+        <div class="fg-flow-node" style="min-height:142px;background:rgba(255,255,255,.035);border:1px solid var(--line);border-radius:14px;padding:15px">
+          <div style="font-size:24px">🤖</div><h3 style="margin:10px 0 6px;font-size:15px;color:var(--text)">AI Tool</h3><p style="margin:0;color:var(--muted);font-size:13px;line-height:1.55">Claude, Codex, Cursor, Windsurf, VS Code load the Fagun MCP server and skill.</p>
+        </div>
+        <div class="fg-flow-node" style="min-height:142px;background:rgba(255,255,255,.035);border:1px solid var(--line);border-radius:14px;padding:15px">
+          <div style="font-size:24px">🌐</div><h3 style="margin:10px 0 6px;font-size:15px;color:var(--text)">Chrome MCP</h3><p style="margin:0;color:var(--muted);font-size:13px;line-height:1.55">Auto-connects to signed-in Chrome. User clicks Allow if Chrome asks.</p>
+        </div>
+        <div class="fg-flow-node" style="min-height:142px;background:rgba(255,255,255,.035);border:1px solid var(--line);border-radius:14px;padding:15px">
+          <div style="font-size:24px">🧪</div><h3 style="margin:10px 0 6px;font-size:15px;color:var(--text)">Deep Test</h3><p style="margin:0;color:var(--muted);font-size:13px;line-height:1.55">Crawl, journeys, forms, links, console, network, a11y, perf, security.</p>
+        </div>
+        <div class="fg-flow-node" style="min-height:142px;background:rgba(255,255,255,.035);border:1px solid var(--line);border-radius:14px;padding:15px">
+          <div style="font-size:24px">🔍</div><h3 style="margin:10px 0 6px;font-size:15px;color:var(--text)">Evidence</h3><p style="margin:0;color:var(--muted);font-size:13px;line-height:1.55">Every finding gets observed proof, severity, repro steps, impact, and fix.</p>
+        </div>
+        <div class="fg-flow-node" style="min-height:142px;background:rgba(232,176,75,.08);border:1px solid rgba(232,176,75,.42);border-radius:14px;padding:15px">
+          <div style="font-size:24px">📊</div><h3 style="margin:10px 0 6px;font-size:15px;color:var(--text)">Output</h3><p style="margin:0;color:var(--muted);font-size:13px;line-height:1.55">Full Fagun answer in chat plus HTML, Markdown, JSON, or JUnit report.</p>
         </div>
       </div>
     </div>

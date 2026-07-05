@@ -34,6 +34,9 @@ td code{color:var(--gold-soft);font-size:13px}
 .who h3{margin:.2em 0 .4em;font-size:19px;color:var(--text)}
 .who p{margin:0;color:var(--muted);font-size:14.5px;line-height:1.6}
 .who .ic{font-size:24px}
+@keyframes flowPulse{0%,100%{box-shadow:0 0 0 rgba(232,176,75,0);border-color:rgba(243,238,230,.11)}50%{box-shadow:0 0 28px -18px rgba(232,176,75,.85);border-color:rgba(232,176,75,.5)}}
+.flow-node{animation:flowPulse 5.2s ease-in-out infinite}.flow-node:nth-child(2){animation-delay:.35s}.flow-node:nth-child(3){animation-delay:.7s}.flow-node:nth-child(4){animation-delay:1.05s}.flow-node:nth-child(5){animation-delay:1.4s}.flow-node:nth-child(6){animation-delay:1.75s}
+@media (prefers-reduced-motion:reduce){.flow-node{animation:none!important}}
 section{scroll-margin-top:80px}
 </style>
 </head>
@@ -78,6 +81,7 @@ section{scroll-margin-top:80px}
       <a href="#uat">UAT &amp; readiness</a>
       <a href="#who">Who it's for</a>
       <a href="#install">Install</a>
+      <a href="#workflow">Workflow</a>
       <a href="#tools">All tools</a>
       <a href="#taxonomy">Test taxonomy</a>
       <a href="#testdata">Test data</a>
@@ -185,6 +189,22 @@ section{scroll-margin-top:80px}
       <p style="color:var(--muted);font-size:13px;margin-top:8px">Token controls: <code>FAGUN_TERSE=mini</code> extra-short raw tool summaries · <code>FAGUN_FINDING_CAP</code> findings per page · <code>FAGUN_PAGE_CAP</code> pages in chat · <code>FAGUN_DETAIL_CHARS</code> and <code>FAGUN_URL_CHARS</code> trim lines. Use <code>report_path</code> for raw evidence on disk; final answers still include the full user-facing verdict, findings, evidence, fixes, coverage, and report link.</p>
       <p style="color:var(--muted);font-size:13px;margin-top:8px">Style controls: <code>fagun_style_prompt</code> gives any model the Fagun response format · <code>fagun_style_schema</code> returns the JSON contract for custom renderers · <code>fagun_render_response</code> converts JSON/plain output into Fagun-style Markdown.</p>
       <p style="color:var(--muted);font-size:13px;margin-top:8px">Security orchestration: <code>fagun_security_prompt</code> returns the advanced authorized-testing prompt · <code>list_external_security_tools</code> shows the adapter catalog · <code>recommend_security_tools</code> picks the smallest relevant plan for Loxs, Shannon, Lonkero, recon-skills, BeeXSS, TimeVault, NextSploit, payload corpora, and related tools.</p>
+    </section>
+
+    <section id="workflow">
+      <p class="pill">Workflow</p>
+      <h2 style="margin:0 0 16px;font-size:clamp(1.7rem,3.4vw,2.5rem)">What happens after the user types one command.</h2>
+      <p style="color:var(--muted);font-size:15px;line-height:1.6;max-width:760px">The complete Fagun path is install once, restart the AI tool, then run <code>fagun deep test URL</code>. Fagun handles browser connection, Chrome DevTools MCP, testing, evidence, and final report generation.</p>
+      <div class="card" style="margin-top:18px;overflow:hidden">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px">
+          <div class="flow-node" style="min-height:130px;border:1px solid var(--line);border-radius:12px;padding:14px;background:rgba(255,255,255,.025)"><div style="font-size:22px">📦</div><h3 style="margin:8px 0 5px;font-size:15px;color:var(--text)">Install</h3><p style="margin:0;color:var(--muted);font-size:13px;line-height:1.5"><code>uvx fagun init</code> or <code>pip install fagun &amp;&amp; fagun init</code>.</p></div>
+          <div class="flow-node" style="min-height:130px;border:1px solid var(--line);border-radius:12px;padding:14px;background:rgba(255,255,255,.025)"><div style="font-size:22px">🤖</div><h3 style="margin:8px 0 5px;font-size:15px;color:var(--text)">AI Tool</h3><p style="margin:0;color:var(--muted);font-size:13px;line-height:1.5">Claude, Codex, Cursor, Windsurf, or VS Code loads Fagun MCP and skill.</p></div>
+          <div class="flow-node" style="min-height:130px;border:1px solid var(--line);border-radius:12px;padding:14px;background:rgba(255,255,255,.025)"><div style="font-size:22px">🌐</div><h3 style="margin:8px 0 5px;font-size:15px;color:var(--text)">Chrome MCP</h3><p style="margin:0;color:var(--muted);font-size:13px;line-height:1.5">Chrome DevTools MCP auto-connects to signed-in Chrome after Allow.</p></div>
+          <div class="flow-node" style="min-height:130px;border:1px solid var(--line);border-radius:12px;padding:14px;background:rgba(255,255,255,.025)"><div style="font-size:22px">🧪</div><h3 style="margin:8px 0 5px;font-size:15px;color:var(--text)">Deep Test</h3><p style="margin:0;color:var(--muted);font-size:13px;line-height:1.5">Crawl, journeys, forms, links, console, network, a11y, perf, and security.</p></div>
+          <div class="flow-node" style="min-height:130px;border:1px solid var(--line);border-radius:12px;padding:14px;background:rgba(255,255,255,.025)"><div style="font-size:22px">🔍</div><h3 style="margin:8px 0 5px;font-size:15px;color:var(--text)">Evidence</h3><p style="margin:0;color:var(--muted);font-size:13px;line-height:1.5">Findings include proof, severity, reproduction, impact, and fix.</p></div>
+          <div class="flow-node" style="min-height:130px;border:1px solid rgba(232,176,75,.42);border-radius:12px;padding:14px;background:rgba(232,176,75,.08)"><div style="font-size:22px">📊</div><h3 style="margin:8px 0 5px;font-size:15px;color:var(--text)">Report</h3><p style="margin:0;color:var(--muted);font-size:13px;line-height:1.5">Full answer in chat plus HTML, Markdown, JSON, or JUnit report.</p></div>
+        </div>
+      </div>
     </section>
 
     <!-- TOOLS -->
