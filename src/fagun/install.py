@@ -14,6 +14,7 @@ import subprocess
 import sys
 import webbrowser
 from pathlib import Path
+from typing import Callable
 
 SERVER_BLOCK = {"command": "uvx", "args": ["fagun"]}
 REMOTE_DEBUGGING_SETUP_URL = "chrome://inspect/#remote-debugging"
@@ -100,12 +101,26 @@ After adding: restart the tool, then type  fagun  to start.
 """
 
 
+_RULE = "━" * 60
+
+
+def _short(path: Path) -> str:
+    try:
+        return "~/" + str(path.expanduser().resolve().relative_to(Path.home().resolve()))
+    except Exception:
+        return str(path)
+
+
 def _ok(label: str, status: str = "Ready") -> str:
-    return f"  ✓ {label:<28} {status}"
+    return f"  ✓ {label:<30} {status}"
 
 
 def _warn(label: str, status: str) -> str:
-    return f"  ! {label:<28} {status}"
+    return f"  ⚠ {label:<29} {status}"
+
+
+def _err(label: str, status: str) -> str:
+    return f"  ✗ {label:<30} {status}"
 
 
 def _box(title: str, subtitle: str = "") -> str:
@@ -118,6 +133,17 @@ def _box(title: str, subtitle: str = "") -> str:
         lines.append("│" + subtitle.center(width) + "│")
     lines.append("╰" + "─" * width + "╯")
     return "\n".join(lines)
+
+
+def _section(title: str) -> None:
+    print(f"\n{_RULE}\n{title}\n")
+
+
+def _table(headers: tuple[str, str], rows: list[tuple[str, str, str]]) -> None:
+    print(f"  {headers[0]:<30} {headers[1]}")
+    print(f"  {'─' * 30} {'─' * 22}")
+    for icon, name, status in rows:
+        print(f"  {icon} {name:<28} {status}")
 
 
 def _server_block_for(key: str, name: str, block: dict) -> dict:
@@ -133,13 +159,11 @@ def _write_json_servers(path: Path, key: str, servers: dict[str, dict] | None = 
         try:
             data = json.loads(path.read_text() or "{}")
         except json.JSONDecodeError:
-            print(f"⚠️  {path} exists but is not valid JSON — skipped, add manually.")
-            return
+            raise RuntimeError(f"{_short(path)} is not valid JSON")
     data.setdefault(key, {})
     for name, block in (servers or _default_servers()).items():
         data[key][name] = _server_block_for(key, name, block)
     path.write_text(json.dumps(data, indent=2))
-    print(f"✅ wrote fagun + Chrome DevTools MCP to {path}")
 
 
 def _write_json_server(path: Path, key: str) -> None:
@@ -165,9 +189,6 @@ def _write_codex(path: Path) -> None:
             changed = True
     if changed:
         path.write_text(existing, encoding="utf-8")
-        print(f"✅ wrote fagun + Chrome DevTools MCP to {path}")
-    else:
-        print(f"✅ fagun + Chrome DevTools MCP already in {path}")
 
 
 def init() -> None:
@@ -177,9 +198,15 @@ def init() -> None:
     import shutil
 
     home = Path.home()
+    components: list[tuple[str, str, str]] = []
+    files_written: list[Path] = []
+    notes: list[str] = []
+    connected: list[str] = []
+
     print(_box("🦊 FAGUN CLI", "AI testing platform setup"))
-    print("\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-    print("🔧 Initializing Environment\n")
+    _section("🚀 Current Task")
+    print("  Initialize Fagun, browser automation, Chrome DevTools MCP, and AI tool skills.")
+    _section("⏳ Progress")
 
     # 1. Browser engine.
     browser_status = "Ready"
@@ -187,19 +214,19 @@ def init() -> None:
         from .browser import ensure_browser_installed
 
         ensure_browser_installed("chromium")
-        print(_ok("Chromium browser"))
+        components.append(("✓", "Chromium browser", "Ready"))
     except Exception as e:
         browser_status = f"Failed: {type(e).__name__}"
-        print(_warn("Chromium browser", browser_status))
-        print(f"    {e}")
+        components.append(("✗", "Chromium browser", browser_status))
+        notes.append(str(e))
 
     chrome_status = "Not found"
     if shutil.which("npx"):
         chrome_status = "Auto-connect ready"
-        print(_ok("Chrome DevTools MCP", "--auto-connect"))
-        _open_remote_debugging_setup()
+        components.append(("✓", "Chrome DevTools MCP", "--auto-connect"))
+        notes.append(_open_remote_debugging_setup())
     else:
-        print(_warn("Chrome DevTools MCP", "Needs Node.js/npx"))
+        components.append(("⚠", "Chrome DevTools MCP", "Needs Node.js/npx"))
 
     wired = []
     skilled: set = set()  # dirs we've already dropped the skill into (avoid dupes)
@@ -207,31 +234,39 @@ def init() -> None:
     def skill_once(d: Path) -> None:
         key = str(d.resolve())
         if key not in skilled:
-            _install_skill(d)
+            files_written.append(_install_skill(d))
             skilled.add(key)
 
-    def step(name: str, fn) -> None:
+    def step(name: str, fn: Callable[[], list[Path] | Path | None]) -> None:
         """Run one tool's wiring; never let a failure abort the rest of init."""
         try:
-            fn()
+            result = fn()
+            if isinstance(result, Path):
+                files_written.append(result)
+            elif isinstance(result, list):
+                files_written.extend(result)
             wired.append(name)
-            print(_ok(name, "Connected"))
+            connected.append(name)
+            components.append(("✓", name, "Connected"))
         except Exception as e:
-            print(_warn(name, f"Skipped: {type(e).__name__}"))
-            print(f"    {e}")
+            components.append(("⚠", name, f"Skipped: {type(e).__name__}"))
+            notes.append(str(e))
 
     # 2. Claude Code (CLI).
     if shutil.which("claude"):
         def _cc():
-            _install_claude_code()
-            _install_claude_code_chrome_devtools()
+            status = _install_claude_code()
+            chrome = _install_claude_code_chrome_devtools()
+            notes.append(f"Claude Code: Fagun {status}; Chrome DevTools {chrome}")
             skill_once(home / ".claude" / "skills")
         step("Claude Code", _cc)
 
     # 3. Cursor.
     if (home / ".cursor").exists() or _app_exists("Cursor"):
         def _cur():
-            _write_json_server(home / ".cursor" / "mcp.json", "mcpServers")
+            path = home / ".cursor" / "mcp.json"
+            _write_json_server(path, "mcpServers")
+            files_written.append(path)
             skill_once(home / ".cursor" / "skills")
         step("Cursor", _cur)
 
@@ -240,44 +275,60 @@ def init() -> None:
     if cd.parent.exists() or _app_exists("Claude"):
         def _cdt():
             _write_json_server(cd, "mcpServers")
+            files_written.append(cd)
             skill_once(home / ".claude" / "skills")
         step("Claude Desktop", _cdt)
 
     # 5. Codex.
     if (home / ".codex").exists() or shutil.which("codex"):
-        step("Codex", lambda: _write_codex(home / ".codex" / "config.toml"))
+        def _codex():
+            path = home / ".codex" / "config.toml"
+            _write_codex(path)
+            files_written.append(path)
+        step("Codex", _codex)
 
     # 6. Windsurf / Cline share Cursor-style config dirs.
     if (home / ".codeium").exists() or _app_exists("Windsurf"):
-        step("Windsurf", lambda: _write_json_server(
-            home / ".codeium" / "windsurf" / "mcp_config.json", "mcpServers"))
+        def _windsurf():
+            path = home / ".codeium" / "windsurf" / "mcp_config.json"
+            _write_json_server(path, "mcpServers")
+            files_written.append(path)
+        step("Windsurf", _windsurf)
 
     reload_cmd = "open a new terminal window" if sys.platform.startswith("win") else "exec $SHELL   (or just open a new terminal)"
 
-    print("\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-    print("📂 Installed Components\n")
-    print(_ok("Browser engine", browser_status))
-    print(_ok("Fagun MCP server", "uvx fagun"))
-    if chrome_status == "Auto-connect ready":
-        print(_ok("Chrome DevTools MCP", "npx --auto-connect"))
-    else:
-        print(_warn("Chrome DevTools MCP", "Install Node.js/npx"))
+    _table(("Component", "Status"), components)
+    _section("📂 Configuration Files")
+    seen: set[str] = set()
+    shown = False
+    for path in files_written:
+        short = _short(path)
+        if short not in seen:
+            print(f"  ✓ {short}")
+            seen.add(short)
+            shown = True
+    if not shown:
+        print("  ℹ No config files were written. Use a target install command below.")
+    if notes:
+        _section("ℹ Notes")
+        for note in notes:
+            if note:
+                print(f"  • {note}")
+    _section("🎯 Results")
     if wired:
-        for name in wired:
-            print(_ok(name, "Configured"))
-    print("\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-    if wired:
-        print("🚀 Ready\n")
-        print("Next steps")
+        print("  ✓ Initialization Complete")
+        print(f"  ✓ Connected: {', '.join(connected)}")
+        print("  ✓ Ready to use")
+        _section("🚀 Next Commands")
         print("  1. Restart your AI tool so it loads Fagun.")
         print(f"  2. Reload this terminal: {reload_cmd}")
         print("  3. In your AI tool, type one command:")
-        print("\nCommands")
+        print()
         print("  fagun deep test https://example.com")
         print("  fagun security scan https://example.com")
         print("  fagun check links on https://example.com")
         print("  fagun test the signup form on https://example.com")
-        print("\nChrome DevTools MCP auto-connects during deep tests when available.")
+        print("\n  Chrome DevTools MCP auto-connects during deep tests when available.")
     else:
         print("No AI tools detected automatically.\n")
         print("Run one of:")
@@ -285,7 +336,7 @@ def init() -> None:
         print("  uvx fagun install cursor")
         print("  uvx fagun install claude")
         print("  uvx fagun install vscode")
-    print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+    print(_RULE)
 
 
 def _app_exists(name: str) -> bool:
@@ -306,44 +357,77 @@ def run_cli(argv: list[str]) -> None:
     # `fagun install cursor` / `install claude` writes the file for you.
     target = argv[1] if len(argv) > 1 else ""
     home = Path.home()
+    files: list[Path] = []
+    rows: list[tuple[str, str, str]] = []
+
+    def finish(title: str) -> None:
+        print(_box("🦊 FAGUN CLI", title))
+        _section("🎯 Results")
+        _table(("Component", "Status"), rows)
+        if files:
+            _section("📂 Configuration Files")
+            seen: set[str] = set()
+            for path in files:
+                short = _short(path)
+                if short not in seen:
+                    print(f"  ✓ {short}")
+                    seen.add(short)
+        _section("🚀 Next Commands")
+        print("  Restart your AI tool, then type:")
+        print("  fagun deep test https://example.com")
+        print(_RULE)
+
     if target == "cursor":
-        _write_json_server(home / ".cursor" / "mcp.json", "mcpServers")
-        _install_skill(home / ".cursor" / "skills")
+        path = home / ".cursor" / "mcp.json"
+        _write_json_server(path, "mcpServers")
+        files += [path, _install_skill(home / ".cursor" / "skills")]
+        rows.append(("✓", "Cursor", "Configured"))
+        finish("Cursor install")
     elif target == "claude":
-        _write_json_server(_claude_desktop_config_path(), "mcpServers")
-        _install_skill(home / ".claude" / "skills")
+        path = _claude_desktop_config_path()
+        _write_json_server(path, "mcpServers")
+        files += [path, _install_skill(home / ".claude" / "skills")]
+        rows.append(("✓", "Claude Desktop", "Configured"))
+        finish("Claude Desktop install")
     elif target == "vscode":
-        _write_json_server(Path.cwd() / ".vscode" / "mcp.json", "servers")
+        path = Path.cwd() / ".vscode" / "mcp.json"
+        _write_json_server(path, "servers")
+        files.append(path)
+        rows.append(("✓", "VS Code", "Configured"))
+        finish("VS Code install")
     elif target in ("claude-code", "cc"):
-        _install_claude_code()
-        _install_claude_code_chrome_devtools()
-        _open_remote_debugging_setup()
-        _install_skill(home / ".claude" / "skills")
+        rows.append(("✓", "Claude Code", _install_claude_code()))
+        rows.append(("✓", "Chrome DevTools MCP", _install_claude_code_chrome_devtools()))
+        files.append(_install_skill(home / ".claude" / "skills"))
+        finish("Claude Code install")
     elif target in ("chrome", "chrome-devtools"):
-        _install_chrome_devtools_only()
-        _open_remote_debugging_setup()
+        files.extend(_install_chrome_devtools_only())
+        rows.append(("✓", "Chrome DevTools MCP", "Configured"))
+        rows.append(("ℹ", "Remote debugging", _open_remote_debugging_setup()))
+        finish("Chrome DevTools install")
     elif target == "skill":
-        _install_skill(home / ".claude" / "skills")
+        files.append(_install_skill(home / ".claude" / "skills"))
+        rows.append(("✓", "/fagun skill", "Installed"))
+        finish("Skill install")
     else:
         print(HELP)
 
 
-def _install_skill(skills_dir: Path) -> None:
+def _install_skill(skills_dir: Path) -> Path:
     """Copy the bundled /fagun skill into a tool's skills directory."""
     try:
         from importlib.resources import files
 
         text = (files("fagun.data") / "skill.md").read_text(encoding="utf-8")
     except Exception as e:
-        print(f"⚠️  could not load bundled skill: {e}")
-        return
+        raise RuntimeError(f"could not load bundled skill: {e}") from e
     dest = skills_dir / "fagun" / "SKILL.md"
     dest.parent.mkdir(parents=True, exist_ok=True)
     dest.write_text(text, encoding="utf-8")
-    print(f"✅ installed /fagun skill to {dest}")
+    return dest
 
 
-def _install_claude_code() -> None:
+def _install_claude_code() -> str:
     """Register the fagun MCP server in Claude Code (user scope), all projects.
 
     Robust across OSes: resolves the full `claude` path (on Windows it's a .cmd, so a
@@ -355,8 +439,7 @@ def _install_claude_code() -> None:
 
     claude = shutil.which("claude")
     if not claude:
-        print("• Claude Code CLI not found — skipped (run `claude mcp add fagun --scope user -- uvx fagun` if you use it)")
-        return
+        return "CLI not found"
     try:
         args = [claude, "mcp", "add", "fagun", "--scope", "user", "--", "uvx", "fagun"]
         # On Windows the resolved binary is a .cmd/.bat, which CreateProcess can't
@@ -370,23 +453,22 @@ def _install_claude_code() -> None:
         )
         blob = ((r.stdout or "") + (r.stderr or "")).lower()
         if r.returncode == 0:
-            print("✅ registered fagun in Claude Code (user scope)")
+            return "Registered"
         elif "already exists" in blob or "already" in blob:
-            print("✅ fagun already registered in Claude Code")
+            return "Already registered"
         else:
-            print(f"• Claude Code: {(r.stderr or r.stdout).strip()[:100] or 'skipped'} (run `claude mcp list` to check)")
+            return ((r.stderr or r.stdout).strip()[:100] or "Skipped")
     except Exception as e:
-        print(f"• Claude Code register skipped ({type(e).__name__}). Run: claude mcp add fagun --scope user -- uvx fagun")
+        return f"Skipped: {type(e).__name__}"
 
 
-def _run_cli_mcp_add(cli_name: str, server_name: str, command: list[str]) -> None:
+def _run_cli_mcp_add(cli_name: str, server_name: str, command: list[str]) -> str:
     import shutil
     import subprocess
 
     cli = shutil.which(cli_name)
     if not cli:
-        print(f"• {cli_name} CLI not found — skipped {server_name}")
-        return
+        return "CLI not found"
     args = [cli, "mcp", "add", server_name, "--scope", "user", "--", *command]
     win = sys.platform.startswith("win")
     r = subprocess.run(
@@ -397,20 +479,19 @@ def _run_cli_mcp_add(cli_name: str, server_name: str, command: list[str]) -> Non
     )
     blob = ((r.stdout or "") + (r.stderr or "")).lower()
     if r.returncode == 0:
-        print(f"✅ registered {server_name} in {cli_name} (user scope)")
+        return "Registered"
     elif "already exists" in blob or "already" in blob:
-        print(f"✅ {server_name} already registered in {cli_name}")
+        return "Already registered"
     else:
-        detail = (r.stderr or r.stdout).strip()[:120] or "skipped"
-        print(f"• {cli_name}: {detail} (run `{cli_name} mcp list` to check)")
+        return (r.stderr or r.stdout).strip()[:120] or "Skipped"
 
 
-def _install_claude_code_chrome_devtools() -> None:
+def _install_claude_code_chrome_devtools() -> str:
     """Register Chrome DevTools MCP in Claude Code with zero install prompts."""
-    _run_cli_mcp_add("claude", "chrome-devtools", ["npx", *CHROME_DEVTOOLS_ARGS])
+    return _run_cli_mcp_add("claude", "chrome-devtools", ["npx", *CHROME_DEVTOOLS_ARGS])
 
 
-def _open_remote_debugging_setup() -> None:
+def _open_remote_debugging_setup() -> str:
     """Open Chrome's official remote-debugging setup page.
 
     Chrome DevTools MCP `--auto-connect` intentionally requires the user to allow
@@ -433,9 +514,9 @@ def _open_remote_debugging_setup() -> None:
                 subprocess.Popen([chrome, REMOTE_DEBUGGING_SETUP_URL], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
             else:
                 webbrowser.open(REMOTE_DEBUGGING_SETUP_URL)
-        print("• Opened chrome://inspect/#remote-debugging — enable remote debugging, then click Allow when Chrome asks.")
+        return "Opened chrome://inspect/#remote-debugging"
     except Exception as e:
-        print(f"• Open Chrome and visit {REMOTE_DEBUGGING_SETUP_URL} to enable remote debugging ({type(e).__name__}: {e})")
+        return f"Open manually: {REMOTE_DEBUGGING_SETUP_URL} ({type(e).__name__})"
 
 
 def _which_first(*names: str) -> str | None:
@@ -467,26 +548,31 @@ def _codex_chrome_devtools_block() -> str:
     )
 
 
-def _install_chrome_devtools_only() -> None:
+def _install_chrome_devtools_only() -> list[Path]:
     """Install only Chrome DevTools MCP into detected JSON/TOML MCP configs."""
     home = Path.home()
+    files: list[Path] = []
     if (home / ".cursor").exists() or _app_exists("Cursor"):
+        path = home / ".cursor" / "mcp.json"
         _write_json_servers(
-            home / ".cursor" / "mcp.json",
+            path,
             "mcpServers",
             {"chrome-devtools": CHROME_DEVTOOLS_BLOCK},
         )
+        files.append(path)
     cd = _claude_desktop_config_path()
     if cd.parent.exists() or _app_exists("Claude"):
         _write_json_servers(cd, "mcpServers", {"chrome-devtools": CHROME_DEVTOOLS_BLOCK})
+        files.append(cd)
     if (home / ".codex").exists():
         path = home / ".codex" / "config.toml"
         existing = path.read_text(encoding="utf-8") if path.exists() else ""
         if "[mcp_servers.chrome-devtools]" not in existing:
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_text(existing + _codex_chrome_devtools_block(), encoding="utf-8")
-            print(f"✅ wrote Chrome DevTools MCP to {path}")
+        files.append(path)
     _install_claude_code_chrome_devtools()
+    return files
 
 
 def _claude_desktop_config_path() -> Path:

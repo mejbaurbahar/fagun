@@ -41,6 +41,10 @@ skill in each one. It also opens `chrome://inspect/#remote-debugging` so Chrome
 can show the official **Allow remote debugging?** popup when Fagun attaches to
 your signed-in default Chrome session.
 
+The setup output is a modern CLI dashboard: task, progress table, configuration
+files, final summary, and next commands. Paths are shortened with `~` so users can
+see exactly what changed without reading noisy logs.
+
 Then restart your AI tool and type **`fagun`** — followed by what you want tested.
 
 After setup, use Fagun inside your AI tool:
