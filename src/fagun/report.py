@@ -35,10 +35,19 @@ def _action_steps(r: dict[str, Any]) -> list[dict[str, Any]]:
     return steps if isinstance(steps, list) else []
 
 
-def _jira_ticket(url: str, f: dict[str, Any], idx: int) -> dict[str, str]:
+def _coverage(results: list[dict[str, Any]]) -> dict[str, Any] | None:
+    for r in results:
+        c = r.get("coverage")
+        if isinstance(c, dict):
+            return c
+    return None
+
+
+def _jira_ticket(url: str, f: dict[str, Any], idx: int) -> dict[str, Any]:
     sev = str(f.get("severity", "low")).lower()
-    priority = {"high": "P0", "medium": "P1", "low": "P2"}.get(sev, "P2")
-    title = f"[{priority}] {f.get('type', 'bug')} on {url}"
+    priority = {"high": "Highest", "medium": "High", "low": "Medium"}.get(sev, "Medium")
+    severity = {"high": "Critical", "medium": "Major", "low": "Minor"}.get(sev, "Minor")
+    title = f"{f.get('type', 'bug')} on {url}"
     detail = str(f.get("detail", ""))
     evidence = str(f.get("evidence") or f.get("screenshot") or "")
     steps = f.get("steps") or [
@@ -50,18 +59,165 @@ def _jira_ticket(url: str, f: dict[str, Any], idx: int) -> dict[str, str]:
         steps = [str(steps)]
     return {
         "key": f"FAGUN-{idx}",
+        "url": url,
         "summary": title[:180],
         "priority": priority,
-        "severity": sev,
+        "severity": severity,
+        "severity_raw": sev,
         "issue_type": "Bug",
         "description": detail,
-        "steps": "\n".join(f"{i}. {s}" for i, s in enumerate(steps, 1)),
+        "steps": [str(s) for s in steps],
         "observed": detail,
         "expected": _expected_for(f),
         "impact": _impact_for(f),
         "evidence": evidence,
+        "screenshot": str(f.get("screenshot") or ""),
         "fix": _fix_for(f),
+        "frequency": str(f.get("frequency") or "Always (100%)"),
+        "ui_error": str(f.get("ui_error") or ""),
+        "console_error": str(f.get("console_error") or f.get("console") or ""),
+        "request": str(f.get("request") or f.get("network_request") or ""),
+        "status": str(f.get("status") or f.get("network_status") or ""),
+        "response": f.get("response") or f.get("network_response") or "",
+        "preconditions": f.get("preconditions") or ["Target is reachable.", "Tester is authorized to test this environment."],
     }
+
+
+def _ticket_markdown(t: dict[str, Any], url: str) -> list[str]:
+    response = t["response"]
+    if isinstance(response, (dict, list)):
+        response = json.dumps(response, indent=2, default=str)
+    response = str(response)
+    steps = "\n".join(f"{i}. {s}" for i, s in enumerate(t["steps"], 1))
+    preconditions = "\n".join(f"{i}. {s}" for i, s in enumerate(t["preconditions"], 1))
+    screenshot = t["screenshot"] or t["evidence"] or "Attach Fagun screenshot or report evidence."
+    return [
+        f"### {t['key']} — {t['summary']}",
+        "",
+        "# 🐞 Bug Report",
+        "",
+        "## Summary",
+        t["summary"],
+        "",
+        "---",
+        "",
+        "## Environment",
+        "",
+        "- Environment: Test target / staging unless otherwise specified",
+        f"- URL: {url}",
+        "- Browser: Chromium / Chrome via Fagun",
+        "- Browser Version: Captured by local runner if available",
+        "- Device: Desktop browser unless persona says otherwise",
+        "- OS: Local tester machine",
+        "- User Role: Current browser session / unauthenticated unless logged in",
+        "- Build/Commit: Not provided by target",
+        "- API Version (if applicable): Not provided by target",
+        "",
+        "---",
+        "",
+        "## Preconditions",
+        "",
+        preconditions,
+        "",
+        "---",
+        "",
+        "## Steps to Reproduce",
+        "",
+        steps,
+        "",
+        "---",
+        "",
+        "## Actual Result",
+        "",
+        t["observed"],
+        "",
+        "---",
+        "",
+        "## Expected Result",
+        "",
+        t["expected"],
+        "",
+        "---",
+        "",
+        "## Frequency",
+        "",
+        f"- [x] {t['frequency']}",
+        "- [ ] Often",
+        "- [ ] Sometimes",
+        "- [ ] Rarely",
+        "- [ ] Unable to Reproduce",
+        "",
+        "---",
+        "",
+        "## Severity",
+        "",
+        f"- {t['severity']}",
+        "",
+        "---",
+        "",
+        "## Priority",
+        "",
+        f"- {t['priority']}",
+        "",
+        "---",
+        "",
+        "## Impact",
+        "",
+        t["impact"],
+        "",
+        "---",
+        "",
+        "## Error Details",
+        "",
+        "### UI Error",
+        "",
+        "```",
+        t["ui_error"] or t["description"] or "No separate UI error text captured.",
+        "```",
+        "",
+        "### Console Error",
+        "",
+        "```javascript",
+        t["console_error"] or "No console error captured for this finding.",
+        "```",
+        "",
+        "### Network Request",
+        "",
+        "Request",
+        "",
+        "```",
+        t["request"] or t["evidence"] or "No specific request captured for this finding.",
+        "```",
+        "",
+        "Status",
+        "",
+        "```",
+        t["status"] or "Not captured / not applicable.",
+        "```",
+        "",
+        "Response",
+        "",
+        "```json",
+        response or "{}",
+        "```",
+        "",
+        "---",
+        "",
+        "## Screenshots / Screen Recording",
+        "",
+        f"- {screenshot}",
+        "",
+        "---",
+        "",
+        "## Additional Notes",
+        "",
+        f"- Suggested fix: {t['fix']}",
+        "- Workaround: Not identified unless noted above.",
+        "- Suspected root cause: Derived from Fagun evidence; confirm in source/logs.",
+        "- Related issue: Not linked.",
+        "- Regression: Unknown.",
+        "",
+    ]
 
 
 def _expected_for(f: dict[str, Any]) -> str:
@@ -111,6 +267,7 @@ def build_markdown(results: list[dict[str, Any]], title: str = "Fagun QA Report"
     if scorecard:
         lines += _markdown_scorecard(scorecard)
 
+    coverage = _coverage(results)
     lines += [
         "## Summary", "",
         f"- Pages checked: **{len(results)}**",
@@ -119,6 +276,23 @@ def build_markdown(results: list[dict[str, Any]], title: str = "Fagun QA Report"
         f"{_SEV_ICON['medium']} {counts['medium']} medium · "
         f"{_SEV_ICON['low']} {counts['low']} low)", "",
     ]
+    if coverage:
+        lines += [
+            "## Coverage", "",
+            f"- Status: **{coverage.get('status', 'unknown')}**",
+            f"- Pages crawled: **{coverage.get('crawl_pages', '?')}**",
+            f"- Pages tested: **{coverage.get('pages_tested', len(results))}**",
+            f"- Reason: {coverage.get('reason', '')}",
+        ]
+        not_tested = coverage.get("not_tested") or []
+        if not_tested:
+            lines.append("- Not tested:")
+            lines.extend(f"  - {x}" for x in not_tested)
+        tested = coverage.get("tested_urls") or []
+        if tested:
+            lines.append("- Tested URLs:")
+            lines.extend(f"  - {x}" for x in tested)
+        lines.append("")
 
     for r in results:
         lines.append(f"## {r.get('url', '?')}")
@@ -185,22 +359,7 @@ def build_markdown(results: list[dict[str, Any]], title: str = "Fagun QA Report"
     if tickets:
         lines += ["## Jira Bug Tickets", ""]
         for t in tickets:
-            lines += [
-                f"### {t['key']} — {t['summary']}",
-                "",
-                f"- Issue Type: {t['issue_type']}",
-                f"- Priority: {t['priority']}",
-                f"- Severity: {t['severity']}",
-                f"- Description: {t['description']}",
-                "- Steps to Reproduce:",
-                t["steps"],
-                f"- Observed: {t['observed']}",
-                f"- Expected: {t['expected']}",
-                f"- Impact: {t['impact']}",
-                f"- Evidence: {t['evidence'] or 'See linked report screenshot/tool output.'}",
-                f"- Suggested Fix: {t['fix']}",
-                "",
-            ]
+            lines += _ticket_markdown(t, t["url"])
 
     return "\n".join(lines)
 
@@ -301,6 +460,7 @@ code{{background:#20232c;padding:1px 5px;border-radius:5px}}
 <h1>🦊 {escape(title)}</h1>
 <div class="sub">{len(results)} page(s) · {counts['high']} high · {counts['medium']} medium · {counts['low']} low</div>"""]
 
+    coverage = _coverage(results)
     if scorecard:
         vc = {"Ready for Production": "#30a46c", "Ready with Minor Improvements": "#30a46c",
               "Ready After Fixing Medium-Priority Issues": "#f5a623",
@@ -326,6 +486,16 @@ code{{background:#20232c;padding:1px 5px;border-radius:5px}}
                              f'<b>{escape(rec["type"])}</b> ({rec["count"]}×) — {escape(rec["issue"])}'
                              f'<div class="ev">Why: {escape(rec["why"])}</div>'
                              f'<div class="ev">Fix: {escape(rec["fix"])}</div></div>')
+    if coverage:
+        tested = "".join(f"<li>{escape(str(x))}</li>" for x in coverage.get("tested_urls", []))
+        not_tested = "".join(f"<li>{escape(str(x))}</li>" for x in coverage.get("not_tested", []))
+        parts.append("<h2>Coverage</h2>")
+        parts.append(f'<div class="rec"><span class="tag">{escape(str(coverage.get("status", "unknown")))}</span>'
+                     f'<b>{escape(str(coverage.get("pages_tested", len(results))))} tested / '
+                     f'{escape(str(coverage.get("crawl_pages", "?")))} crawled</b>'
+                     f'<div class="ev">{escape(str(coverage.get("reason", "")))}</div>'
+                     f'<div class="ev"><b>Tested URLs</b><ul>{tested}</ul></div>'
+                     f'<div class="ev"><b>Not tested</b><ul>{not_tested}</ul></div></div>')
 
     for r in results:
         parts.append(f'<h2>{escape(str(r.get("url","?")))}</h2>')
@@ -375,15 +545,28 @@ code{{background:#20232c;padding:1px 5px;border-radius:5px}}
         parts.append("<h2>Jira Bug Tickets</h2>")
         for i, (url, f) in enumerate(all_findings, 1):
             t = _jira_ticket(url, f, i)
+            steps = "\n".join(f"{n}. {s}" for n, s in enumerate(t["steps"], 1))
+            preconditions = "\n".join(f"{n}. {s}" for n, s in enumerate(t["preconditions"], 1))
+            response = t["response"]
+            if isinstance(response, (dict, list)):
+                response = json.dumps(response, indent=2, default=str)
             parts.append(f'<div class="rec"><span class="tag">{escape(t["priority"])}</span>'
                          f'<b>{escape(t["key"])} — {escape(t["summary"])}</b>'
-                         f'<div class="ev"><b>Description:</b> {escape(t["description"])}</div>'
-                         f'<div class="ev"><b>Steps:</b><br><pre>{escape(t["steps"])}</pre></div>'
-                         f'<div class="ev"><b>Observed:</b> {escape(t["observed"])}</div>'
-                         f'<div class="ev"><b>Expected:</b> {escape(t["expected"])}</div>'
+                         f'<div class="ev"><b>Environment:</b> URL {escape(url)} · Browser Chromium/Chrome via Fagun · User role current session/unauthenticated unless logged in</div>'
+                         f'<div class="ev"><b>Preconditions:</b><br><pre>{escape(preconditions)}</pre></div>'
+                         f'<div class="ev"><b>Steps to Reproduce:</b><br><pre>{escape(steps)}</pre></div>'
+                         f'<div class="ev"><b>Actual Result:</b> {escape(t["observed"])}</div>'
+                         f'<div class="ev"><b>Expected Result:</b> {escape(t["expected"])}</div>'
+                         f'<div class="ev"><b>Frequency:</b> {escape(t["frequency"])}</div>'
+                         f'<div class="ev"><b>Severity:</b> {escape(t["severity"])} · <b>Priority:</b> {escape(t["priority"])}</div>'
                          f'<div class="ev"><b>Impact:</b> {escape(t["impact"])}</div>'
-                         f'<div class="ev"><b>Evidence:</b> {escape(t["evidence"] or "See linked report screenshot/tool output.")}</div>'
-                         f'<div class="ev"><b>Suggested Fix:</b> {escape(t["fix"])}</div></div>')
+                         f'<div class="ev"><b>UI Error:</b><pre>{escape(t["ui_error"] or t["description"] or "No separate UI error text captured.")}</pre></div>'
+                         f'<div class="ev"><b>Console Error:</b><pre>{escape(t["console_error"] or "No console error captured for this finding.")}</pre></div>'
+                         f'<div class="ev"><b>Network Request:</b><pre>{escape(t["request"] or t["evidence"] or "No specific request captured for this finding.")}</pre></div>'
+                         f'<div class="ev"><b>Status:</b><pre>{escape(t["status"] or "Not captured / not applicable.")}</pre></div>'
+                         f'<div class="ev"><b>Response:</b><pre>{escape(str(response) or "{}")}</pre></div>'
+                         f'<div class="ev"><b>Screenshots / Recording:</b> {escape(t["screenshot"] or t["evidence"] or "Attach Fagun screenshot or report evidence.")}</div>'
+                         f'<div class="ev"><b>Additional Notes:</b> Suggested fix: {escape(t["fix"])} · Regression: Unknown</div></div>')
     parts.append("</div></body></html>")
     return "\n".join(parts)
 

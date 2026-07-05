@@ -496,4 +496,42 @@ async def deep_test(
                 uniq.append(f)
         merged["findings"] = uniq
         results.append(merged)
-    return {"start": url, "pages_tested": len(results), "results": results}
+
+    coverage = {
+        "start": url,
+        "crawl_pages": crawl_result.get("crawled", 0),
+        "pages_tested": len(results),
+        "max_pages": max_pages,
+        "tested_urls": [r.get("url") for r in results],
+        "skipped_urls": [
+            p.get("url") for p in crawl_result.get("pages", [])
+            if p.get("url") not in {r.get("url") for r in results}
+        ],
+        "complete": bool(results) and len(results) >= min(crawl_result.get("crawled", 0), max_pages),
+    }
+    if len(results) <= 1:
+        coverage["status"] = "limited"
+        coverage["reason"] = (
+            "Only one reachable page was tested. If the product has an authenticated "
+            "dashboard or private workflows, log in or load a saved session before "
+            "rerunning deep_test."
+        )
+        coverage["not_tested"] = [
+            "authenticated dashboard",
+            "account/workspace authorization and IDOR surface",
+            "campaign or primary business creation flow",
+            "settings, integrations, billing, and role permissions",
+            "saved-data persistence, reload/back behavior, and recovery paths",
+        ]
+    elif not coverage["complete"]:
+        coverage["status"] = "partial"
+        coverage["reason"] = "Some discovered pages were skipped or max_pages was reached before full coverage."
+        coverage["not_tested"] = coverage["skipped_urls"][:20]
+    else:
+        coverage["status"] = "complete"
+        coverage["reason"] = "All discovered in-scope pages within max_pages were tested."
+        coverage["not_tested"] = []
+
+    if results:
+        results[0]["coverage"] = coverage
+    return {"start": url, "pages_tested": len(results), "coverage": coverage, "results": results}

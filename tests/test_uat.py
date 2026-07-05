@@ -132,6 +132,9 @@ def test_reports_render_form_matrix_and_jira_tickets():
             "detail": "email accepts missing @",
             "evidence": "browser checkValidity()=true",
             "screenshot": "/tmp/fagun-email.png",
+            "request": "POST /api/login",
+            "status": "400 Bad Request",
+            "response": {"error": "invalid email"},
         }],
     }]
     md = report.build_report(results, fmt="md")
@@ -140,9 +143,41 @@ def test_reports_render_form_matrix_and_jira_tickets():
     assert "accepted reject-cases: 1" in md
     assert "Jira Bug Tickets" in md
     assert "Steps to Reproduce" in md
+    assert "## Environment" in md
+    assert "## Preconditions" in md
+    assert "## Actual Result" in md
+    assert "## Expected Result" in md
+    assert "## Frequency" in md
+    assert "## Error Details" in md
+    assert "POST /api/login" in md
+    assert "400 Bad Request" in md
     assert "/tmp/fagun-email.png" in md
     assert "Jira Bug Tickets" in html
     assert "Form Scenario Matrix" in html
+    assert "Actual Result" in html
+    assert "Network Request" in html
+
+
+def test_reports_render_limited_coverage_warning():
+    results = [{
+        "url": "https://x.test/login",
+        "coverage": {
+            "status": "limited",
+            "crawl_pages": 1,
+            "pages_tested": 1,
+            "reason": "Only one reachable page was tested.",
+            "tested_urls": ["https://x.test/login"],
+            "not_tested": ["authenticated dashboard", "billing"],
+        },
+        "findings": [],
+    }]
+    md = report.build_report(results, fmt="md")
+    html = report.build_report(results, fmt="html")
+    assert "## Coverage" in md
+    assert "Status: **limited**" in md
+    assert "authenticated dashboard" in md
+    assert "Coverage" in html
+    assert "billing" in html
 
 
 # --------------------------------------------------------------------- uat

@@ -145,6 +145,15 @@ extra, not a replacement. Include:
 - Path or URL of any generated report.
 - A Jira-ready bug ticket for every confirmed bug: summary, priority, severity,
   environment, steps, observed, expected, impact, evidence, screenshot path, and fix.
+- Use the full Jira ticket structure from the generated report whenever possible:
+  Summary, Environment, Preconditions, Steps to Reproduce, Actual Result,
+  Expected Result, Frequency, Severity, Priority, Impact, Error Details
+  (UI/console/network request/status/response), Screenshots/Recording, and
+  Additional Notes.
+- If auth blocks the product after the login page, do not present the result as a
+  full-product test. Say coverage is limited, list the authenticated flows not
+  tested, ask the user to log in or provide authorized test credentials, then
+  continue/re-run.
 
 ## Golden rules
 1. **Evidence or it didn't happen.** Finding = what you did + what you saw + why it's

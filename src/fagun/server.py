@@ -472,9 +472,18 @@ async def deep_test(url: str, max_pages: int = 8, report_path: Optional[str] = N
         prefix = f"Report → {report_path}\n"
     verdict = (f"🧭 Readiness: {scorecard['verdict']} ({scorecard['overall_score']}/100) — "
                f"{scorecard['verdict_reason']}\n")
+    coverage = result.get("coverage") or {}
+    coverage_line = ""
+    if coverage:
+        coverage_line = (
+            f"Coverage: {coverage.get('status', 'unknown')} — "
+            f"{coverage.get('pages_tested', result['pages_tested'])}/"
+            f"{coverage.get('crawl_pages', '?')} crawled page(s) tested. "
+            f"{coverage.get('reason', '')}\n"
+        )
     if verbose:
         return prefix + verdict + fmt.dumps({"result": result, "readiness": scorecard})
-    return prefix + verdict + fmt.render_multi(result["results"], fmt.is_terse(), f"Deep test {url}")
+    return prefix + verdict + coverage_line + fmt.render_multi(result["results"], fmt.is_terse(), f"Deep test {url}")
 
 
 @mcp.tool()
