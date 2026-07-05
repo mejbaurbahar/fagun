@@ -8,6 +8,8 @@ AI can open a real browser and:
 
 - **Use the site as real end users** — mobile, slow-internet, low-end, keyboard-only,
   screen-reader, international, first-time visitor — with real device + network emulation.
+- **Understand the business first** — map the target's CTAs, forms, navigation,
+  auth state, and likely revenue/conversion flows before judging it.
 - **Run User Acceptance Testing** — walk complete journeys (signup, login, search,
   checkout, password reset…) step by step and confirm a real user can finish them.
 - **Hunt real, reproducible bugs** — broken links, console/JS errors, failed requests,
@@ -179,6 +181,10 @@ On first setup, Fagun opens `chrome://inspect/#remote-debugging`; turn on remote
 debugging there, then click **Allow** when Chrome shows the permission popup.
 Users do not need to run `fagun connect to my Chrome` first; `fagun deep test <url>`
 should auto-use Chrome DevTools MCP when the AI client exposes it.
+If the target is still logged out, Fagun checks `auth_status`: the user can log in
+manually in Chrome, or provide authorized test credentials for `login_with_credentials`.
+Passwords are masked in output and the resulting session can be saved for future
+authenticated tests.
 Fagun opts out of Chrome DevTools MCP usage statistics and update-check noise in
 generated configs.
 
@@ -352,6 +358,9 @@ GET/HEAD only, no attacks on third parties:
 - Chrome DevTools MCP uses `--auto-connect` during normal deep tests, so it can
   reuse your already-signed-in default Chrome after you allow remote debugging.
   Great for testing behind a login without giving credentials to the AI.
+- If Chrome is not logged in, Fagun reports `login-required` and asks for manual
+  login or authorized test credentials. `login_with_credentials` records the
+  login action trace but prints the password only as `[hidden]`.
 - `connect to my Chrome` is only a troubleshooting fallback that launches a
   dedicated debuggable Chrome profile and attaches to it.
 - `browser_exec` → when no built-in tool fits, the AI writes Python against the live
@@ -360,7 +369,8 @@ GET/HEAD only, no attacks on third parties:
 
 ## 🧰 Everything it can do (MCP tools)
 
-`fagun_start` · `open_browser` · `navigate` · `click` · `fill` · `press_key` ·
+`fagun_start` · `product_map` · `auth_status` · `login_with_credentials` ·
+`open_browser` · `navigate` · `click` · `fill` · `press_key` ·
 `screenshot` · `evaluate_js` · `get_console` · `get_network` · `crawl` · `run_qa` ·
 `check_links` · `test_forms` · `fuzz_forms` · `list_test_data` · `perf_audit` ·
 `a11y_audit` · `security_headers` · `security_scan` · `advanced_security` ·

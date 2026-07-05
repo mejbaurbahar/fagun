@@ -150,7 +150,7 @@ section{scroll-margin-top:80px}
         <div class="card"><div style="font-size:22px">🎭</div><h3 style="margin:.4em 0 .3em;font-size:17px;color:var(--text)">11 end-user personas</h3><p style="margin:0;color:var(--muted);font-size:14px;line-height:1.6">Become a first-time, mobile, tablet, slow-internet, low-end, keyboard-only, screen-reader, dark-mode, or international user — real device, network + CPU throttle, and media prefs, not just a resized window.</p></div>
         <div class="card"><div style="font-size:22px">🧭</div><h3 style="margin:.4em 0 .3em;font-size:17px;color:var(--text)">Complete user journeys</h3><p style="margin:0;color:var(--muted);font-size:14px;line-height:1.6">Walk login, signup, search, checkout, password-reset and more step-by-step. Each step records pass/fail, a screenshot, console errors, failed requests and timing — a step only "passes" if the browser actually did it.</p></div>
         <div class="card"><div style="font-size:22px">📊</div><h3 style="margin:.4em 0 .3em;font-size:17px;color:var(--text)">Readiness scorecard</h3><p style="margin:0;color:var(--muted);font-size:14px;line-height:1.6">16 category scores (UX, UI, business logic, reliability, a11y, performance, security, mobile…) + a release verdict + prioritized fixes (why it matters, how to fix). Rendered to Markdown / HTML / JSON / JUnit XML.</p></div>
-        <div class="card"><div style="font-size:22px">🔐</div><h3 style="margin:.4em 0 .3em;font-size:17px;color:var(--text)">Test behind login</h3><p style="margin:0;color:var(--muted);font-size:14px;line-height:1.6">Log in once, <code>save_session</code>, then <code>load_session</code> restores it — so crawl, deep test and security scan run <b style="color:var(--text)">as the logged-in user</b>: dashboards, checkout, and authorization surface.</p></div>
+        <div class="card"><div style="font-size:22px">🔐</div><h3 style="margin:.4em 0 .3em;font-size:17px;color:var(--text)">Test behind login</h3><p style="margin:0;color:var(--muted);font-size:14px;line-height:1.6">Chrome MCP reuses an already signed-in browser. If the target is logged out, <code>auth_status</code> detects it; the user can log in manually or provide authorized test credentials via <code>login_with_credentials</code>, then <code>save_session</code> keeps future tests authenticated.</p></div>
         <div class="card"><div style="font-size:22px">⌨️</div><h3 style="margin:.4em 0 .3em;font-size:17px;color:var(--text)">Keyboard walk</h3><p style="margin:0;color:var(--muted);font-size:14px;line-height:1.6">Tab through the page like a keyboard-only / screen-reader user — focus reachability, missing visible focus, and focus traps, with evidence.</p></div>
         <div class="card"><div style="font-size:22px">🔎</div><h3 style="margin:.4em 0 .3em;font-size:17px;color:var(--text)">Tech fingerprint</h3><p style="margin:0;color:var(--muted);font-size:14px;line-height:1.6"><code>fingerprint</code> detects server, hosting, framework, CMS and analytics from real headers + DOM signals — so the hunt is tuned to the actual stack.</p></div>
       </div>
@@ -183,8 +183,8 @@ section{scroll-margin-top:80px}
 <span style="color:var(--gold)">$</span> <span style="color:var(--text)">uvx fagun install chrome-devtools</span>   <span style="color:#6f6784"># Chrome DevTools MCP only</span>
 <span style="color:var(--gold)">›</span> <span style="color:var(--text)">fagun deep test https://example.com</span> <span style="color:#6f6784"># auto Chrome MCP + full Fagun output</span>
       </div>
-      <p style="color:var(--muted);font-size:13px;margin-top:14px">Chrome DevTools MCP auto-connects to the user's running Chrome during normal deep tests. Fagun opens <code>chrome://inspect/#remote-debugging</code>; enable remote debugging there, then click <b>Allow</b> when Chrome shows the permission popup. Users do not need to run <code>fagun connect to my Chrome</code> first. This lets tests reuse logged-in sessions without asking for credentials. Generated configs opt out of usage statistics and update-check noise.</p>
-      <p style="color:var(--muted);font-size:13px;margin-top:8px">The intended runtime order is: install with <code>uvx fagun init</code> or <code>pip install fagun &amp;&amp; fagun init</code> → restart the AI tool → type <code>fagun deep test URL</code> → Chrome DevTools MCP auto-connects → Chrome may ask for <b>Allow remote debugging</b> → Fagun prints the full verdict, all findings, evidence, fixes, coverage, and report path.</p>
+      <p style="color:var(--muted);font-size:13px;margin-top:14px">Chrome DevTools MCP auto-connects to the user's running Chrome during normal deep tests. Fagun opens <code>chrome://inspect/#remote-debugging</code>; enable remote debugging there, then click <b>Allow</b> when Chrome shows the permission popup. Users do not need to run <code>fagun connect to my Chrome</code> first. This lets tests reuse logged-in sessions without asking for credentials. If the target is still logged out, Fagun runs <code>auth_status</code> and asks the user to log in manually or provide authorized test credentials through <code>login_with_credentials</code>; passwords are never printed back.</p>
+      <p style="color:var(--muted);font-size:13px;margin-top:8px">The intended runtime order is: install with <code>uvx fagun init</code> or <code>pip install fagun &amp;&amp; fagun init</code> → restart the AI tool → type <code>fagun deep test URL</code> → Chrome DevTools MCP auto-connects → Fagun maps the product/business flow with <code>product_map</code> → checks auth with <code>auth_status</code> → opens pages, clicks buttons, fills inputs with labelled test data, checks console/network after actions → prints the full verdict, all findings, evidence, fixes, coverage, action replay, and report path.</p>
       <p style="color:var(--muted);font-size:14px;margin:16px 0 6px">Inside Claude Code, as a plugin:</p>
       <div class="cmd">
 <span style="color:#7fb0e8">/plugin</span> <span style="color:var(--muted)">marketplace add mejbaurbahar/fagun</span>
@@ -199,7 +199,7 @@ section{scroll-margin-top:80px}
     <section id="workflow">
       <p class="pill">Workflow</p>
       <h2 style="margin:0 0 16px;font-size:clamp(1.7rem,3.4vw,2.5rem)">What happens after the user types one command.</h2>
-      <p style="color:var(--muted);font-size:15px;line-height:1.6;max-width:760px">The complete Fagun path is install once, restart the AI tool, then run <code>fagun deep test URL</code>. Fagun handles browser connection, Chrome DevTools MCP, testing, evidence, and final report generation.</p>
+      <p style="color:var(--muted);font-size:15px;line-height:1.6;max-width:760px">The complete Fagun path is install once, restart the AI tool, then run <code>fagun deep test URL</code>. Fagun handles browser connection, Chrome DevTools MCP, product mapping, auth state, clicks, inputs, labelled test data, evidence, and final report generation.</p>
       <div class="wf-scroll" style="margin-top:18px">
         <div class="wf-canvas">
           <svg class="wf-svg" viewBox="0 0 720 890" preserveAspectRatio="none" aria-hidden="true">
@@ -214,14 +214,14 @@ section{scroll-margin-top:80px}
           <div class="wf-pill" style="left:calc(50% - 64px);top:118px">one-time setup</div>
           <div class="wf-card" style="left:calc(50% - 180px);top:150px;width:360px"><strong><span class="wf-no">02</span> Open any AI tool</strong><p>Claude, Codex, Cursor, Windsurf</p><small>Fagun MCP + /fagun skill loaded for the model.</small></div>
           <div class="wf-pill" style="left:calc(50% - 86px);top:274px">user runs one command</div>
-          <div class="wf-card" style="left:calc(50% - 175px);top:300px;width:350px"><strong><span class="wf-no">03</span> fagun deep test URL</strong><p>Chrome DevTools MCP auto-connects</p><small>Signed-in Chrome reused after Allow.</small></div>
-          <div class="wf-chips"><span class="wf-chip">personas</span><span class="wf-chip">journeys</span><span class="wf-chip">console</span><span class="wf-chip">network</span><span class="wf-chip">a11y</span><span class="wf-chip">performance</span><span class="wf-chip">security</span></div>
-          <div class="wf-card" style="left:calc(50% - 120px);top:500px;width:240px"><strong><span class="wf-no">04</span> Readiness gate</strong><p>Does the app pass?</p><small>Score, blockers, confidence, release recommendation.</small></div>
+          <div class="wf-card" style="left:calc(50% - 175px);top:300px;width:350px"><strong><span class="wf-no">03</span> fagun deep test URL</strong><p>Open target, map product, check auth</p><small>Signed-in Chrome reused after Allow; otherwise manual login or authorized credentials.</small></div>
+          <div class="wf-chips"><span class="wf-chip">product map</span><span class="wf-chip">auth check</span><span class="wf-chip">clicks</span><span class="wf-chip">inputs</span><span class="wf-chip">test data</span><span class="wf-chip">console</span><span class="wf-chip">network</span><span class="wf-chip">a11y</span><span class="wf-chip">security</span></div>
+          <div class="wf-card" style="left:calc(50% - 120px);top:500px;width:240px"><strong><span class="wf-no">04</span> Readiness gate</strong><p>Does the app pass?</p><small>Every visit, click, fill, screenshot, failed request, and console error is recorded.</small></div>
           <div class="wf-label" style="left:calc(50% - 230px);top:574px;color:#b7f082">pass path</div>
           <div class="wf-label" style="left:calc(50% + 92px);top:574px;color:#fca5a5">fix path</div>
           <div class="wf-card" style="left:22px;top:738px;width:240px"><strong><span class="wf-no">05A</span> Ship / monitor</strong><p>Ready verdict</p><small>Report saved for evidence.</small></div>
           <div class="wf-pill" style="left:calc(50% + 205px);top:702px">immediate</div>
-          <div class="wf-card" style="right:22px;top:728px;width:340px;border-color:rgba(248,113,113,.36)"><strong><span class="wf-no" style="border-color:rgba(248,113,113,.45);background:rgba(248,113,113,.13);color:#fecaca">05B</span> Full bug report</strong><p>Findings, repro, evidence, fixes</p><small>HTML · Markdown · JSON · JUnit</small></div>
+          <div class="wf-card" style="right:22px;top:728px;width:340px;border-color:rgba(248,113,113,.36)"><strong><span class="wf-no" style="border-color:rgba(248,113,113,.45);background:rgba(248,113,113,.13);color:#fecaca">05B</span> Full bug report</strong><p>Action replay, findings, repro, evidence, fixes</p><small>HTML · Markdown · JSON · JUnit</small></div>
         </div>
       </div>
     </section>
@@ -239,6 +239,14 @@ section{scroll-margin-top:80px}
         <tr><td><code>list_journeys</code> · <code>journey_template</code></td><td>Built-in journey scaffolds (login, register, password-reset, search, checkout, contact) to copy and fill in.</td></tr>
         <tr><td><code>keyboard_walk</code></td><td>Tab through like a keyboard-only user — focus reachability, invisible focus, traps.</td></tr>
         <tr><td><code>readiness_report</code></td><td>16-category readiness scorecard + release verdict + prioritized fixes from collected findings.</td></tr>
+      </table></div>
+
+      <h3 style="font-size:16px;color:var(--gold);margin:26px 0 8px">Product understanding &amp; auth</h3>
+      <div class="card" style="padding:0;overflow-x:auto"><table>
+        <tr><th>Tool</th><th>What it does</th></tr>
+        <tr><td><code>product_map</code></td><td>Reads the live page to infer business signals, primary CTAs, forms, navigation, and recommended journeys before testing.</td></tr>
+        <tr><td><code>auth_status</code></td><td>Checks whether Chrome is already authenticated, logged out, or unknown, then recommends continuing, manual login, or credentials.</td></tr>
+        <tr><td><code>login_with_credentials</code></td><td>Uses authorized test credentials to log in, masks the password in output, and saves the session for authenticated tests.</td></tr>
       </table></div>
 
       <h3 style="font-size:16px;color:var(--gold);margin:26px 0 8px">Browse &amp; debug</h3>

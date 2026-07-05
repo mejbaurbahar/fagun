@@ -92,12 +92,13 @@ client exposes it, then fall back to Fagun's own browser if needed.
 
 **Fast commands**
 - `deep test <url> and save the report to ./fagun-report.html`
+- `understand product <url>` · `auth status <url>` · `login with test credentials`
 - `run QA on <url>` · `check links on <url>` · `test forms on <url>`
 - `security scan <url>` · `perf audit <url>` · `a11y audit <url>`
 - `emulate mobile` · `keyboard walk <url>` · `run journey <steps>`
 
 **What I check**
-`journeys` · `auth/session` · `links` · `console` · `network` · `forms` ·
+`product map` · `journeys` · `auth/session` · `links` · `console` · `network` · `forms` ·
 `validation` · `a11y` · `SEO` · `visual overflow` · `responsive layout` ·
 `Core Web Vitals` · `headers/CORS/CSP` · `XSS/redirect/SQLi/LFI/SSTI/cmdi` ·
 `secrets/exposed files` · `GraphQL` · `readiness score`
@@ -198,6 +199,27 @@ async def navigate(url: str) -> str:
 
 @mcp.tool()
 @_browser_tool
+async def product_map(url: str, verbose: bool = False) -> str:
+    """Understand the target before testing: business signals, likely user flows,
+    navigation, CTAs, and forms from the live page. Use this before UAT/deep tests
+    so the AI can test the real business, not just random pages."""
+    r = await _uat.product_map(url)
+    if verbose or not fmt.is_terse():
+        return fmt.dumps(r)
+    lines = [
+        f"Product map: {r['title'] or r['url']}",
+        f"Business signals: {', '.join(r['business_signals'])}",
+        f"Recommended journeys: {', '.join(r['recommended_journeys'])}",
+    ]
+    if r.get("primary_ctas"):
+        lines.append("Primary actions: " + ", ".join(r["primary_ctas"][:8]))
+    if r.get("forms"):
+        lines.append(f"Forms detected: {len(r['forms'])}")
+    return "\n".join(lines)
+
+
+@mcp.tool()
+@_browser_tool
 async def click(target: str) -> str:
     """Click an element by CSS selector or visible text."""
     page = await manager.page()
@@ -218,6 +240,78 @@ async def fill(selector: str, value: str) -> str:
     except Exception:
         await page.get_by_label(selector).fill(value, timeout=8000)
     return f"Filled {selector!r}."
+
+
+@mcp.tool()
+@_browser_tool
+async def auth_status(url: str, verbose: bool = False) -> str:
+    """Check whether the target appears already authenticated, logged out, or
+    unknown. Use Chrome DevTools MCP / signed-in Chrome first; if login is still
+    required, ask the user to log in manually or provide authorized test
+    credentials, then save_session."""
+    r = await _uat.inspect_auth_state(url)
+    if verbose or not fmt.is_terse():
+        return fmt.dumps(r)
+    lines = [
+        f"Auth state: {r['state']} — {r['url']}",
+        f"Recommendation: {r['recommendation']}",
+    ]
+    if r.get("login_forms"):
+        lines.append(f"Login-like forms detected: {len(r['login_forms'])}")
+    if r.get("logout_cta"):
+        lines.append("Logout/sign-out control detected.")
+    return "\n".join(lines)
+
+
+@mcp.tool()
+@_browser_tool
+async def login_with_credentials(
+    url: str,
+    username: str,
+    password: str,
+    username_selector: str = "input[type=email],input[name*=email i],input[name*=user i],input[autocomplete=username]",
+    password_selector: str = "input[type=password]",
+    submit_selector: str = "button[type=submit],input[type=submit],text=Log in,text=Sign in,text=Continue",
+    success_text: str = "",
+    save_as: str = "default",
+) -> str:
+    """Log in with authorized test credentials, then save the session.
+
+    Prefer signed-in Chrome first. If the target is not logged in, the AI/client
+    should ask the user for test credentials or ask them to log in manually in
+    Chrome. This tool never prints the password back.
+    """
+    page = await manager.page()
+    trace: list[str] = []
+    resp = await page.goto(url, wait_until="load", timeout=30000)
+    trace.append(f"visited {page.url} ({resp.status if resp else '?'})")
+    try:
+        await page.fill(username_selector, username, timeout=10000)
+    except Exception:
+        await page.get_by_label(username_selector).fill(username, timeout=10000)
+    trace.append(f"filled username field with {username!r}")
+    try:
+        await page.fill(password_selector, password, timeout=10000)
+    except Exception:
+        await page.get_by_label(password_selector).fill(password, timeout=10000)
+    trace.append("filled password field with [hidden]")
+    try:
+        await page.click(submit_selector, timeout=10000)
+    except Exception:
+        await page.get_by_text(submit_selector, exact=False).first.click(timeout=10000)
+    trace.append(f"clicked submit selector {submit_selector!r}")
+    try:
+        await page.wait_for_load_state("networkidle", timeout=15000)
+    except Exception:
+        pass
+    if success_text:
+        body = await page.text_content("body") or ""
+        if success_text.lower() not in body.lower():
+            return "Login attempted but success text was not observed.\n" + "\n".join(trace)
+        trace.append(f"observed success text {success_text!r}")
+    saved = await _session.save_session(save_as)
+    trace.append(saved)
+    return "Login completed; session saved. Action trace:\n" + "\n".join(f"- {t}" for t in trace)
 
 
 @mcp.tool()

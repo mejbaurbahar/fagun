@@ -179,7 +179,7 @@ body{background:#0d0b16}
   <section id="workflow" style="position:relative;z-index:2;max-width:1120px;margin:0 auto;padding:clamp(56px,9vh,104px) clamp(20px,5vw,44px) 0">
     <p style="margin:0 0 12px;font-size:12px;font-weight:600;letter-spacing:.2em;color:var(--gold);text-transform:uppercase">Full workflow</p>
     <h2 style="margin:0 0 14px;font-family:Didot,'Bodoni MT','Playfair Display',Georgia,serif;font-weight:500;font-size:clamp(1.9rem,3.6vw,2.9rem);line-height:1.08;letter-spacing:-.01em;max-width:720px">From install to full readiness report.</h2>
-    <p style="margin:0 0 30px;font-size:15.5px;line-height:1.6;color:var(--muted);max-width:760px">Users only need to install once, restart the AI tool, then type <span style="color:var(--text)">fagun deep test URL</span>. Fagun handles browser setup, Chrome DevTools MCP auto-connect, testing, evidence, and the final report.</p>
+    <p style="margin:0 0 30px;font-size:15.5px;line-height:1.6;color:var(--muted);max-width:760px">Users only need to install once, restart the AI tool, then type <span style="color:var(--text)">fagun deep test URL</span>. Fagun opens the target in a real browser, maps the business flow, checks auth, clicks/fills real fields with labelled test data, watches console/network, and saves an action-by-action report.</p>
     <div class="fg-wf-shell">
       <div class="fg-wf-canvas">
         <svg class="fg-wf-svg" viewBox="0 0 760 930" preserveAspectRatio="none" aria-hidden="true">
@@ -202,14 +202,14 @@ body{background:#0d0b16}
         <div class="fg-wf-pill" style="left:calc(50% - 86px);top:296px">user runs one command</div>
         <div class="fg-wf-card" style="left:calc(50% - 185px);top:320px;width:370px">
           <strong><span class="fg-wf-no">03</span> fagun deep test URL</strong>
-          <p>Chrome DevTools MCP auto-connects</p><small>Signed-in Chrome reused after the browser permission popup is allowed.</small>
+          <p>Open target, map product, check auth</p><small>Chrome MCP reuses signed-in Chrome; if logged out, Fagun asks for manual login or authorized test credentials.</small>
         </div>
         <div class="fg-wf-chips">
-          <span class="fg-wf-chip">personas</span><span class="fg-wf-chip">journeys</span><span class="fg-wf-chip">console</span><span class="fg-wf-chip">network</span><span class="fg-wf-chip">a11y</span><span class="fg-wf-chip">performance</span><span class="fg-wf-chip">security</span>
+          <span class="fg-wf-chip">product map</span><span class="fg-wf-chip">auth check</span><span class="fg-wf-chip">clicks</span><span class="fg-wf-chip">inputs</span><span class="fg-wf-chip">test data</span><span class="fg-wf-chip">console</span><span class="fg-wf-chip">network</span><span class="fg-wf-chip">a11y</span><span class="fg-wf-chip">security</span>
         </div>
         <div class="fg-wf-card" style="left:calc(50% - 125px);top:520px;width:250px">
           <strong><span class="fg-wf-no">04</span> Readiness gate</strong>
-          <p>Does the app pass?</p><small>Score, blockers, confidence, and release recommendation.</small>
+          <p>Does the app pass?</p><small>Every visit, click, fill, assertion, screenshot, failed request, and console error is recorded.</small>
         </div>
         <div class="fg-wf-label" style="left:calc(50% - 248px);top:620px;color:#b7f082">pass path</div>
         <div class="fg-wf-label" style="left:calc(50% + 120px);top:620px;color:#fca5a5">fix path</div>
@@ -220,7 +220,7 @@ body{background:#0d0b16}
         <div class="fg-wf-pill" style="left:calc(50% + 232px);top:736px">immediate</div>
         <div class="fg-wf-card" style="right:34px;top:758px;width:365px;border-color:rgba(248,113,113,.36)">
           <strong><span class="fg-wf-no" style="border-color:rgba(248,113,113,.45);background:rgba(248,113,113,.13);color:#fecaca">05B</span> Full bug report</strong>
-          <p>Findings, repro steps, screenshots, failed requests, console errors, fixes.</p><small>HTML · Markdown · JSON · JUnit · CI friendly.</small>
+          <p>Action replay, findings, repro steps, screenshots, failed requests, console errors, fixes.</p><small>HTML · Markdown · JSON · JUnit · CI friendly.</small>
         </div>
       </div>
     </div>
@@ -230,7 +230,7 @@ body{background:#0d0b16}
   <section style="position:relative;z-index:2;max-width:1120px;margin:0 auto;padding:clamp(56px,9vh,110px) clamp(20px,5vw,44px) 0">
     <p style="margin:0 0 12px;font-size:12px;font-weight:600;letter-spacing:.2em;color:var(--gold);text-transform:uppercase">What it does</p>
     <h2 style="margin:0 0 14px;font-family:Didot,'Bodoni MT','Playfair Display',Georgia,serif;font-weight:500;font-size:clamp(1.9rem,3.6vw,2.9rem);line-height:1.08;letter-spacing:-.01em;max-width:640px">Use it like a customer. Prove it's ready. Find every crack.</h2>
-    <p style="margin:0 0 34px;font-size:15.5px;line-height:1.6;color:var(--muted);max-width:760px">Deep test covers the full readiness surface: journeys, auth, links, console, network/API, forms, validation, accessibility, performance, SEO, visual layout, responsive breakpoints, keyboard use, security headers, CORS/CSP, exposed files/secrets, XSS/redirect signals, reports, and safe external security-tool planning.</p>
+    <p style="margin:0 0 34px;font-size:15.5px;line-height:1.6;color:var(--muted);max-width:760px">Deep test covers the full readiness surface: product/business understanding, auth state, journeys, links, console, network/API, forms, validation, accessibility, performance, SEO, visual layout, responsive breakpoints, keyboard use, security headers, CORS/CSP, exposed files/secrets, XSS/redirect signals, action replay reports, and safe external security-tool planning.</p>
     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:14px">
 
       <div style="display:flex;align-items:center;gap:13px;background:var(--card);border:1px solid rgba(232,176,75,.28);border-radius:14px;padding:16px 17px">

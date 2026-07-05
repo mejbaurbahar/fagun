@@ -30,6 +30,11 @@ def _counts(results: list[dict[str, Any]]) -> dict[str, int]:
     return c
 
 
+def _action_steps(r: dict[str, Any]) -> list[dict[str, Any]]:
+    steps = r.get("action_trace") or r.get("step_log") or r.get("steps") or []
+    return steps if isinstance(steps, list) else []
+
+
 # ----------------------------------------------------------------- Markdown
 def build_markdown(results: list[dict[str, Any]], title: str = "Fagun QA Report",
                    scorecard: dict[str, Any] | None = None) -> str:
@@ -64,6 +69,26 @@ def build_markdown(results: list[dict[str, Any]], title: str = "Fagun QA Report"
         if meta:
             lines.append(f"_{' · '.join(meta)}_")
         lines.append("")
+        steps = _action_steps(r)
+        if steps:
+            lines += ["### Action timeline", ""]
+            for s in steps:
+                label = s.get("label") or s.get("action") or f"step {s.get('i', '?')}"
+                mark = "✅" if s.get("ok", True) else "❌"
+                detail = s.get("detail") or s.get("target") or s.get("url") or ""
+                lines.append(f"{s.get('i', len(lines))}. {mark} **{label}** — {detail}")
+                extras = []
+                if s.get("ms") is not None:
+                    extras.append(f"{s['ms']} ms")
+                if s.get("console_errors"):
+                    extras.append(f"{s['console_errors']} console error(s)")
+                if s.get("network_failures"):
+                    extras.append(f"{s['network_failures']} failed request(s)")
+                if s.get("screenshot"):
+                    extras.append(f"screenshot: `{s['screenshot']}`")
+                if extras:
+                    lines.append(f"   - {' · '.join(extras)}")
+            lines.append("")
         fs = sorted(r.get("findings", []), key=lambda f: _SEV_ORDER.get(f.get("severity", "low"), 3))
         if not fs:
             lines.append("✅ No findings.")
@@ -203,6 +228,26 @@ code{{background:#20232c;padding:1px 5px;border-radius:5px}}
 
     for r in results:
         parts.append(f'<h2>{escape(str(r.get("url","?")))}</h2>')
+        steps = _action_steps(r)
+        if steps:
+            parts.append("<h3>Action timeline</h3>")
+            for s in steps:
+                ok = "ok" if s.get("ok", True) else "blocked"
+                label = escape(str(s.get("label") or s.get("action") or f"step {s.get('i', '?')}"))
+                detail = escape(str(s.get("detail") or s.get("target") or s.get("url") or ""))
+                extras = []
+                if s.get("ms") is not None:
+                    extras.append(f"{s['ms']} ms")
+                if s.get("console_errors"):
+                    extras.append(f"{s['console_errors']} console error(s)")
+                if s.get("network_failures"):
+                    extras.append(f"{s['network_failures']} failed request(s)")
+                if s.get("screenshot"):
+                    extras.append(f"screenshot: {s['screenshot']}")
+                c = "#30a46c" if s.get("ok", True) else "#e5484d"
+                parts.append(f'<div class="rec"><span class="tag" style="background:{c}">{escape(ok)}</span>'
+                             f'<b>{label}</b> — {detail}'
+                             f'<div class="ev">{escape(" · ".join(extras))}</div></div>')
         fs = sorted(r.get("findings", []), key=lambda f: _SEV_ORDER.get(f.get("severity", "low"), 3))
         if not fs:
             parts.append('<div class="sub">✅ No findings.</div>')

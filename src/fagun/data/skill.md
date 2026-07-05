@@ -32,6 +32,17 @@ user's signed-in Chrome after they enable `chrome://inspect/#remote-debugging`
 and click Chrome's **Allow remote debugging** popup. Do not ask for login
 credentials if the signed-in browser session is available.
 
+If the target is not already logged in, run `auth_status(url)` first and then do
+one of these, in order:
+1. Ask the user to log in manually in the opened Chrome window, then call
+   `save_session("target-name")`.
+2. If the user wants fully automated login and has authorized test credentials,
+   ask for the username/password in the AI chat/terminal, call
+   `login_with_credentials(...)`, and save the session. Never print the password
+   back; report it only as `[hidden]`.
+3. If login requires SSO, MFA, CAPTCHA, passkey, or another human-only checkpoint,
+   pause for the user to complete it in Chrome, then continue testing.
+
 ## Automatic Chrome behavior
 When the user says `fagun deep test <url>`, `fagun audit <url>`, `fagun security
 scan <url>`, or any equivalent URL test request, automatically try the
@@ -55,6 +66,9 @@ reproduce it, don't report it.
 ## Mission order (do this every time)
 1. **Understand the product first.** What problem does it solve? Who are the target
    users? What is each user's goal, and what does success look like for them?
+   Start with `product_map(url)` so the testing plan matches the real business,
+   primary CTAs, forms, navigation, and likely revenue/conversion flows.
+   Then run `auth_status(url)` so authenticated/private flows are not skipped.
 2. **Use it as a real customer** before hunting bugs — is the experience intuitive
    without docs? Does the workflow feel natural? Where would a real user get stuck?
 3. **Run UAT** on every feature and complete journey (below).
@@ -217,8 +231,9 @@ not a defect list; it's a better product.
 
 ## Workflow
 **0. Scope** — confirm URL(s), staging vs production, what matters most.
-**1. Recon** — `open_browser` → `navigate` → `screenshot`; `crawl(url, max_pages)` to
-map the surface (auth, forms, listings, detail, checkout, dashboard).
+**1. Recon** — `product_map(url)` → `auth_status(url)` → `open_browser` →
+`navigate` → `screenshot`; `crawl(url, max_pages)` to map the surface (auth,
+forms, listings, detail, checkout, dashboard).
 **2. Broad sweep** — automatically use Chrome DevTools MCP auto-connect when
 available, then call `deep_test(url, report_path="report.html")` (baseline: QA +
 forms + security + vitals + keyboard + readiness). Then `check_links`, `fuzz_forms`,
@@ -347,6 +362,7 @@ hypothesis as confirmed.
 **Auth sessions:** `save_session` · `load_session` · `list_sessions` · `delete_session`
 **Browser:** `fagun_start` · `open_browser` · `navigate` · `click` · `fill` ·
 `press_key` · `screenshot` · `evaluate_js` · `get_console` · `get_network` · `close_browser`
+**Product/auth:** `product_map` · `auth_status` · `login_with_credentials`
 **Fagun Style:** `fagun_style_prompt` · `fagun_style_schema` · `fagun_render_response`
 **Security orchestration:** `fagun_security_prompt` · `list_external_security_tools` ·
 `recommend_security_tools`

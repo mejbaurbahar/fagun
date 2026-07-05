@@ -123,6 +123,125 @@ def list_personas() -> list[dict[str, str]]:
     return [{"name": k, "note": v["note"]} for k, v in PERSONAS.items()]
 
 
+async def inspect_auth_state(url: str) -> dict[str, Any]:
+    """Best-effort auth-state detection from the live page.
+
+    This does not try to bypass auth. It answers a practical UAT question:
+    "Can the tester continue with an already-authenticated browser session, or
+    does the user need to log in first?"
+    """
+    page = await manager.page()
+    resp = await page.goto(url, wait_until="load", timeout=30000)
+    data = await page.evaluate(
+        """() => {
+            const text = (document.body && document.body.innerText || '').slice(0, 6000);
+            const forms = [...document.forms].map((f, i) => ({
+                i,
+                method: (f.getAttribute('method') || 'get').toLowerCase(),
+                action: f.getAttribute('action') || location.href,
+                password: !!f.querySelector('input[type=password]'),
+                email: !!f.querySelector('input[type=email],input[name*=email i],input[name*=user i]'),
+                submit: !!f.querySelector('button[type=submit],input[type=submit],button')
+            }));
+            const links = [...document.querySelectorAll('a,button')]
+                .map(e => (e.innerText || e.getAttribute('aria-label') || e.getAttribute('title') || '').trim())
+                .filter(Boolean).slice(0, 80);
+            const logout = links.some(t => /log\\s*out|sign\\s*out/i.test(t));
+            const loginCta = links.some(t => /log\\s*in|sign\\s*in|continue with|sso|google|github|microsoft/i.test(t));
+            const protectedText = /sign in to continue|login to continue|unauthorized|forbidden|session expired|access denied/i.test(text);
+            return {url: location.href, title: document.title, forms, links, logout, loginCta, protectedText};
+        }"""
+    )
+    login_forms = [f for f in data.get("forms", []) if f.get("password") or (f.get("email") and f.get("submit"))]
+    if data.get("logout"):
+        state = "authenticated"
+        recommendation = "Continue testing with the current signed-in Chrome/session."
+    elif login_forms or data.get("protectedText") or data.get("loginCta"):
+        state = "login-required"
+        recommendation = (
+            "Ask the user to log in in Chrome or provide test credentials, then save_session. "
+            "Do not ask for credentials if the signed-in Chrome session is available."
+        )
+    else:
+        state = "unknown"
+        recommendation = "Continue public-flow testing, then check protected flows if login is required."
+    return {
+        "url": data.get("url") or (resp.url if resp else url),
+        "status": resp.status if resp else None,
+        "title": data.get("title", ""),
+        "state": state,
+        "login_forms": login_forms,
+        "login_cta": bool(data.get("loginCta")),
+        "logout_cta": bool(data.get("logout")),
+        "protected_text": bool(data.get("protectedText")),
+        "recommendation": recommendation,
+    }
+
+
+async def product_map(url: str) -> dict[str, Any]:
+    """Summarize product surface, likely business model, journeys, CTAs and forms."""
+    page = await manager.page()
+    resp = await page.goto(url, wait_until="load", timeout=30000)
+    data = await page.evaluate(
+        """() => {
+            const clean = s => (s || '').replace(/\\s+/g, ' ').trim();
+            const unique = arr => [...new Set(arr.map(clean).filter(Boolean))];
+            const headings = unique([...document.querySelectorAll('h1,h2')].map(e => e.innerText)).slice(0, 14);
+            const ctas = unique([...document.querySelectorAll('a,button,[role=button],input[type=submit]')]
+                .map(e => e.innerText || e.value || e.getAttribute('aria-label') || e.getAttribute('title'))).slice(0, 30);
+            const nav = unique([...document.querySelectorAll('nav a,a[href]')]
+                .map(e => e.innerText || e.getAttribute('aria-label'))).slice(0, 40);
+            const forms = [...document.forms].map((f, i) => ({
+                i,
+                method: (f.getAttribute('method') || 'get').toLowerCase(),
+                action: f.getAttribute('action') || location.href,
+                fields: [...f.querySelectorAll('input,select,textarea')].map(el => ({
+                    name: el.getAttribute('name') || el.getAttribute('id') || el.getAttribute('placeholder') || el.type || el.tagName.toLowerCase(),
+                    type: el.getAttribute('type') || el.tagName.toLowerCase(),
+                    required: !!el.required
+                })).slice(0, 18)
+            })).slice(0, 12);
+            const body = clean(document.body && document.body.innerText).slice(0, 4000);
+            return {url: location.href, title: document.title, headings, ctas, nav, forms, body};
+        }"""
+    )
+    text = " ".join(data.get(k, "") if isinstance(data.get(k), str) else " ".join(map(str, data.get(k, [])))
+                    for k in ("title", "headings", "ctas", "nav", "body")).lower()
+    signals = []
+    if any(w in text for w in ("cart", "checkout", "pricing", "order", "product")):
+        signals.append("commerce / revenue flow")
+    if any(w in text for w in ("dashboard", "campaign", "analytics", "report", "workspace")):
+        signals.append("SaaS dashboard / analytics")
+    if any(w in text for w in ("book", "schedule", "appointment", "reservation")):
+        signals.append("booking / scheduling")
+    if any(w in text for w in ("lead", "contact", "demo", "sales")):
+        signals.append("lead generation")
+    if any(w in text for w in ("login", "sign in", "sign up", "register")):
+        signals.append("account / authentication")
+    journeys = []
+    if "account / authentication" in signals:
+        journeys.extend(["login", "register", "password-reset"])
+    if "commerce / revenue flow" in signals:
+        journeys.extend(["browse product", "cart", "checkout", "payment"])
+    if "booking / scheduling" in signals:
+        journeys.extend(["select slot", "book", "confirmation"])
+    if "lead generation" in signals:
+        journeys.extend(["contact/demo request", "confirmation"])
+    if not journeys:
+        journeys = ["homepage comprehension", "navigation", "primary CTA", "form submission if present"]
+    return {
+        "url": data.get("url") or (resp.url if resp else url),
+        "status": resp.status if resp else None,
+        "title": data.get("title", ""),
+        "headings": data.get("headings", []),
+        "primary_ctas": data.get("ctas", [])[:12],
+        "navigation": data.get("nav", [])[:18],
+        "forms": data.get("forms", []),
+        "business_signals": signals or ["general website / public conversion flow"],
+        "recommended_journeys": journeys,
+    }
+
+
 async def emulate_persona(name: str) -> dict[str, Any]:
     """Reconfigure the browser to match a persona. Returns what was applied."""
     key = name.strip().lower()

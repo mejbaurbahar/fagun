@@ -143,6 +143,11 @@ DevTools MCP attach to the user's running Chrome, so logged-in sessions can be
 tested without asking for credentials. Fagun opens `chrome://inspect/#remote-debugging`;
 the user should enable remote debugging and click **Allow** when Chrome shows the
 permission modal.
+If the target is still logged out after Chrome attaches, Fagun should run
+`auth_status`: the user can log in manually in Chrome, or provide authorized test
+credentials for `login_with_credentials`. Passwords are masked in tool output, and
+the resulting session can be saved with `save_session` for later authenticated
+deep tests.
 Generated configs opt out of Chrome DevTools MCP usage statistics and update
 checks. On Windows, Fagun writes Codex's documented `cmd /c npx ...` shape plus a
 startup timeout automatically.
@@ -164,6 +169,11 @@ fagun deep test https://example.com
 Fagun should automatically use Chrome DevTools MCP when the AI client exposes it.
 Chrome may ask the user to click **Allow remote debugging**. Do not ask the user to
 run a separate Chrome-connect command unless troubleshooting.
+Expected first actions after the target opens: `product_map` to understand the
+business/user flows, `auth_status` to decide whether the current Chrome session is
+already logged in, then live clicks/fills/test data with console and network
+checks after each important action. Reports include an action timeline when a
+journey is run.
 
 Fallback: Fagun can launch its own Chromium. To attach to an already-running
 debuggable Chrome manually, set:

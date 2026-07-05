@@ -94,6 +94,25 @@ def test_write_report_picks_extension(tmp_path):
     assert p.read_text().lstrip().startswith("<!doctype html>")
 
 
+def test_reports_render_action_timeline():
+    results = [{
+        "url": "https://x.test",
+        "step_log": [
+            {"i": 0, "label": "open target", "ok": True, "detail": "loaded https://x.test", "ms": 120},
+            {"i": 1, "label": "fill email", "ok": True, "detail": "filled email", "console_errors": 0,
+             "network_failures": 1, "screenshot": "/tmp/shot.png"},
+        ],
+        "findings": [],
+    }]
+    md = report.build_report(results, fmt="md")
+    html = report.build_report(results, fmt="html")
+    assert "Action timeline" in md
+    assert "fill email" in md
+    assert "failed request" in md
+    assert "Action timeline" in html
+    assert "/tmp/shot.png" in html
+
+
 # --------------------------------------------------------------------- uat
 def test_personas_and_journeys_exist():
     names = {p["name"] for p in uat.list_personas()}
@@ -124,3 +143,4 @@ async def test_style_tools_are_registered():
     names = {t.name for t in tools}
     assert {"fagun_style_prompt", "fagun_style_schema", "fagun_render_response"} <= names
     assert {"fagun_security_prompt", "list_external_security_tools", "recommend_security_tools"} <= names
+    assert {"product_map", "auth_status", "login_with_credentials"} <= names

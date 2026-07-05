@@ -362,6 +362,8 @@ def test_fagun_skill_requires_auto_chrome_and_full_final_output():
     assert "Do not ask the user to\nrun `fagun connect to my Chrome`" in skill
     assert "Final output requirement" in skill
     assert "Every reproduced finding, not just the top three" in skill
+    assert "product_map(url)" in skill
+    assert "login_with_credentials" in skill
 
 
 def test_website_documents_auto_chrome_and_full_output():
@@ -383,6 +385,9 @@ def test_website_documents_auto_chrome_and_full_output():
     assert "Does the app pass?" in home
     assert "Full bug report" in home
     assert "Ship / monitor" in home
+    assert "product/business flow" in docs
+    assert "auth_status" in docs
+    assert "Action replay" in docs or "action replay" in docs
 
 
 def test_readme_and_install_docs_prefer_init_and_cover_pip():
@@ -398,6 +403,8 @@ def test_readme_and_install_docs_prefer_init_and_cover_pip():
     assert "pip install --upgrade fagun" in install_doc
     assert "uvx --upgrade --reinstall fagun init" in install_doc
     assert "uvx fagun setup" not in install_doc
+    assert "login_with_credentials" in readme
+    assert "product_map" in install_doc
 
 
 def test_package_version_bumped_for_release():
