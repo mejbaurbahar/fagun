@@ -60,6 +60,31 @@ def test_findings_block_caps():
     assert "+20 more" in out
 
 
+def test_findings_block_obeys_token_budget_env(monkeypatch):
+    monkeypatch.setenv("FAGUN_FINDING_CAP", "2")
+    monkeypatch.setenv("FAGUN_DETAIL_CHARS", "35")
+    findings = [{"severity": "low", "type": "t", "detail": "x" * 100} for _ in range(5)]
+    out = fmt.findings_block("https://example.test/path", findings)
+    assert out.count("\n") == 3  # header + 2 findings + overflow marker
+    assert "+3 more" in out
+    assert "x" * 80 not in out
+
+
+def test_render_multi_obeys_page_cap(monkeypatch):
+    monkeypatch.setenv("FAGUN_PAGE_CAP", "2")
+    results = [{"url": f"https://x.test/{i}", "ok": True, "findings": []} for i in range(5)]
+    out = fmt.render_multi(results, terse=True, header="H")
+    assert "+3 more pages" in out
+    assert "https://x.test/4" not in out
+
+
+def test_mini_mode_uses_lower_defaults(monkeypatch):
+    monkeypatch.setenv("FAGUN_TERSE", "mini")
+    assert fmt.finding_cap() == 12
+    assert fmt.page_cap() == 6
+    assert fmt.detail_chars() == 72
+
+
 def test_clip_and_dumps():
     assert fmt.clip("x" * 200, 10).endswith("…")
     assert fmt.dumps({"a": 1}) == '{"a":1}'

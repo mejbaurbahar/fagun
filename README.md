@@ -243,7 +243,20 @@ Set these as environment variables if you need them:
 | `FAGUN_HEADLESS` | `1` | Set to `0` to **watch** the browser work |
 | `FAGUN_BROWSER` | `chromium` | Use `firefox` or `webkit` instead |
 | `FAGUN_CDP_URL` | — | Attach to **your own** open Chrome, e.g. `http://127.0.0.1:9222` |
-| `FAGUN_TERSE` | `1` | Compact token-lean output. Set `0` for full JSON. |
+| `FAGUN_TERSE` | `1` | Compact token-lean output. Set `0` for full JSON or `mini` for extra-short summaries. |
+| `FAGUN_FINDING_CAP` | `40` | Max findings shown per page in chat output. Full report still goes to disk. |
+| `FAGUN_PAGE_CAP` | `12` | Max pages shown in multi-page chat summaries. |
+| `FAGUN_DETAIL_CHARS` | `100` | Max chars per finding detail in terse output. |
+| `FAGUN_URL_CHARS` | `60` | Max chars per URL in terse output. |
+
+For the lowest-token workflow, use:
+
+```bash
+FAGUN_TERSE=mini
+```
+
+Then ask: `deep test <url> and save the report to ./fagun-report.html`. The chat
+gets a tiny summary; the full evidence stays in the report file.
 
 ---
 

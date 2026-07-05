@@ -62,6 +62,11 @@ Keep guidance model-neutral and privacy-first.
   security + real vitals + keyboard + **readiness scorecard**. Report format follows
   the extension: `.md` / `.html` / `.json` / `.xml` (JUnit for CI).
 - Output is **terse by default**; pass `verbose=true` only when you need full JSON.
+- For long sessions or small-context models, set/use **`FAGUN_TERSE=mini`** and keep
+  chat summaries tiny. Full evidence should go to `report_path`.
+- Respect token budgets: `FAGUN_FINDING_CAP`, `FAGUN_PAGE_CAP`,
+  `FAGUN_DETAIL_CHARS`, and `FAGUN_URL_CHARS` cap chat output only; reports still
+  contain the full data.
 - Push big detail to `report_path` on disk, not into context. Don't re-fetch.
 
 ## Golden rules

@@ -179,6 +179,7 @@ section{scroll-margin-top:80px}
 <span style="color:#7fb0e8">/plugin</span> <span style="color:var(--muted)">install fagun@fagun</span>
       </div>
       <p style="color:var(--muted);font-size:13px;margin-top:14px">Env toggles: <code>FAGUN_TERSE=0</code> full JSON · <code>FAGUN_HEADLESS=0</code> show the browser · <code>FAGUN_BROWSER=firefox|webkit</code> · <code>FAGUN_CDP_URL</code> attach to your own Chrome · <code>FAGUN_SCOPE=host1,host2</code> restrict active probes to authorized hosts (<code>FAGUN_SCOPE_DENY</code> always wins).</p>
+      <p style="color:var(--muted);font-size:13px;margin-top:8px">Token controls: <code>FAGUN_TERSE=mini</code> extra-short summaries · <code>FAGUN_FINDING_CAP</code> findings per page · <code>FAGUN_PAGE_CAP</code> pages in chat · <code>FAGUN_DETAIL_CHARS</code> and <code>FAGUN_URL_CHARS</code> trim lines. Use <code>report_path</code> for full evidence on disk.</p>
     </section>
 
     <!-- TOOLS -->
@@ -212,7 +213,7 @@ section{scroll-margin-top:80px}
       <div class="card" style="padding:0;overflow-x:auto"><table>
         <tr><th>Tool</th><th>What it does</th></tr>
         <tr><td><code>crawl</code></td><td>Breadth-first map of the site (same host).</td></tr>
-        <tr><td><code>run_qa</code></td><td>Single-page sweep: console, network, WCAG a11y, SEO, load time.</td></tr>
+        <tr><td><code>run_qa</code></td><td>Single-page sweep: console, network, WCAG a11y, SEO, load time, visual overflow, clipped text, small targets, and blocking overlays.</td></tr>
         <tr><td><code>check_links</code></td><td>Probe every link; report 4xx / 5xx / unreachable.</td></tr>
         <tr><td><code>test_forms</code></td><td>Static form audit (security / validation / a11y) — no submit.</td></tr>
         <tr><td><code>fuzz_forms</code></td><td><b style="color:var(--text)">Active</b>: fills each field with the labelled test-data catalog, reads the browser's real validity verdict, flags gaps. <code>submit=true</code> opt-in.</td></tr>
