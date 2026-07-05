@@ -150,6 +150,95 @@ async def _seo_checks(page) -> list[dict[str, Any]]:
     return out
 
 
+async def _ux_render_checks(page) -> list[dict[str, Any]]:
+    """Rendered-page UX checks that catch issues static HTML misses."""
+    data = await page.evaluate(
+        """() => {
+            const viewportW = document.documentElement.clientWidth || window.innerWidth;
+            const viewportH = document.documentElement.clientHeight || window.innerHeight;
+            const bodyW = Math.max(
+                document.body ? document.body.scrollWidth : 0,
+                document.documentElement.scrollWidth || 0
+            );
+            const offscreen = [];
+            const clippedText = [];
+            const smallTargets = [];
+            const fixedCovering = [];
+            const visible = el => {
+                const st = getComputedStyle(el);
+                const r = el.getBoundingClientRect();
+                return st.visibility !== 'hidden' && st.display !== 'none' &&
+                    r.width > 0 && r.height > 0;
+            };
+            const label = el => {
+                const id = el.id ? '#' + el.id : '';
+                const cls = (el.className && typeof el.className === 'string')
+                    ? '.' + el.className.trim().split(/\\s+/).slice(0,2).join('.') : '';
+                return el.tagName.toLowerCase() + id + cls;
+            };
+
+            document.querySelectorAll('body *').forEach(el => {
+                if (!visible(el)) return;
+                const r = el.getBoundingClientRect();
+                if ((r.right > viewportW + 2 || r.left < -2) && offscreen.length < 5) {
+                    offscreen.push(label(el));
+                }
+                const st = getComputedStyle(el);
+                const text = (el.textContent || '').trim();
+                if (text && /(hidden|clip|scroll|auto)/.test(st.overflow + st.overflowX + st.overflowY)) {
+                    if ((el.scrollWidth > el.clientWidth + 2 || el.scrollHeight > el.clientHeight + 2) &&
+                        clippedText.length < 5) clippedText.push(label(el));
+                }
+                if (el.matches('a[href],button,input,select,textarea,[role="button"],[tabindex]')) {
+                    if ((r.width < 24 || r.height < 24) && smallTargets.length < 5) {
+                        smallTargets.push(label(el) + ` (${Math.round(r.width)}x${Math.round(r.height)})`);
+                    }
+                }
+                if ((st.position === 'fixed' || st.position === 'sticky') && r.width * r.height > viewportW * viewportH * 0.6) {
+                    fixedCovering.push(label(el));
+                }
+            });
+            return {
+                horizontalOverflow: bodyW > viewportW + 2 ? Math.round(bodyW - viewportW) : 0,
+                offscreen,
+                clippedText,
+                smallTargets,
+                fixedCovering: fixedCovering.slice(0, 5),
+            };
+        }"""
+    )
+    findings: list[dict[str, Any]] = []
+    if data.get("horizontalOverflow"):
+        findings.append({
+            "severity": "medium",
+            "type": "visual-overflow",
+            "detail": f"Page horizontally overflows viewport by {data['horizontalOverflow']} px",
+            "evidence": "e.g. " + "; ".join(data.get("offscreen", [])[:3]) if data.get("offscreen") else "",
+        })
+    if data.get("clippedText"):
+        findings.append({
+            "severity": "medium",
+            "type": "visual-clipped-text",
+            "detail": f"{len(data['clippedText'])} visible text container(s) appear clipped",
+            "evidence": "e.g. " + "; ".join(data["clippedText"][:3]),
+        })
+    if data.get("smallTargets"):
+        findings.append({
+            "severity": "low",
+            "type": "ux-small-target",
+            "detail": f"{len(data['smallTargets'])} interactive target(s) are smaller than 24px",
+            "evidence": "e.g. " + "; ".join(data["smallTargets"][:3]),
+        })
+    if data.get("fixedCovering"):
+        findings.append({
+            "severity": "medium",
+            "type": "ux-blocking-overlay",
+            "detail": "Large fixed/sticky element covers most of the viewport",
+            "evidence": "e.g. " + "; ".join(data["fixedCovering"][:3]),
+        })
+    return findings
+
+
 async def run_qa(url: str) -> dict[str, Any]:
     """Load one page and collect findings across several quality dimensions."""
     page = await manager.page()
@@ -216,6 +305,12 @@ async def run_qa(url: str) -> dict[str, Any]:
 
     # SEO signals.
     findings.extend(await _seo_checks(page))
+
+    # Rendered UX / responsive signals.
+    try:
+        findings.extend(await _ux_render_checks(page))
+    except Exception as e:
+        findings.append({"severity": "low", "type": "check-error", "detail": f"ux-render: {e}"})
 
     # Performance signal.
     if load_ms > 4000:

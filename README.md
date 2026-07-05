@@ -29,7 +29,8 @@ uvx fagun init
 
 That's the whole install. `fagun init` installs the Chrome engine **and** auto-detects
 every AI tool on your machine (Claude Code, Claude Desktop, Cursor, Codex, Windsurf)
-and registers the fagun browser tools **+** the `/fagun` skill in each one.
+and registers the fagun browser tools, **Chrome DevTools MCP**, **+** the `/fagun`
+skill in each one.
 
 Then restart your AI tool and type **`fagun`** — followed by what you want tested.
 
@@ -98,11 +99,17 @@ That's it. Restart your AI tool, type **`fagun`**, and go.
 
 ## 🔌 Connect it to your AI tool
 
-Every tool uses the **same** setting: run `uvx fagun`. Pick yours:
+Every tool gets two MCP servers:
+
+- **fagun** — UAT, bug hunting, security, a11y, forms, reports.
+- **chrome-devtools** — official Chrome DevTools MCP for live DevTools debugging,
+  console/network inspection, DOM/CSS inspection, and performance traces.
+
+`uvx fagun init` writes both automatically. Manual config:
 
 | Tool | How |
 |------|-----|
-| **Claude Code** | `claude mcp add fagun -- uvx fagun` |
+| **Claude Code** | `claude mcp add fagun -- uvx fagun` and `claude mcp add chrome-devtools -- npx -y chrome-devtools-mcp@latest` |
 | **Claude Desktop** | add the JSON below to `claude_desktop_config.json` |
 | **Cursor** | `uvx fagun install cursor` (writes `~/.cursor/mcp.json`) |
 | **VS Code (Copilot)** | `uvx fagun install vscode` (writes `.vscode/mcp.json`) |
@@ -111,7 +118,15 @@ Every tool uses the **same** setting: run `uvx fagun`. Pick yours:
 
 ```jsonc
 // Claude Desktop / Cursor / Windsurf / Cline / Antigravity
-{ "mcpServers": { "fagun": { "command": "uvx", "args": ["fagun"] } } }
+{
+  "mcpServers": {
+    "fagun": { "command": "uvx", "args": ["fagun"] },
+    "chrome-devtools": {
+      "command": "npx",
+      "args": ["-y", "chrome-devtools-mcp@latest"]
+    }
+  }
+}
 ```
 
 ```toml
@@ -119,7 +134,15 @@ Every tool uses the **same** setting: run `uvx fagun`. Pick yours:
 [mcp_servers.fagun]
 command = "uvx"
 args = ["fagun"]
+
+[mcp_servers.chrome-devtools]
+command = "npx"
+args = ["-y", "chrome-devtools-mcp@latest"]
 ```
+
+The `-y` flag prevents `npx` from asking the user to confirm package download.
+By default Chrome DevTools MCP launches its own dedicated Chrome profile, so no
+manual `chrome://inspect` setup is needed.
 
 **Restart the tool after adding it.** Then type `fagun`.
 

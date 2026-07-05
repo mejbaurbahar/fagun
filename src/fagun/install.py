@@ -14,11 +14,23 @@ import sys
 from pathlib import Path
 
 SERVER_BLOCK = {"command": "uvx", "args": ["fagun"]}
+CHROME_DEVTOOLS_BLOCK = {"command": "npx", "args": ["-y", "chrome-devtools-mcp@latest"]}
 
-CLAUDE = json.dumps({"mcpServers": {"fagun": SERVER_BLOCK}}, indent=2)
-CURSOR = json.dumps({"mcpServers": {"fagun": SERVER_BLOCK}}, indent=2)
-VSCODE = json.dumps({"servers": {"fagun": {"type": "stdio", **SERVER_BLOCK}}}, indent=2)
-CODEX = '[mcp_servers.fagun]\ncommand = "uvx"\nargs = ["fagun"]'
+CLAUDE = json.dumps({"mcpServers": {"fagun": SERVER_BLOCK, "chrome-devtools": CHROME_DEVTOOLS_BLOCK}}, indent=2)
+CURSOR = json.dumps({"mcpServers": {"fagun": SERVER_BLOCK, "chrome-devtools": CHROME_DEVTOOLS_BLOCK}}, indent=2)
+VSCODE = json.dumps({
+    "servers": {
+        "fagun": {"type": "stdio", **SERVER_BLOCK},
+        "chrome-devtools": {"type": "stdio", **CHROME_DEVTOOLS_BLOCK},
+    }
+}, indent=2)
+CODEX = """[mcp_servers.fagun]
+command = "uvx"
+args = ["fagun"]
+
+[mcp_servers.chrome-devtools]
+command = "npx"
+args = ["-y", "chrome-devtools-mcp@latest"]"""
 
 HELP = f"""🦊 Fagun install — add this MCP server to your AI tool, then say "fagun".
 
@@ -29,6 +41,7 @@ Prereqs (once) — no Python/pip needed, uv brings its own:
 
 ────────────────────────────────────────────────────────────────────
 Claude Code        →  run:  claude mcp add fagun -- uvx fagun
+                       claude mcp add chrome-devtools -- npx -y chrome-devtools-mcp@latest
 Claude Desktop     →  ~/Library/Application Support/Claude/claude_desktop_config.json
 Cursor             →  ~/.cursor/mcp.json   (or .cursor/mcp.json in project)
 Windsurf / Cline / Antigravity  →  their MCP settings, same JSON as Cursor
@@ -54,11 +67,21 @@ Codex CLI          →  ~/.codex/config.toml
   /plugin marketplace add mejbaurbahar/fagun
   /plugin install fagun@fagun
 ────────────────────────────────────────────────────────────────────
+Fagun also registers Chrome DevTools MCP automatically. It uses `npx -y
+chrome-devtools-mcp@latest`, so Chrome DevTools can launch its own dedicated
+Chrome profile without user-side chrome://inspect setup.
+
 After adding: restart the tool, then type  fagun  to start.
 """
 
 
-def _write_json_server(path: Path, key: str) -> None:
+def _server_block_for(key: str, name: str, block: dict) -> dict:
+    if key == "servers":
+        return {"type": "stdio", **block}
+    return block
+
+
+def _write_json_servers(path: Path, key: str, servers: dict[str, dict] | None = None) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     data = {}
     if path.exists():
@@ -68,23 +91,41 @@ def _write_json_server(path: Path, key: str) -> None:
             print(f"⚠️  {path} exists but is not valid JSON — skipped, add manually.")
             return
     data.setdefault(key, {})
-    if key == "servers":
-        data[key]["fagun"] = {"type": "stdio", **SERVER_BLOCK}
-    else:
-        data[key]["fagun"] = SERVER_BLOCK
+    for name, block in (servers or _default_servers()).items():
+        data[key][name] = _server_block_for(key, name, block)
     path.write_text(json.dumps(data, indent=2))
-    print(f"✅ wrote fagun to {path}")
+    print(f"✅ wrote fagun + Chrome DevTools MCP to {path}")
+
+
+def _write_json_server(path: Path, key: str) -> None:
+    _write_json_servers(path, key)
+
+
+def _default_servers() -> dict[str, dict]:
+    return {"fagun": SERVER_BLOCK, "chrome-devtools": CHROME_DEVTOOLS_BLOCK}
 
 
 def _write_codex(path: Path) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    block = '\n[mcp_servers.fagun]\ncommand = "uvx"\nargs = ["fagun"]\n'
+    blocks = {
+        "fagun": '\n[mcp_servers.fagun]\ncommand = "uvx"\nargs = ["fagun"]\n',
+        "chrome-devtools": (
+            '\n[mcp_servers.chrome-devtools]\n'
+            'command = "npx"\n'
+            'args = ["-y", "chrome-devtools-mcp@latest"]\n'
+        ),
+    }
     existing = path.read_text(encoding="utf-8") if path.exists() else ""
-    if "[mcp_servers.fagun]" in existing:
-        print(f"✅ fagun already in {path}")
-        return
-    path.write_text(existing + block, encoding="utf-8")
-    print(f"✅ wrote fagun to {path}")
+    changed = False
+    for name, block in blocks.items():
+        if f"[mcp_servers.{name}]" not in existing:
+            existing += block
+            changed = True
+    if changed:
+        path.write_text(existing, encoding="utf-8")
+        print(f"✅ wrote fagun + Chrome DevTools MCP to {path}")
+    else:
+        print(f"✅ fagun + Chrome DevTools MCP already in {path}")
 
 
 def init() -> None:
@@ -105,6 +146,11 @@ def init() -> None:
         print("  ✅ browser ready")
     except Exception as e:
         print(f"  ⚠️  browser install failed: {e}")
+
+    if shutil.which("npx"):
+        print("• Chrome DevTools MCP ready via npx -y chrome-devtools-mcp@latest")
+    else:
+        print("• Chrome DevTools MCP needs Node.js/npx on PATH — install Node.js, then rerun `uvx fagun init`")
 
     wired = []
     skilled: set = set()  # dirs we've already dropped the skill into (avoid dupes)
@@ -127,6 +173,7 @@ def init() -> None:
     if shutil.which("claude"):
         def _cc():
             _install_claude_code()
+            _install_claude_code_chrome_devtools()
             skill_once(home / ".claude" / "skills")
         step("Claude Code", _cc)
 
@@ -202,7 +249,10 @@ def run_cli(argv: list[str]) -> None:
         _write_json_server(Path.cwd() / ".vscode" / "mcp.json", "servers")
     elif target in ("claude-code", "cc"):
         _install_claude_code()
+        _install_claude_code_chrome_devtools()
         _install_skill(home / ".claude" / "skills")
+    elif target in ("chrome", "chrome-devtools"):
+        _install_chrome_devtools_only()
     elif target == "skill":
         _install_skill(home / ".claude" / "skills")
     else:
@@ -258,6 +308,65 @@ def _install_claude_code() -> None:
             print(f"• Claude Code: {(r.stderr or r.stdout).strip()[:100] or 'skipped'} (run `claude mcp list` to check)")
     except Exception as e:
         print(f"• Claude Code register skipped ({type(e).__name__}). Run: claude mcp add fagun --scope user -- uvx fagun")
+
+
+def _run_cli_mcp_add(cli_name: str, server_name: str, command: list[str]) -> None:
+    import shutil
+    import subprocess
+
+    cli = shutil.which(cli_name)
+    if not cli:
+        print(f"• {cli_name} CLI not found — skipped {server_name}")
+        return
+    args = [cli, "mcp", "add", server_name, "--scope", "user", "--", *command]
+    win = sys.platform.startswith("win")
+    r = subprocess.run(
+        subprocess.list2cmdline(args) if win else args,
+        capture_output=True,
+        text=True,
+        shell=win,
+    )
+    blob = ((r.stdout or "") + (r.stderr or "")).lower()
+    if r.returncode == 0:
+        print(f"✅ registered {server_name} in {cli_name} (user scope)")
+    elif "already exists" in blob or "already" in blob:
+        print(f"✅ {server_name} already registered in {cli_name}")
+    else:
+        detail = (r.stderr or r.stdout).strip()[:120] or "skipped"
+        print(f"• {cli_name}: {detail} (run `{cli_name} mcp list` to check)")
+
+
+def _install_claude_code_chrome_devtools() -> None:
+    """Register Chrome DevTools MCP in Claude Code with zero install prompts."""
+    _run_cli_mcp_add("claude", "chrome-devtools", ["npx", "-y", "chrome-devtools-mcp@latest"])
+
+
+def _install_chrome_devtools_only() -> None:
+    """Install only Chrome DevTools MCP into detected JSON/TOML MCP configs."""
+    home = Path.home()
+    if (home / ".cursor").exists() or _app_exists("Cursor"):
+        _write_json_servers(
+            home / ".cursor" / "mcp.json",
+            "mcpServers",
+            {"chrome-devtools": CHROME_DEVTOOLS_BLOCK},
+        )
+    cd = _claude_desktop_config_path()
+    if cd.parent.exists() or _app_exists("Claude"):
+        _write_json_servers(cd, "mcpServers", {"chrome-devtools": CHROME_DEVTOOLS_BLOCK})
+    if (home / ".codex").exists():
+        path = home / ".codex" / "config.toml"
+        existing = path.read_text(encoding="utf-8") if path.exists() else ""
+        if "[mcp_servers.chrome-devtools]" not in existing:
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(
+                existing
+                + '\n[mcp_servers.chrome-devtools]\n'
+                  'command = "npx"\n'
+                  'args = ["-y", "chrome-devtools-mcp@latest"]\n',
+                encoding="utf-8",
+            )
+            print(f"✅ wrote Chrome DevTools MCP to {path}")
+    _install_claude_code_chrome_devtools()
 
 
 def _claude_desktop_config_path() -> Path:

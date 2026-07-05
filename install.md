@@ -6,8 +6,9 @@ If any step fails, read the "Troubleshooting" section and retry.
 
 ## Fastest path (try this first)
 
-The entire setup is ONE command — installs the browser engine and registers fagun
-into every AI tool it detects (Claude Code, Cursor, Claude Desktop, Codex, Windsurf):
+The entire setup is ONE command — installs the browser engine and registers Fagun
+plus Chrome DevTools MCP into every AI tool it detects (Claude Code, Cursor,
+Claude Desktop, Codex, Windsurf):
 
 ```bash
 uvx fagun init
@@ -62,27 +63,59 @@ uvx fagun setup
 (Optional — Fagun also auto-installs Chromium the first time it opens a browser,
 so this step just makes the first launch instant.)
 
-## Step 4 — register Fagun as an MCP server (pick the user's tool)
+## Step 4 — register Fagun + Chrome DevTools MCP (pick the user's tool)
 
-The config is identical everywhere: **command `uvx`, args `["fagun"]`**.
+Fagun writes this automatically with `uvx fagun init`. Manual config uses:
+- Fagun: **command `uvx`, args `["fagun"]`**
+- Chrome DevTools MCP: **command `npx`, args `["-y", "chrome-devtools-mcp@latest"]`**
 
-- **Claude Code:** `claude mcp add fagun -- uvx fagun`
+- **Claude Code:**
+  ```bash
+  claude mcp add fagun -- uvx fagun
+  claude mcp add chrome-devtools -- npx -y chrome-devtools-mcp@latest
+  ```
 - **Cursor / Windsurf / Cline / Antigravity** — `~/.cursor/mcp.json` (or equivalent):
   ```json
-  { "mcpServers": { "fagun": { "command": "uvx", "args": ["fagun"] } } }
+  {
+    "mcpServers": {
+      "fagun": { "command": "uvx", "args": ["fagun"] },
+      "chrome-devtools": {
+        "command": "npx",
+        "args": ["-y", "chrome-devtools-mcp@latest"]
+      }
+    }
+  }
   ```
 - **VS Code (Copilot MCP)** — `.vscode/mcp.json`:
   ```json
-  { "servers": { "fagun": { "type": "stdio", "command": "uvx", "args": ["fagun"] } } }
+  {
+    "servers": {
+      "fagun": { "type": "stdio", "command": "uvx", "args": ["fagun"] },
+      "chrome-devtools": {
+        "type": "stdio",
+        "command": "npx",
+        "args": ["-y", "chrome-devtools-mcp@latest"]
+      }
+    }
+  }
   ```
 - **Codex CLI** — `~/.codex/config.toml`:
   ```toml
   [mcp_servers.fagun]
   command = "uvx"
   args = ["fagun"]
+
+  [mcp_servers.chrome-devtools]
+  command = "npx"
+  args = ["-y", "chrome-devtools-mcp@latest"]
   ```
 
 Shortcut — let Fagun write the file: `uvx fagun install cursor` (or `claude`, `vscode`).
+For Chrome DevTools only: `uvx fagun install chrome-devtools`.
+
+The `-y` flag prevents an `npx` confirmation prompt. Chrome DevTools MCP launches
+its own dedicated Chrome profile by default, so the user does not need to open
+`chrome://inspect` or manually enable remote debugging.
 
 ## Step 5 — register the skill
 

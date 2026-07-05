@@ -127,6 +127,39 @@ def test_ssti_expectations_are_49():
         assert "7*7" in payload
 
 
+def test_advanced_scan_skips_dom_checks_after_load_failure():
+    import asyncio
+    from unittest.mock import AsyncMock, patch
+
+    from fagun import advsec
+
+    class _Page:
+        request = object()
+
+        async def goto(self, *a, **k):
+            raise RuntimeError("no document")
+
+    async def _no_findings(url):
+        return []
+
+    with patch.object(advsec.manager, "page", new_callable=AsyncMock, return_value=_Page()):
+        with patch.object(advsec, "check_csp", _no_findings), \
+             patch.object(advsec, "check_clickjacking", _no_findings), \
+             patch.object(advsec, "check_http_methods", _no_findings), \
+             patch.object(advsec, "check_cache", _no_findings), \
+             patch.object(advsec, "check_host_header", _no_findings), \
+             patch.object(advsec, "check_crlf", _no_findings), \
+             patch.object(advsec, "check_path_traversal", _no_findings), \
+             patch.object(advsec, "check_ssti", _no_findings), \
+             patch.object(advsec, "check_cmdi", _no_findings), \
+             patch.object(advsec, "check_graphql", _no_findings), \
+             patch.object(advsec, "check_error_disclosure", _no_findings), \
+             patch.object(advsec, "check_sensitive_url", _no_findings):
+            r = asyncio.run(advsec.advanced_scan("https://x.test"))
+
+    assert any(f["type"] == "scan-warning" for f in r["findings"])
+
+
 # --------------------------------------------------------------------- scope
 def test_scope_allows_all_by_default(monkeypatch):
     from fagun import scope
@@ -194,6 +227,16 @@ def test_sitemap_and_robots_regexes():
     assert _LOC_RE.findall(xml) == ["https://x.test/a", "https://x.test/b"]
     robots = "User-agent: *\nDisallow: /admin\nSitemap: https://x.test/sitemap.xml\n"
     assert _SITEMAP_RE.findall(robots) == ["https://x.test/sitemap.xml"]
+
+
+def test_pytest_import_path_is_configured():
+    import tomllib
+    from pathlib import Path
+
+    pyproject = tomllib.loads(Path("pyproject.toml").read_text())
+    opts = pyproject["tool"]["pytest"]["ini_options"]
+    assert "src" in opts["pythonpath"]
+    assert "--strict-config" in opts["addopts"]
 
 
 # ------------------------------------------------------------------- sessions

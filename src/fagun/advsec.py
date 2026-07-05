@@ -407,10 +407,11 @@ async def advanced_scan(url: str) -> dict[str, Any]:
     DOM-reading probes serially on that page, then runs the request-context
     probes concurrently. No page-context read ever overlaps a navigation."""
     page = await manager.page()
+    page_loaded = True
     try:
         await page.goto(url, wait_until="load", timeout=30000)
     except Exception:
-        pass
+        page_loaded = False
 
     async def _run(name, fn):
         try:
@@ -420,9 +421,17 @@ async def advanced_scan(url: str) -> dict[str, Any]:
                      "detail": f"{name}: {e}", "evidence": "probe raised"}]
 
     findings: list[dict[str, Any]] = []
-    for name, fn in _CHECKS:
-        if name in _DOM_CHECKS:
-            findings += await _run(name, fn)
+    if page_loaded:
+        for name, fn in _CHECKS:
+            if name in _DOM_CHECKS:
+                findings += await _run(name, fn)
+    else:
+        findings.append({
+            "severity": "low",
+            "type": "scan-warning",
+            "detail": "DOM security checks skipped because the page did not load",
+            "evidence": "mixed-content and SRI require a loaded document",
+        })
     groups = await asyncio.gather(
         *(_run(name, fn) for name, fn in _CHECKS if name not in _DOM_CHECKS)
     )

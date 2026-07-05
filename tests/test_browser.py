@@ -59,6 +59,9 @@ async def test_run_qa_returns_ok_with_findings():
     assert isinstance(r["findings"], list)
     # a11y findings are folded into run_qa
     assert any(f["type"].startswith("a11y-") for f in r["findings"])
+    assert any(f["type"] == "visual-overflow" for f in r["findings"])
+    assert any(f["type"] == "visual-clipped-text" for f in r["findings"])
+    assert any(f["type"] == "ux-small-target" for f in r["findings"])
 
 
 async def test_test_forms_flags_insecure_get_password():

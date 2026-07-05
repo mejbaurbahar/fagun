@@ -6,6 +6,9 @@
   <style>
     .low { color: #bbb; background: #ccc; }  /* low contrast on purpose */
     body { background: #fff; }
+    .wide { width: 150vw; height: 1px; }
+    .clipped { width: 40px; height: 16px; overflow: hidden; white-space: nowrap; }
+    .tiny { width: 10px; height: 10px; padding: 0; }
   </style>
 </head>
 <body>
@@ -21,6 +24,9 @@
   <button></button>
   <a href="https://example.com" target="_blank">external</a>
   <span tabindex="5">focus trap</span>
+  <div class="wide"></div>
+  <p class="clipped">This text is intentionally clipped.</p>
+  <button class="tiny" aria-label="tiny target"></button>
 
   <form method="get" action="http://insecure.example/login">
     <input type="text" name="username">
