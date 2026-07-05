@@ -115,3 +115,11 @@ def test_action_aliases_normalize():
     assert uat._ACTION_ALIASES["visit"] == "goto"
     assert uat._ACTION_ALIASES["tap"] == "click"
     assert uat._ACTION_ALIASES["expect_text"] == "assert_text"
+
+
+async def test_style_tools_are_registered():
+    from fagun.server import mcp
+
+    tools = await mcp.list_tools()
+    names = {t.name for t in tools}
+    assert {"fagun_style_prompt", "fagun_style_schema", "fagun_render_response"} <= names

@@ -22,6 +22,7 @@ from . import healing
 from . import readiness as _readiness
 from . import scope as _scope
 from . import session as _session
+from . import style as _style
 from . import testdata as _testdata
 from . import uat as _uat
 from .a11y import audit as _a11y_audit
@@ -100,6 +101,12 @@ without sharing passwords with the AI.
 Use `report_path` for full evidence on disk. Chat stays compact by default.
 Set `FAGUN_TERSE=mini` for extra-short summaries in small-context models.
 
+**Fagun Style**
+For any AI/model, call `fagun_style_prompt` once and use it as the response
+contract. For apps/wrappers, call `fagun_style_schema` and render structured JSON
+as cards/panels. Use `fagun_render_response` to convert JSON/plain output into
+the same Fagun layout.
+
 Tell me a URL to start. Example:
 `fagun deep test https://example.com and save the report to ./report.html`
 """
@@ -115,6 +122,29 @@ def fagun() -> str:
 def fagun_start() -> str:
     """Start Fagun and list its capabilities. Call this when the user says 'fagun'."""
     return MENU
+
+
+@mcp.tool()
+def fagun_style_prompt(mode: str = "markdown") -> str:
+    """Return Fagun's reusable response-style instruction for any AI model.
+
+    Use mode="markdown" for chat/custom instructions, or mode="json" when a
+    wrapper/frontend wants structured output to render as custom cards.
+    """
+    return _style.style_prompt(mode)
+
+
+@mcp.tool()
+def fagun_style_schema() -> str:
+    """Return the JSON schema for Fagun-style structured responses."""
+    return _style.schema_json()
+
+
+@mcp.tool()
+def fagun_render_response(response_json_or_text: str, title: str = "Fagun Response") -> str:
+    """Render JSON/plain text into Fagun's consistent Markdown panel style."""
+    payload = _style.coerce_payload(response_json_or_text, title=title)
+    return _style.render_response(payload, title=payload.get("_title", title))
 
 
 # ---------------------------------------------------------------- browser tools

@@ -7,6 +7,7 @@ import re
 import pytest
 
 from fagun import format as fmt
+from fagun import style
 from fagun import testdata
 from fagun.report import build_markdown
 
@@ -88,6 +89,39 @@ def test_mini_mode_uses_lower_defaults(monkeypatch):
 def test_clip_and_dumps():
     assert fmt.clip("x" * 200, 10).endswith("…")
     assert fmt.dumps({"a": 1}) == '{"a":1}'
+
+
+# ---------------------------------------------------------------------- style
+def test_style_prompt_and_schema_are_model_agnostic():
+    prompt = style.style_prompt("json")
+    schema = style.schema_json()
+    parsed = __import__("json").loads(schema)
+    assert "Fagun Style" in prompt
+    assert "valid JSON" in prompt
+    assert "summary" in parsed["required"]
+    assert "test_cases" in parsed["properties"]
+
+
+def test_render_response_outputs_fagun_sections():
+    out = style.render_response({
+        "summary": ["Fixed login validation"],
+        "problem": "Users could submit blank email.",
+        "solution": ["Require email before submit."],
+        "test_cases": [{"name": "blank email", "type": "negative", "expected": "button stays disabled"}],
+        "risks": ["Legacy browser validation differences."],
+        "final_recommendation": "Ship after regression test passes.",
+    }, title="Fagun Test")
+    assert "# Fagun Test" in out
+    assert "## Executive Summary" in out
+    assert "## Test Cases" in out
+    assert "`negative` blank email" in out
+    assert "Ship after regression" in out
+
+
+def test_coerce_payload_accepts_plain_text():
+    payload = style.coerce_payload("plain answer")
+    assert payload["summary"] == ["plain answer"]
+    assert payload["final_recommendation"]
 
 
 def test_render_multi_totals():

@@ -61,6 +61,32 @@ rules), and crucially **the customer** (UX, clarity, trust, delight).
 works in ANY MCP client incl. local open-source (Ollama Qwen/DeepSeek/Llama/Mistral).
 Keep guidance model-neutral and privacy-first.
 
+## Fagun Style — always format answers consistently
+For any user-facing answer, use Fagun Style unless the user explicitly asks for a
+different format. This makes Claude, Codex, Cursor, Gemini, Qwen, DeepSeek, and
+local models feel consistent.
+
+Default section order:
+1. Executive Summary
+2. Problem
+3. Analysis
+4. Solution
+5. Implementation
+6. Test Cases
+7. Edge Cases
+8. Risks
+9. Production Impact
+10. API Validation
+11. Performance
+12. Jira Ticket, only for bugs/tasks
+13. Final Recommendation
+
+Keep sections concise and skip only sections that truly do not apply. For wrappers
+or custom frontends, call `fagun_style_schema` to get the JSON contract and render
+cards/panels from that structure. For chat/custom instructions, call
+`fagun_style_prompt`. To convert any model's plain output into the style, call
+`fagun_render_response`.
+
 ## Token discipline
 - Prefer **`deep_test(url, report_path=...)`** — one call = crawl + QA + forms +
   security + real vitals + keyboard + **readiness scorecard**. Report format follows
@@ -287,6 +313,7 @@ hypothesis as confirmed.
 **Auth sessions:** `save_session` · `load_session` · `list_sessions` · `delete_session`
 **Browser:** `fagun_start` · `open_browser` · `navigate` · `click` · `fill` ·
 `press_key` · `screenshot` · `evaluate_js` · `get_console` · `get_network` · `close_browser`
+**Fagun Style:** `fagun_style_prompt` · `fagun_style_schema` · `fagun_render_response`
 **Power:** `browser_exec` · `save_helper` · `list_helpers` · `load_helper` · `connect_chrome`
 
 When done, always `close_browser`.

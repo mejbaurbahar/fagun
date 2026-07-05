@@ -63,7 +63,7 @@ section{scroll-margin-top:80px}
     One MCP server that gives <b style="color:var(--text)">any</b> AI tool a real browser to use your product like real customers do — as multiple personas, across whole user journeys — run full <b style="color:var(--text)">UAT</b>, hunt <b style="color:var(--text)">real</b> bugs (functional, security, performance, accessibility, SEO), and return a <b style="color:var(--text)">product-readiness verdict</b>. Every finding is backed by evidence. Nothing is faked; if it can't be reproduced, it isn't reported.
   </p>
   <div style="display:flex;gap:20px;flex-wrap:wrap;margin-top:24px">
-    <span class="tag">42 MCP tools</span><span class="tag">11 end-user personas</span><span class="tag">User-journey runner</span><span class="tag">16-category readiness scorecard</span><span class="tag">WCAG 2.1 a11y</span><span class="tag">Real Core Web Vitals</span><span class="tag">20+ security classes</span><span class="tag">Authenticated testing</span><span class="tag">Works with local models</span>
+    <span class="tag">45+ MCP tools</span><span class="tag">11 end-user personas</span><span class="tag">User-journey runner</span><span class="tag">16-category readiness scorecard</span><span class="tag">WCAG 2.1 a11y</span><span class="tag">Real Core Web Vitals</span><span class="tag">20+ security classes</span><span class="tag">Authenticated testing</span><span class="tag">Works with local models</span>
   </div>
 </section>
 
@@ -180,11 +180,12 @@ section{scroll-margin-top:80px}
       </div>
       <p style="color:var(--muted);font-size:13px;margin-top:14px">Env toggles: <code>FAGUN_TERSE=0</code> full JSON · <code>FAGUN_HEADLESS=0</code> show the browser · <code>FAGUN_BROWSER=firefox|webkit</code> · <code>FAGUN_CDP_URL</code> attach to your own Chrome · <code>FAGUN_SCOPE=host1,host2</code> restrict active probes to authorized hosts (<code>FAGUN_SCOPE_DENY</code> always wins).</p>
       <p style="color:var(--muted);font-size:13px;margin-top:8px">Token controls: <code>FAGUN_TERSE=mini</code> extra-short summaries · <code>FAGUN_FINDING_CAP</code> findings per page · <code>FAGUN_PAGE_CAP</code> pages in chat · <code>FAGUN_DETAIL_CHARS</code> and <code>FAGUN_URL_CHARS</code> trim lines. Use <code>report_path</code> for full evidence on disk.</p>
+      <p style="color:var(--muted);font-size:13px;margin-top:8px">Style controls: <code>fagun_style_prompt</code> gives any model the Fagun response format · <code>fagun_style_schema</code> returns the JSON contract for custom renderers · <code>fagun_render_response</code> converts JSON/plain output into Fagun-style Markdown.</p>
     </section>
 
     <!-- TOOLS -->
     <section id="tools">
-      <p class="pill">All 42 MCP tools</p>
+      <p class="pill">All MCP tools</p>
       <h2 style="margin:0 0 20px;font-size:clamp(1.7rem,3.4vw,2.5rem)">Everything it can do.</h2>
 
       <h3 style="font-size:16px;color:var(--gold);margin:0 0 8px">UAT &amp; end-user simulation</h3>
@@ -207,6 +208,14 @@ section{scroll-margin-top:80px}
         <tr><td><code>evaluate_js</code></td><td>Run JS in the page, get JSON back.</td></tr>
         <tr><td><code>get_console</code> · <code>get_network</code></td><td>Captured console messages / requests (errors &amp; 4xx-5xx only, if asked).</td></tr>
         <tr><td><code>close_browser</code></td><td>Close and free resources.</td></tr>
+      </table></div>
+
+      <h3 style="font-size:16px;color:var(--gold);margin:26px 0 8px">Fagun Style</h3>
+      <div class="card" style="padding:0;overflow-x:auto"><table>
+        <tr><th>Tool</th><th>What it does</th></tr>
+        <tr><td><code>fagun_style_prompt</code></td><td>Reusable instruction block so any AI model answers in the same Fagun section layout.</td></tr>
+        <tr><td><code>fagun_style_schema</code></td><td>JSON response contract for custom frontends that render cards, panels, reports, Jira tickets, and test-case views.</td></tr>
+        <tr><td><code>fagun_render_response</code></td><td>Post-process JSON or plain text into Fagun-style Markdown.</td></tr>
       </table></div>
 
       <h3 style="font-size:16px;color:var(--gold);margin:26px 0 8px">QA &amp; bug hunting</h3>

@@ -261,6 +261,20 @@ FAGUN_TERSE=mini
 Then ask: `deep test <url> and save the report to ./fagun-report.html`. The chat
 gets a tiny summary; the full evidence stays in the report file.
 
+## 🎨 Fagun Style (same output across models)
+
+Fagun ships a reusable response contract so Claude, Codex, Cursor, Gemini, Qwen,
+DeepSeek, or a custom wrapper can show results in the same style:
+
+- `fagun_style_prompt` — copy into system/custom instructions for Markdown output.
+- `fagun_style_prompt(mode="json")` — tells the model to return structured JSON.
+- `fagun_style_schema` — JSON schema for a frontend renderer with cards/panels.
+- `fagun_render_response` — converts JSON or plain text into Fagun-style Markdown.
+
+Default sections: Executive Summary, Problem, Analysis, Solution, Implementation,
+Test Cases, Edge Cases, Risks, Production Impact, API Validation, Performance,
+Jira Ticket, and Final Recommendation.
+
 ---
 
 ## 🔐 Security scanning (authorized targets only)
