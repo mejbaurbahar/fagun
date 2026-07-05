@@ -20,6 +20,8 @@ body{background:#0d0b16}
 @keyframes fgBolt{0%,12%,100%{opacity:0}3%,7%{opacity:1}5%{opacity:.25}}
 @keyframes fgSkyFlash{0%,84%,100%{opacity:0}86%,90%{opacity:.16}88%{opacity:.04}}
 @keyframes fgFlowPulse{0%,100%{box-shadow:0 0 0 rgba(232,176,75,0);border-color:rgba(243,238,230,.12)}50%{box-shadow:0 0 34px -18px rgba(232,176,75,.85);border-color:rgba(232,176,75,.5)}}
+@keyframes fgBeam{to{stroke-dashoffset:-44}}
+@keyframes fgOrbit{0%,100%{transform:translateY(0);opacity:.55}50%{transform:translateY(-5px);opacity:1}}
 @keyframes fgFlowDash{to{stroke-dashoffset:-34}}
 .fg-bigeye{transform-origin:center;animation:fgBlink 5.5s ease-in-out infinite}
 .fg-ghpill:hover{border-color:rgba(232,176,75,.55)!important;background:rgba(255,255,255,.07)!important}
@@ -30,13 +32,20 @@ body{background:#0d0b16}
 .fg-flow-node{animation:fgFlowPulse 5.2s ease-in-out infinite}
 .fg-flow-node:nth-child(2){animation-delay:.4s}.fg-flow-node:nth-child(3){animation-delay:.8s}.fg-flow-node:nth-child(4){animation-delay:1.2s}.fg-flow-node:nth-child(5){animation-delay:1.6s}.fg-flow-node:nth-child(6){animation-delay:2s}
 .fg-flow-line{stroke-dasharray:8 10;animation:fgFlowDash 2.8s linear infinite}
-.fg-wf-card{position:absolute;background:#171717;border:1px solid rgba(255,255,255,.13);border-radius:5px;padding:16px 18px;box-shadow:0 18px 45px -30px rgba(0,0,0,.9);animation:fgFlowPulse 6s ease-in-out infinite}
-.fg-wf-pill{position:absolute;display:inline-flex;align-items:center;gap:6px;background:#2b2b2b;border:1px solid rgba(255,255,255,.08);border-radius:999px;padding:4px 10px;font-size:12px;font-weight:600;color:#ececec;white-space:nowrap;z-index:3}
-.fg-wf-label{position:absolute;display:inline-flex;align-items:center;gap:6px;background:#303030;border-radius:999px;padding:4px 10px;font-size:12px;color:#f0f0f0;white-space:nowrap;z-index:3}
-.fg-wf-card h3{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;letter-spacing:0;margin:0 0 18px;font-size:14px;font-weight:600;color:#fff}
-.fg-wf-card p{margin:0;color:#f4f4f4;font-size:14px}.fg-wf-card small{display:block;margin-top:10px;color:#8e8e8e;font-size:12px}
-.fg-wf-svg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}.fg-wf-svg path,.fg-wf-svg line{stroke:#686868;stroke-width:2;fill:none}.fg-wf-dot{fill:#777}
-@media (max-width:760px){.fg-wf-scroll{overflow-x:auto;padding-bottom:8px}.fg-wf-canvas{width:760px!important;min-width:760px!important}}
+.fg-wf-shell{position:relative;background:#050507;border:1px solid rgba(232,176,75,.2);border-radius:22px;padding:28px;box-shadow:0 28px 90px -42px rgba(0,0,0,.95),inset 0 1px 0 rgba(255,255,255,.05);overflow:hidden}
+.fg-wf-shell:before{content:"";position:absolute;inset:0;background:linear-gradient(rgba(255,255,255,.035) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.035) 1px,transparent 1px);background-size:42px 42px;opacity:.42;pointer-events:none}
+.fg-wf-shell:after{content:"";position:absolute;inset:-20%;background:radial-gradient(48% 38% at 50% 20%,rgba(232,176,75,.2),transparent 68%),radial-gradient(34% 28% at 80% 82%,rgba(34,197,94,.13),transparent 72%);pointer-events:none}
+.fg-wf-canvas{position:relative;width:100%;height:930px;min-width:790px;margin:0 auto;z-index:1}
+.fg-wf-card{position:absolute;background:linear-gradient(180deg,rgba(31,31,34,.96),rgba(18,18,20,.96));border:1px solid rgba(255,255,255,.13);border-radius:10px;padding:16px 18px;box-shadow:0 24px 70px -36px rgba(0,0,0,.95),inset 0 1px 0 rgba(255,255,255,.05);animation:fgFlowPulse 7s ease-in-out infinite}
+.fg-wf-card strong{display:flex;align-items:center;gap:9px;margin:0 0 13px;font-size:14px;font-weight:650;color:#fff;letter-spacing:0}
+.fg-wf-card p{margin:0;color:#f4f4f4;font-size:14px;line-height:1.45}.fg-wf-card small{display:block;margin-top:8px;color:#9b9b9b;font-size:12px;line-height:1.45}
+.fg-wf-no{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:7px;background:rgba(232,176,75,.14);border:1px solid rgba(232,176,75,.36);color:#f0c877;font-size:11px;font-weight:800}
+.fg-wf-chip{display:inline-flex;align-items:center;gap:6px;border:1px solid rgba(255,255,255,.1);background:#2b2b2e;border-radius:999px;padding:5px 10px;font-size:12px;font-weight:650;color:#ededed;white-space:nowrap}
+.fg-wf-chips{position:absolute;left:50%;top:456px;transform:translateX(-50%);display:flex;flex-wrap:wrap;justify-content:center;gap:8px;width:560px;z-index:3}
+.fg-wf-pill{position:absolute;display:inline-flex;align-items:center;gap:7px;background:#2b2b2e;border:1px solid rgba(255,255,255,.1);border-radius:999px;padding:5px 11px;font-size:12px;font-weight:650;color:#ececec;white-space:nowrap;z-index:3}
+.fg-wf-label{position:absolute;display:inline-flex;align-items:center;gap:7px;background:#303033;border:1px solid rgba(255,255,255,.08);border-radius:999px;padding:5px 11px;font-size:12px;font-weight:650;color:#f0f0f0;white-space:nowrap;z-index:3}
+.fg-wf-svg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}.fg-wf-svg path,.fg-wf-svg line{stroke:#747474;stroke-width:2;fill:none}.fg-wf-svg .beam{stroke:#E8B04B;stroke-dasharray:11 12;animation:fgBeam 3.5s linear infinite;filter:drop-shadow(0 0 8px rgba(232,176,75,.4))}.fg-wf-dot{fill:#858585}.fg-wf-pulse{animation:fgOrbit 4s ease-in-out infinite}
+@media (max-width:760px){.fg-wf-shell{overflow-x:auto;padding:20px}.fg-wf-canvas{width:790px!important;min-width:790px!important}}
 @media (prefers-reduced-motion:reduce){.fg-anim{animation:none !important;opacity:1 !important;transform:none !important}.fg-scan{display:none !important}.fg-eye{animation:none !important;opacity:.8 !important}.fg-bigeye,.fg-bigfox,.fg-bolt,.fg-skyflash,.fg-flow-node,.fg-flow-line{animation:none !important}.fg-skyflash,.fg-bolt{display:none !important}}
 </style>
 </head>
@@ -171,44 +180,47 @@ body{background:#0d0b16}
     <p style="margin:0 0 12px;font-size:12px;font-weight:600;letter-spacing:.2em;color:var(--gold);text-transform:uppercase">Full workflow</p>
     <h2 style="margin:0 0 14px;font-family:Didot,'Bodoni MT','Playfair Display',Georgia,serif;font-weight:500;font-size:clamp(1.9rem,3.6vw,2.9rem);line-height:1.08;letter-spacing:-.01em;max-width:720px">From install to full readiness report.</h2>
     <p style="margin:0 0 30px;font-size:15.5px;line-height:1.6;color:var(--muted);max-width:760px">Users only need to install once, restart the AI tool, then type <span style="color:var(--text)">fagun deep test URL</span>. Fagun handles browser setup, Chrome DevTools MCP auto-connect, testing, evidence, and the final report.</p>
-    <div class="fg-wf-scroll" style="background:#050505;border:1px solid rgba(232,176,75,.18);border-radius:18px;padding:26px;box-shadow:0 24px 70px -34px rgba(0,0,0,.9)">
-      <div class="fg-wf-canvas" style="position:relative;width:100%;height:750px;min-width:720px;margin:0 auto">
-        <svg class="fg-wf-svg" viewBox="0 0 760 750" preserveAspectRatio="none" aria-hidden="true">
-          <line x1="380" y1="108" x2="380" y2="165"/><circle class="fg-wf-dot" cx="380" cy="108" r="3"/>
-          <line x1="380" y1="275" x2="380" y2="320"/><circle class="fg-wf-dot" cx="380" cy="275" r="3"/>
-          <line x1="380" y1="378" x2="380" y2="445"/><circle class="fg-wf-dot" cx="380" cy="378" r="3"/>
-          <path d="M380 445 C365 478 300 465 285 500 L285 560 C285 590 230 580 210 612"/>
-          <path d="M380 445 C395 478 460 465 475 500 L475 545 C475 578 540 568 552 600"/>
-          <circle class="fg-wf-dot" cx="380" cy="445" r="4"/>
+    <div class="fg-wf-shell">
+      <div class="fg-wf-canvas">
+        <svg class="fg-wf-svg" viewBox="0 0 760 930" preserveAspectRatio="none" aria-hidden="true">
+          <path class="beam" d="M380 105 L380 168"/>
+          <path class="beam" d="M380 278 L380 320"/>
+          <path class="beam" d="M380 386 L380 520"/>
+          <path class="beam" d="M380 545 C358 600 286 570 268 636 L268 710 C268 744 218 732 196 770"/>
+          <path class="beam" d="M380 545 C402 600 474 570 492 636 L492 700 C492 734 560 722 574 758"/>
+          <circle class="fg-wf-dot fg-wf-pulse" cx="380" cy="105" r="4"/><circle class="fg-wf-dot fg-wf-pulse" cx="380" cy="278" r="4"/><circle class="fg-wf-dot fg-wf-pulse" cx="380" cy="545" r="5"/>
         </svg>
-        <div class="fg-wf-card" style="left:calc(50% - 180px);top:0;width:360px">
-          <h3><span style="color:#38bdf8">◆</span> Install Fagun</h3>
-          <p>uvx fagun init</p><small>or pip install --upgrade fagun &amp;&amp; fagun init</small>
+        <div class="fg-wf-card" style="left:calc(50% - 190px);top:0;width:380px">
+          <strong><span class="fg-wf-no">01</span> Install and auto-wire</strong>
+          <p>uvx fagun init</p><small>Browser engine, Fagun MCP, Chrome DevTools MCP, Claude, Codex and Windsurf configs.</small>
         </div>
-        <div class="fg-wf-pill" style="left:calc(50% - 58px);top:132px">⏱ One-time setup</div>
-        <div class="fg-wf-card" style="left:calc(50% - 180px);top:165px;width:360px">
-          <h3><span style="color:#E8B04B">●</span> Open AI tool</h3>
-          <p>Claude, Codex, Cursor, Windsurf</p><small>Fagun MCP + /fagun skill loaded</small>
+        <div class="fg-wf-pill" style="left:calc(50% - 64px);top:130px">one-time setup</div>
+        <div class="fg-wf-card" style="left:calc(50% - 190px);top:168px;width:380px">
+          <strong><span class="fg-wf-no">02</span> Open any AI tool</strong>
+          <p>Claude, Codex, Cursor, Windsurf</p><small>Fagun loads as a skill plus MCP tools, so every model sees the same interface.</small>
         </div>
-        <div class="fg-wf-pill" style="left:calc(50% - 80px);top:292px">⚡ User runs one command</div>
-        <div class="fg-wf-card" style="left:calc(50% - 175px);top:320px;width:350px">
-          <h3><span style="color:#22c55e">●</span> fagun deep test URL</h3>
-          <p>Chrome DevTools MCP auto-connects</p><small>Signed-in Chrome reused after Allow</small>
+        <div class="fg-wf-pill" style="left:calc(50% - 86px);top:296px">user runs one command</div>
+        <div class="fg-wf-card" style="left:calc(50% - 185px);top:320px;width:370px">
+          <strong><span class="fg-wf-no">03</span> fagun deep test URL</strong>
+          <p>Chrome DevTools MCP auto-connects</p><small>Signed-in Chrome reused after the browser permission popup is allowed.</small>
         </div>
-        <div class="fg-wf-card" style="left:calc(50% - 110px);top:445px;width:220px;text-align:left">
-          <h3 style="margin-bottom:8px">Does the app pass?</h3>
-          <p style="color:#a3a3a3">Readiness decision</p>
+        <div class="fg-wf-chips">
+          <span class="fg-wf-chip">personas</span><span class="fg-wf-chip">journeys</span><span class="fg-wf-chip">console</span><span class="fg-wf-chip">network</span><span class="fg-wf-chip">a11y</span><span class="fg-wf-chip">performance</span><span class="fg-wf-chip">security</span>
         </div>
-        <div class="fg-wf-label" style="left:calc(50% - 240px);top:520px;color:#b7f082">✓ Ready</div>
-        <div class="fg-wf-label" style="left:calc(50% + 88px);top:520px">× Issues found</div>
-        <div class="fg-wf-card" style="left:35px;top:612px;width:210px">
-          <h3><span style="color:#94a3b8">⚑</span> Ship / monitor</h3>
-          <p>Ready verdict</p><small>Report saved for evidence</small>
+        <div class="fg-wf-card" style="left:calc(50% - 125px);top:520px;width:250px">
+          <strong><span class="fg-wf-no">04</span> Readiness gate</strong>
+          <p>Does the app pass?</p><small>Score, blockers, confidence, and release recommendation.</small>
         </div>
-        <div class="fg-wf-pill" style="left:calc(50% + 210px);top:578px">◷ Immediate</div>
-        <div class="fg-wf-card" style="right:35px;top:612px;width:330px">
-          <h3><span style="color:#f97316">●</span> Full bug report</h3>
-          <p>Findings, repro, evidence, fixes</p><small>HTML · Markdown · JSON · JUnit</small>
+        <div class="fg-wf-label" style="left:calc(50% - 248px);top:620px;color:#b7f082">pass path</div>
+        <div class="fg-wf-label" style="left:calc(50% + 120px);top:620px;color:#fca5a5">fix path</div>
+        <div class="fg-wf-card" style="left:34px;top:770px;width:255px">
+          <strong><span class="fg-wf-no">05A</span> Ship / monitor</strong>
+          <p>Ready verdict</p><small>Evidence archived, report saved, retest command included.</small>
+        </div>
+        <div class="fg-wf-pill" style="left:calc(50% + 232px);top:736px">immediate</div>
+        <div class="fg-wf-card" style="right:34px;top:758px;width:365px;border-color:rgba(248,113,113,.36)">
+          <strong><span class="fg-wf-no" style="border-color:rgba(248,113,113,.45);background:rgba(248,113,113,.13);color:#fecaca">05B</span> Full bug report</strong>
+          <p>Findings, repro steps, screenshots, failed requests, console errors, fixes.</p><small>HTML · Markdown · JSON · JUnit · CI friendly.</small>
         </div>
       </div>
     </div>
