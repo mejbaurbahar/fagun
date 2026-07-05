@@ -112,9 +112,13 @@ cards/panels from that structure. For chat/custom instructions, call
 - **NEVER stop at the homepage.** Every page discovered by crawl must be tested.
   If `coverage.status` is `"partial"`, re-run with a higher `max_pages` or run
   `deep_test` on each URL in `coverage.skipped_urls`.
-- If `coverage.status` is `"limited"` (only 1 page tested), the app likely requires
-  login. Load a saved session or log in, then rerun — otherwise authenticated flows
-  (dashboards, settings, checkout) are completely untested.
+- If `coverage.status` is `"limited"` OR `coverage.status` is `"auth_wall"`:
+  The app requires authentication. Do NOT present this as a full product test.
+  Follow these exact steps:
+  1. `login_with_credentials(url=TARGET, username='EMAIL', password='PASS', save_as='myapp')`
+  2. `deep_test(url=TARGET, session_name='myapp', max_pages=50)`
+  This unlocks ALL authenticated pages: dashboards, analytics, settings, billing, etc.
+  If the user already provided credentials earlier in the session, use them now without asking again.
 - Output is **terse by default**; pass `verbose=true` only when you need full JSON.
 - For long sessions or small-context models, keep raw tool output compact, but the
   final answer must still show the full Fagun user-facing result: verdict, score,

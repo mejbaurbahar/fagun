@@ -678,6 +678,24 @@ async def _mobile_ux_check(url: str) -> list[dict[str, Any]]:
     return findings
 
 
+def _is_auth_wall(pages: list[dict[str, Any]]) -> bool:
+    """Return True when crawl only reached login/signup/auth pages — indicating an auth wall."""
+    if not pages:
+        return False
+    auth_paths = {"/login", "/signin", "/sign-in", "/signup", "/sign-up",
+                  "/register", "/auth", "/account/login", "/users/sign_in"}
+    reachable = [p for p in pages if not p.get("error") and (not p.get("status") or p["status"] < 400)]
+    if not reachable:
+        return False
+    non_auth = [
+        p for p in reachable
+        if urlparse(p["url"]).path.rstrip("/") not in auth_paths
+        and not any(a in urlparse(p["url"]).path for a in ["/login", "/signin", "/signup", "/register"])
+    ]
+    # Auth wall: all reachable pages are login/signup/auth pages
+    return len(non_auth) == 0
+
+
 async def deep_test(
     url: str,
     max_pages: int = 50,
@@ -685,6 +703,7 @@ async def deep_test(
     perf: bool = True,
     keyboard: bool = True,
     fuzz: bool = True,
+    session_name: str = "",
 ) -> dict[str, Any]:
     """Comprehensive test: crawl ALL discoverable pages (sitemap + SPA routes +
     nav links + BFS), then per page run:
@@ -696,10 +715,63 @@ async def deep_test(
       - Mobile: responsive layout check at 375px viewport
     Every finding is evidence-backed — no fabricated results.
     Pass max_pages=200 or higher for very large sites.
-    Set fuzz=False to skip active form fuzzing (faster, less intrusive)."""
+    Set fuzz=False to skip active form fuzzing (faster, less intrusive).
+    Pass session_name to load a saved authenticated session before crawling."""
     from . import uat as _uat
+    from . import session as _session
+
+    # Load saved session if provided — must happen before crawl so authenticated
+    # pages (dashboard, analytics, etc.) are discoverable.
+    if session_name:
+        try:
+            await _session.load_session(session_name)
+        except Exception as e:
+            pass  # proceed unauthenticated if session load fails
 
     crawl_result = await crawl(url, max_pages)
+
+    # Auth wall detection: if only login/signup pages reached, detect and report clearly.
+    if _is_auth_wall(crawl_result.get("pages", [])):
+        p = urlparse(url)
+        root = f"{p.scheme}://{p.netloc}"
+        auth_hint = {
+            "detected": True,
+            "message": (
+                "Auth wall detected — only login/signup pages reached. "
+                "Fagun cannot test authenticated pages without a session."
+            ),
+            "fix_steps": [
+                f"Option A — provide credentials:  login_with_credentials(url='{url}', username='YOUR_EMAIL', password='YOUR_PASS', save_as='myapp')",
+                f"Option B — manual login:  1) open_browser(headless=False)  2) navigate('{url}/login')  3) log in manually  4) save_session('myapp')",
+                f"Then rerun:  deep_test(url='{url}', session_name='myapp', max_pages={max_pages})",
+            ],
+            "authenticated_pages_missed": [
+                "dashboard and all private routes",
+                "analytics, reports, and data visualizations",
+                "leads, contacts, and CRM features",
+                "campaign creation and management workflows",
+                "content editor and template library",
+                "integrations and third-party connections",
+                "billing, plan management, and invoices",
+                "settings, profile, roles, and permissions",
+            ],
+        }
+        coverage = {
+            "start": url,
+            "crawl_pages": crawl_result.get("crawled", 0),
+            "pages_tested": 0,
+            "status": "auth_wall",
+            "auth_wall": auth_hint,
+            "reason": auth_hint["message"],
+            "not_tested": auth_hint["authenticated_pages_missed"],
+        }
+        return {
+            "start": url,
+            "pages_tested": 0,
+            "coverage": coverage,
+            "results": [],
+            "auth_wall": auth_hint,
+        }
     results: list[dict[str, Any]] = []
 
     for p in crawl_result["pages"]:
@@ -779,13 +851,13 @@ async def deep_test(
         "skipped_urls": skipped_urls,
         "complete": bool(results) and len(results) >= min(crawl_result.get("crawled", 0), max_pages),
     }
-    if len(results) <= 1:
+    if len(results) <= 2:
         coverage["status"] = "limited"
+        p = urlparse(url)
         coverage["reason"] = (
-            "Only one reachable page was tested. If the product has an authenticated "
-            "dashboard or private workflows, log in or load a saved session before "
-            "rerunning deep_test. For SPA apps with JS-only routes, increase max_pages "
-            "and ensure the app is fully loaded before crawl."
+            f"Only {len(results)} page(s) tested. App likely requires authentication. "
+            f"Run: login_with_credentials(url='{url}', username='EMAIL', password='PASS', save_as='myapp') "
+            f"then: deep_test(url='{url}', session_name='myapp', max_pages={max_pages})"
         )
         coverage["not_tested"] = [
             "authenticated dashboard and all private routes",

@@ -97,6 +97,12 @@ client exposes it, then fall back to Fagun's own browser if needed.
 - `security scan <url>` · `perf audit <url>` · `a11y audit <url>`
 - `emulate mobile` · `keyboard walk <url>` · `run journey <steps>`
 
+**Authenticated app testing (SaaS dashboards, portals)**
+1. `login_with_credentials(url, username, password, save_as='myapp')`
+2. `deep_test(url, session_name='myapp', max_pages=50)`
+   → Fagun loads the session, crawls ALL authenticated pages, and tests everything.
+   Auth wall auto-detected: if only login/signup found, exact fix steps are shown.
+
 **What I check**
 `product map` · `journeys` · `auth/session` · `links` · `console` · `network` · `forms` ·
 `validation` · `a11y` · `SEO` · `visual overflow` · `responsive layout` ·
@@ -457,34 +463,67 @@ async def test_forms(url: str, verbose: bool = False) -> str:
 @_browser_tool
 async def deep_test(url: str, max_pages: int = 50, report_path: Optional[str] = None,
                     security: bool = True, perf: bool = True, keyboard: bool = True,
-                    fuzz: bool = True, verbose: bool = False) -> str:
+                    fuzz: bool = True, session_name: str = "", verbose: bool = False) -> str:
     """Full site audit: crawl ALL pages (sitemap + SPA routes + nav links + BFS) then
     per page: QA (console/network/WCAG a11y/SEO+OG/Twitter/JSON-LD) + static form audit
     + active form fuzzing (injection/unicode/boundary/select/checkbox) + security headers
     + advanced security probes (SSTI/LFI/CRLF/host-header/GraphQL) + real Core Web Vitals
     + keyboard reachability + mobile viewport (375px) responsive check.
     Produces a 16-category product-readiness scorecard + release verdict.
+
+    AUTHENTICATED TESTING: If the app requires login, first run:
+      login_with_credentials(url, username, password, save_as='myapp')
+    Then pass session_name='myapp' here — Fagun will load the session before crawling
+    so ALL authenticated pages (dashboard, analytics, settings, etc.) are tested.
+
     Set fuzz=False for faster scans. Report format: .md / .html / .json / .xml(JUnit).
     Every finding is evidence-backed — no fabricated results."""
     result = await _deep_test(url, max_pages, security=security, perf=perf,
-                              keyboard=keyboard, fuzz=fuzz)
+                              keyboard=keyboard, fuzz=fuzz, session_name=session_name)
     scorecard = _readiness.build_scorecard(result["results"], meta={"target": url, "pages": result["pages_tested"]})
     prefix = ""
     if report_path:
         _write_report(result["results"], report_path,
                       title=f"Fagun Deep Test — {url}", scorecard=scorecard)
         prefix = f"Report → {report_path}\n"
+    # Auth wall: return clear instructions instead of empty results
+    if result.get("auth_wall", {}).get("detected"):
+        aw = result["auth_wall"]
+        lines = [
+            "🔐 AUTH WALL DETECTED — no authenticated pages could be tested.",
+            "",
+            aw["message"],
+            "",
+            "Fix steps:",
+        ]
+        for step in aw["fix_steps"]:
+            lines.append(f"  {step}")
+        lines += [
+            "",
+            "Authenticated pages NOT tested:",
+        ]
+        for p in aw["authenticated_pages_missed"]:
+            lines.append(f"  • {p}")
+        return "\n".join(lines)
+
     verdict = (f"🧭 Readiness: {scorecard['verdict']} ({scorecard['overall_score']}/100) — "
                f"{scorecard['verdict_reason']}\n")
     coverage = result.get("coverage") or {}
     coverage_line = ""
     if coverage:
-        coverage_line = (
-            f"Coverage: {coverage.get('status', 'unknown')} — "
-            f"{coverage.get('pages_tested', result['pages_tested'])}/"
-            f"{coverage.get('crawl_pages', '?')} crawled page(s) tested. "
-            f"{coverage.get('reason', '')}\n"
-        )
+        status = coverage.get("status", "unknown")
+        if status == "limited":
+            coverage_line = (
+                f"⚠️  Coverage LIMITED — {coverage.get('pages_tested', result['pages_tested'])} page(s) tested.\n"
+                f"   {coverage.get('reason', '')}\n"
+            )
+        else:
+            coverage_line = (
+                f"Coverage: {status} — "
+                f"{coverage.get('pages_tested', result['pages_tested'])}/"
+                f"{coverage.get('crawl_pages', '?')} page(s) tested. "
+                f"{coverage.get('reason', '')}\n"
+            )
     if verbose:
         return prefix + verdict + fmt.dumps({"result": result, "readiness": scorecard})
     return prefix + verdict + coverage_line + fmt.render_multi(result["results"], fmt.is_terse(), f"Deep test {url}")
