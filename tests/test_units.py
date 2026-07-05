@@ -364,6 +364,17 @@ def test_fagun_skill_requires_auto_chrome_and_full_final_output():
     assert "Every reproduced finding, not just the top three" in skill
 
 
+def test_website_documents_auto_chrome_and_full_output():
+    from pathlib import Path
+
+    home = Path("docs/index.html").read_text()
+    docs = Path("docs/docs.html").read_text()
+    assert "auto Chrome MCP" in home
+    assert "full findings + evidence printed in chat" in home
+    assert "fagun deep test https://example.com" in docs
+    assert "Users do not need to run <code>fagun connect to my Chrome</code> first" in docs
+
+
 # ------------------------------------------------------------------- sessions
 def test_session_summary_counts():
     from fagun import session

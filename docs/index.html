@@ -91,7 +91,7 @@ body{background:#0d0b16}
         </h1>
         <div class="fg-anim" style="animation:fgRise .9s cubic-bezier(.22,1,.36,1) both;animation-delay:.28s;max-width:560px;margin:28px 0 0">
           <p style="margin:0 0 14px;font-size:clamp(15px,1.7vw,18px);line-height:1.62;color:var(--muted)">Fagun gives any AI a real browser — to use your product like real customers (mobile, slow-internet, keyboard-only…), walk whole journeys, hunt real bugs, and return a <span style="color:var(--text)">product-readiness verdict</span>.</p>
-          <p style="margin:0;font-size:clamp(15px,1.7vw,18px);line-height:1.62;color:var(--muted)">Works in Claude, Cursor, Codex &amp; more. Chrome DevTools MCP auto-connects to your signed-in Chrome after you click Allow. Token-lean by default.</p>
+          <p style="margin:0;font-size:clamp(15px,1.7vw,18px);line-height:1.62;color:var(--muted)">Works in Claude, Cursor, Codex &amp; more. <span style="color:var(--text)">fagun deep test URL</span> automatically uses Chrome DevTools MCP when available, reuses signed-in Chrome after you click Allow, and still prints the full Fagun result.</p>
         </div>
         <div class="fg-anim" style="animation:fgRise .9s cubic-bezier(.22,1,.36,1) both;animation-delay:.4s;display:flex;flex-wrap:wrap;gap:14px;margin-top:34px">
           <button type="button" onclick="fgCopy()" class="fg-btn-gold" style="display:inline-flex;align-items:center;gap:9px;border:none;cursor:pointer;background:var(--gold);color:#231a08;font-family:inherit;font-size:15px;font-weight:600;padding:14px 24px;border-radius:999px;transition:filter .18s,transform .12s">
@@ -124,7 +124,7 @@ body{background:#0d0b16}
       <div>
         <p style="margin:0 0 12px;font-size:12px;font-weight:600;letter-spacing:.2em;color:var(--gold);text-transform:uppercase">Install in one line</p>
         <h2 style="margin:0 0 16px;font-family:Didot,'Bodoni MT','Playfair Display',Georgia,serif;font-weight:500;font-size:clamp(1.9rem,3.6vw,2.9rem);line-height:1.08;letter-spacing:-.01em">Nothing to configure.</h2>
-        <p style="margin:0;font-size:16px;line-height:1.6;color:var(--muted);max-width:420px">No Python, no pip — <span style="color:var(--text)">uv</span> brings its own. Chrome DevTools MCP auto-registers and opens Chrome's Allow remote debugging flow.</p>
+        <p style="margin:0;font-size:16px;line-height:1.6;color:var(--muted);max-width:420px">No Python, no pip — <span style="color:var(--text)">uv</span> brings its own. Chrome DevTools MCP auto-registers; deep tests auto-connect to Chrome when your AI client exposes it.</p>
       </div>
       <div style="background:#08060f;border:1px solid var(--line);border-radius:16px;padding:22px;box-shadow:0 24px 60px -30px rgba(0,0,0,.8);overflow:hidden">
         <div style="display:flex;gap:7px;margin-bottom:16px">
@@ -140,6 +140,9 @@ body{background:#0d0b16}
           <div style="height:14px"></div>
           <div><span style="color:var(--gold)">$</span> <span style="color:var(--text)">uvx fagun install claude-code</span></div>
           <div style="color:#6f6784"># or target one tool</div>
+          <div style="height:14px"></div>
+          <div><span style="color:var(--gold)">›</span> <span style="color:var(--text)">fagun deep test https://example.com</span></div>
+          <div style="color:#6f6784"># auto Chrome MCP → full verdict + report</div>
         </div>
       </div>
     </div>
@@ -284,7 +287,7 @@ body{background:#0d0b16}
       </div>
       <div id="fg-demo-body" style="height:340px;overflow:hidden;padding:16px 18px;font-family:'SF Mono','JetBrains Mono',Menlo,Consolas,monospace;font-size:12.5px;line-height:1.9;white-space:pre-wrap;word-break:break-word;color:var(--muted)"></div>
     </div>
-    <p style="margin:14px 0 0;font-size:13px;color:var(--muted)">One command sets up every AI tool on your machine. Then just type <span style="color:var(--gold)">fagun</span> + what to test.</p>
+    <p style="margin:14px 0 0;font-size:13px;color:var(--muted)">One command sets up every AI tool on your machine. Then just type <span style="color:var(--gold)">fagun deep test URL</span>; no separate Chrome-connect command is needed.</p>
   </section>
 
   <!-- ============ FOOTER ============ -->
@@ -313,7 +316,7 @@ body{background:#0d0b16}
 
 <script>
 (function(){
-  var PROMPT = "Install and set up fagun for me: install `uv` if missing, run `uvx fagun setup`, then `uvx fagun install claude-code`. Follow https://github.com/mejbaurbahar/fagun/blob/main/install.md if anything fails.";
+  var PROMPT = "Install and set up fagun for me: install `uv` if missing, run `uvx fagun init`, then `uvx fagun install claude-code`. After setup, `fagun deep test URL` should auto-use Chrome DevTools MCP when available and print the full Fagun result. Follow https://github.com/mejbaurbahar/fagun/blob/main/install.md if anything fails.";
   var toastTimer;
   window.fgCopy = function(){
     function show(){
@@ -388,46 +391,57 @@ body{background:#0d0b16}
         {t:'  installing uv ......... done', c:dim},
         {t:'$ uvx fagun init', c:gold},
         {t:'  ✅ browser ready', c:g},
-        {t:'  ✅ Chrome DevTools MCP auto-connect ready', c:g},
-        {t:'  → Chrome opens remote debugging setup; click Allow once', c:y},
+        {t:'  ✅ wrote Fagun MCP + Chrome DevTools MCP', c:g},
+        {t:'  ✅ chrome-devtools args: --auto-connect --no-usage-statistics', c:g},
+        {t:'  → Chrome opens chrome://inspect/#remote-debugging', c:y},
+        {t:'  → click Allow once when Chrome asks', c:y},
         {t:'  ✅ Wired up: Claude Code, Cursor, Codex', c:g},
         {t:'', c:dim},
-        {t:'# now in your AI tool, just type:', c:dim},
+        {t:'# now in your AI tool, no connect command needed:', c:dim},
         {t:'› fagun deep test https://acme.store', c:cy},
-        {t:'  ✕ journey  checkout blocked at payment (5/6)', c:r},
-        {t:'  ✕ console  Uncaught TypeError: cart is null', c:r},
-        {t:'  ⚠ form  #signup — 2 inputs missing <label>', c:y},
-        {t:'  🧭 readiness: Not ready · 61/100 · report saved', c:gold},
+        {t:'  ✅ Chrome DevTools MCP auto-connected to signed-in Chrome', c:g},
+        {t:'  ✅ crawl + forms + a11y + security + vitals + keyboard', c:g},
+        {t:'  ✕ P0 security  password form submits over GET', c:r},
+        {t:'  ✕ P0 network   Google SSO request failed', c:r},
+        {t:'  ⚠ P1 a11y      2 controls missing labels', c:y},
+        {t:'  🧭 verdict: Not ready · 38/100 · 17 findings', c:gold},
+        {t:'  📄 report: ./fagun-report.html', c:tx},
       ]},
       win: {label:'Windows', lines:[
         {t:'PS> irm https://astral.sh/uv/install.ps1 | iex', c:gold},
         {t:'  installing uv ......... done', c:dim},
         {t:'PS> uvx fagun init', c:gold},
         {t:'  ✅ browser ready', c:g},
-        {t:'  ✅ Chrome DevTools MCP auto-connect ready', c:g},
-        {t:'  → Chrome opens remote debugging setup; click Allow once', c:y},
+        {t:'  ✅ wrote Fagun MCP + Chrome DevTools MCP', c:g},
+        {t:'  ✅ chrome-devtools args: --auto-connect --no-usage-statistics', c:g},
+        {t:'  → Chrome opens chrome://inspect/#remote-debugging', c:y},
+        {t:'  → click Allow once when Chrome asks', c:y},
         {t:'  ✅ Wired up: Claude Code, VS Code', c:g},
         {t:'', c:dim},
         {t:'# in your AI tool, just type:', c:dim},
         {t:'› fagun audit https://acme.store', c:cy},
+        {t:'  ✅ Chrome DevTools MCP auto-connected', c:g},
         {t:'  ✕ exposed  /.env reachable (200)', c:r},
         {t:'  ⚠ headers  missing CSP', c:y},
-        {t:'  ✅ audit complete · 2 issues', c:gold},
+        {t:'  🧭 full Fagun output printed + HTML report saved', c:gold},
       ]},
       linux: {label:'Linux', lines:[
         {t:'$ curl -LsSf https://astral.sh/uv/install.sh | sh', c:gold},
         {t:'  installing uv ......... done', c:dim},
         {t:'$ uvx fagun init', c:gold},
         {t:'  ✅ browser ready', c:g},
-        {t:'  ✅ Chrome DevTools MCP auto-connect ready', c:g},
-        {t:'  → Chrome opens remote debugging setup; click Allow once', c:y},
+        {t:'  ✅ wrote Fagun MCP + Chrome DevTools MCP', c:g},
+        {t:'  ✅ chrome-devtools args: --auto-connect --no-usage-statistics', c:g},
+        {t:'  → Chrome opens chrome://inspect/#remote-debugging', c:y},
+        {t:'  → click Allow once when Chrome asks', c:y},
         {t:'  ✅ Wired up: Cursor, Codex, Windsurf', c:g},
         {t:'', c:dim},
         {t:'# in your AI tool, just type:', c:dim},
         {t:'› fagun security scan https://acme.store', c:cy},
+        {t:'  ✅ Chrome DevTools MCP auto-connected', c:g},
         {t:'  ✕ leaked secret  AWS key in bundle.js', c:r},
         {t:'  ✕ open redirect  ?next= → external', c:r},
-        {t:'  ✅ scan complete · 2 issues', c:gold},
+        {t:'  🧭 full Fagun output printed + evidence report saved', c:gold},
       ]},
     };
     var cur='mac', timer;
@@ -471,18 +485,18 @@ body{background:#0d0b16}
     var term = document.getElementById('fg-term-body');
     if(!term) return;
     var lines = [
-      {t:'$ fagun deep test https://acme.store --ai claude', c:'#E8B04B'},
-      {t:'› launching headless chrome ......... ok', c:'#6f6784'},
-      {t:'› crawling site ......... 47 pages mapped', c:'#6f6784'},
-      {t:'› journey checkout as mobile user ...', c:'#6f6784'},
-      {t:'✕ journey   blocked at payment step (5/6)', c:'#f87171'},
-      {t:'✕ console   Uncaught TypeError: cart is null', c:'#f87171'},
-      {t:'⚠ form   #signup — 2 inputs missing <label>', c:'#fbbf24'},
-      {t:'✕ exposed   /.env reachable (200)', c:'#f87171'},
-      {t:'✓ vitals   LCP 1.9s · CLS 0.02 · perf 92', c:'#4ade80'},
+      {t:'› fagun deep test https://acme.store', c:'#E8B04B'},
+      {t:'› Chrome DevTools MCP auto-connect ......... ready', c:'#4ade80'},
+      {t:'› using signed-in Chrome after Allow popup', c:'#6f6784'},
+      {t:'› crawl + QA + forms + security + vitals + keyboard', c:'#6f6784'},
+      {t:'✕ P0 security  password submitted over GET', c:'#f87171'},
+      {t:'✕ P0 network   Google SSO request failed', c:'#f87171'},
+      {t:'⚠ P1 a11y      2 controls missing labels', c:'#fbbf24'},
+      {t:'✓ vitals       LCP 248ms · CLS 0.00 · perf 100', c:'#4ade80'},
       {t:'────────────────────────', c:'#2a2438'},
-      {t:'🧭 readiness: Not ready · 61/100', c:'#E8B04B'},
-      {t:'   1 blocked journey · 1 exposed file to fix', c:'#6f6784'},
+      {t:'🧭 verdict: Not ready · 38/100 · 17 findings', c:'#E8B04B'},
+      {t:'   full findings + evidence printed in chat', c:'#6f6784'},
+      {t:'   report saved: ./fagun-report.html', c:'#6f6784'},
     ];
     if(reduce){
       lines.forEach(function(l){ var d=document.createElement('div'); d.style.color=l.c; d.textContent=l.t; term.appendChild(d); });
