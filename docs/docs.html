@@ -181,7 +181,7 @@ section{scroll-margin-top:80px}
       <p style="color:var(--muted);font-size:13px;margin-top:14px">Env toggles: <code>FAGUN_TERSE=0</code> full JSON · <code>FAGUN_HEADLESS=0</code> show the browser · <code>FAGUN_BROWSER=firefox|webkit</code> · <code>FAGUN_CDP_URL</code> attach to your own Chrome · <code>FAGUN_SCOPE=host1,host2</code> restrict active probes to authorized hosts (<code>FAGUN_SCOPE_DENY</code> always wins).</p>
       <p style="color:var(--muted);font-size:13px;margin-top:8px">Token controls: <code>FAGUN_TERSE=mini</code> extra-short summaries · <code>FAGUN_FINDING_CAP</code> findings per page · <code>FAGUN_PAGE_CAP</code> pages in chat · <code>FAGUN_DETAIL_CHARS</code> and <code>FAGUN_URL_CHARS</code> trim lines. Use <code>report_path</code> for full evidence on disk.</p>
       <p style="color:var(--muted);font-size:13px;margin-top:8px">Style controls: <code>fagun_style_prompt</code> gives any model the Fagun response format · <code>fagun_style_schema</code> returns the JSON contract for custom renderers · <code>fagun_render_response</code> converts JSON/plain output into Fagun-style Markdown.</p>
-      <p style="color:var(--muted);font-size:13px;margin-top:8px">Security orchestration: <code>fagun_security_prompt</code> returns the advanced authorized-testing prompt · <code>list_external_security_tools</code> shows the adapter catalog · <code>recommend_security_tools</code> picks the smallest relevant plan for Loxs, Shannon, Lonkero, BeeXSS, TimeVault, NextSploit, payload corpora, and related tools.</p>
+      <p style="color:var(--muted);font-size:13px;margin-top:8px">Security orchestration: <code>fagun_security_prompt</code> returns the advanced authorized-testing prompt · <code>list_external_security_tools</code> shows the adapter catalog · <code>recommend_security_tools</code> picks the smallest relevant plan for Loxs, Shannon, Lonkero, recon-skills, BeeXSS, TimeVault, NextSploit, payload corpora, and related tools.</p>
     </section>
 
     <!-- TOOLS -->
@@ -223,7 +223,7 @@ section{scroll-margin-top:80px}
       <div class="card" style="padding:0;overflow-x:auto"><table>
         <tr><th>Tool</th><th>What it does</th></tr>
         <tr><td><code>fagun_security_prompt</code></td><td>Advanced AI security-engineer prompt for authorized testing, attack-graph planning, evidence validation, remediation, and regression tests.</td></tr>
-        <tr><td><code>list_external_security_tools</code></td><td>Catalogs Loxs, Skill Security Scanner, Shannon, Lonkero, coffinxp payload corpora, RFC822 Email Validator, LostFuzzer, img-payloads, customBsqli, BeeXSS, TimeVault, and NextSploit as safe adapters.</td></tr>
+        <tr><td><code>list_external_security_tools</code></td><td>Catalogs Loxs, Skill Security Scanner, Shannon, Lonkero, recon-skills, coffinxp payload corpora, RFC822 Email Validator, LostFuzzer, img-payloads, customBsqli, BeeXSS, TimeVault, and NextSploit as safe adapters.</td></tr>
         <tr><td><code>recommend_security_tools</code></td><td>Selects the smallest relevant tool plan from the goal and target profile. It plans usage; active probing stays authorized-scope only.</td></tr>
       </table></div>
 

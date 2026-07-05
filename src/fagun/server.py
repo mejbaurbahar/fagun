@@ -111,8 +111,8 @@ the same Fagun layout.
 **Advanced security orchestration**
 Use `fagun_security_prompt` for the enterprise security-testing prompt, then
 `list_external_security_tools` / `recommend_security_tools` to plan safe adapters
-for Loxs, Shannon, Lonkero, BeeXSS, TimeVault, NextSploit, payload corpora, and
-other external tools. Active testing remains authorized-scope only.
+for Loxs, Shannon, Lonkero, recon-skills, BeeXSS, TimeVault, NextSploit, payload
+corpora, and other external tools. Active testing remains authorized-scope only.
 
 Tell me a URL to start. Example:
 `fagun deep test https://example.com and save the report to ./report.html`

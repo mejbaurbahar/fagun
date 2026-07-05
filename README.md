@@ -284,13 +284,18 @@ scope-gated:
 
 - `fagun_security_prompt` — improved enterprise prompt for authorized security testing.
 - `list_external_security_tools` — catalog for Loxs, Skill Security Scanner,
-  Shannon, Lonkero, payload corpora, RFC822 Email Validator, LostFuzzer,
-  img-payloads, customBsqli, BeeXSS, TimeVault, and NextSploit.
+  Shannon, Lonkero, recon-skills, payload corpora, RFC822 Email Validator,
+  LostFuzzer, img-payloads, customBsqli, BeeXSS, TimeVault, and NextSploit.
 - `recommend_security_tools` — picks the smallest relevant tool plan from the
   target profile and goal, then tells the AI how to validate and report evidence.
 
 Use it for attack-graph planning, tool selection, deduplication, validation,
 remediation, and regression tests. Active probes still require authorization.
+
+`recon-skills` is treated as a read-only methodology pack first: Fagun can use it
+to pick relevant recon, red-team, sector, chain, SAML, Docker, WordPress, CORS,
+XMLRPC, JS-secret, metrics, and API-flow checklists, then translate those into
+authorized Fagun-safe test plans.
 
 ---
 

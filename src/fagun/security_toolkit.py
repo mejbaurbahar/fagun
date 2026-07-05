@@ -46,6 +46,10 @@ Assessment coverage:
 - Recon: crawl, sitemap/robots, endpoints, parameters, forms, GraphQL, REST,
   hidden APIs, admin areas, upload/download handlers, webhooks, payment/user flows,
   and sensitive data paths.
+- Methodology packs: when a repo such as recon-skills is selected, treat it as a
+  read-only playbook and skill catalog. Extract the relevant checklist, adapt it
+  to the authorized target, and execute only Fagun-safe or explicitly approved
+  steps.
 - Vulnerability planning: auth bypass, authorization/IDOR, logic flaws, validation
   gaps, XSS, redirect, SQLi signals, LFI/path traversal, SSTI/cmdi signals, CRLF,
   CORS/header issues, CSP/clickjacking, exposed secrets, dependency/supply-chain,
@@ -174,6 +178,42 @@ EXTERNAL_TOOL_CATALOG: list[dict[str, Any]] = [
         "use_when": "Fingerprinting indicates Next.js and the assessment includes framework CVE validation.",
         "safe_default": "Check version/config exposure first; active validation requires explicit authorization.",
         "integration_mode": "cve-validation-adapter",
+    },
+    {
+        "name": "recon-skills",
+        "repo": "https://github.com/uphiago/recon-skills",
+        "category": "methodology-skill-pack",
+        "signals": [
+            "recon",
+            "wordpress",
+            "cors",
+            "xmlrpc",
+            "js secrets",
+            "email security",
+            "s3",
+            "minio",
+            "api flow",
+            "scada",
+            "sector methodology",
+            "attack chains",
+            "redteam",
+            "hunt",
+            "hardcoded credentials",
+            "schema enumeration",
+            "write gap",
+            "metrics exposure",
+        ],
+        "use_when": (
+            "Fagun needs a broad recon/pentest methodology pack with 155 skills, "
+            "including recon, red-team hunt classes, meta playbooks, attack chains, "
+            "SAML, and Docker privilege-escalation review."
+        ),
+        "safe_default": (
+            "Use as a read-only checklist/methodology source first; import only the "
+            "relevant skill notes into the test plan and keep execution authorized, "
+            "least-intrusive, and scope-gated."
+        ),
+        "integration_mode": "methodology-adapter",
     },
 ]
 

@@ -141,6 +141,7 @@ def test_security_tool_catalog_includes_requested_tools():
         "BeeXSS",
         "TimeVault",
         "NextSploit",
+        "recon-skills",
     } <= names
     assert all(tool["repo"].startswith("https://github.com/") for tool in security_toolkit.EXTERNAL_TOOL_CATALOG)
     assert all(tool["integration_mode"].endswith("-adapter") for tool in security_toolkit.EXTERNAL_TOOL_CATALOG)
@@ -165,6 +166,20 @@ def test_security_tool_filter_and_recommendations():
     names = {tool["name"] for tool in rec["tools"]}
     assert "BeeXSS" in names
     assert "NextSploit" in names
+
+    recon_rec = security_toolkit.recommend_security_tools(
+        goal="Use sector methodology for WordPress CORS XMLRPC JS secrets and metrics exposure recon",
+        target_profile_json='{"cms":"WordPress","sector":"law firm"}',
+    )
+    recon_names = {tool["name"] for tool in recon_rec["tools"]}
+    assert "recon-skills" in recon_names
+
+
+def test_security_tool_catalog_renders_recon_skills_usage():
+    out = security_toolkit.render_tool_catalog(security_toolkit.list_security_tools("sector methodology"))
+    assert "recon-skills" in out
+    assert "methodology-adapter" in out
+    assert "read-only checklist" in out
 
 
 def test_render_multi_totals():
