@@ -314,6 +314,8 @@ hypothesis as confirmed.
 **Browser:** `fagun_start` · `open_browser` · `navigate` · `click` · `fill` ·
 `press_key` · `screenshot` · `evaluate_js` · `get_console` · `get_network` · `close_browser`
 **Fagun Style:** `fagun_style_prompt` · `fagun_style_schema` · `fagun_render_response`
+**Security orchestration:** `fagun_security_prompt` · `list_external_security_tools` ·
+`recommend_security_tools`
 **Power:** `browser_exec` · `save_helper` · `list_helpers` · `load_helper` · `connect_chrome`
 
 When done, always `close_browser`.

@@ -22,6 +22,7 @@ from . import healing
 from . import readiness as _readiness
 from . import scope as _scope
 from . import session as _session
+from . import security_toolkit as _security_toolkit
 from . import style as _style
 from . import testdata as _testdata
 from . import uat as _uat
@@ -107,6 +108,12 @@ contract. For apps/wrappers, call `fagun_style_schema` and render structured JSO
 as cards/panels. Use `fagun_render_response` to convert JSON/plain output into
 the same Fagun layout.
 
+**Advanced security orchestration**
+Use `fagun_security_prompt` for the enterprise security-testing prompt, then
+`list_external_security_tools` / `recommend_security_tools` to plan safe adapters
+for Loxs, Shannon, Lonkero, BeeXSS, TimeVault, NextSploit, payload corpora, and
+other external tools. Active testing remains authorized-scope only.
+
 Tell me a URL to start. Example:
 `fagun deep test https://example.com and save the report to ./report.html`
 """
@@ -145,6 +152,26 @@ def fagun_render_response(response_json_or_text: str, title: str = "Fagun Respon
     """Render JSON/plain text into Fagun's consistent Markdown panel style."""
     payload = _style.coerce_payload(response_json_or_text, title=title)
     return _style.render_response(payload, title=payload.get("_title", title))
+
+
+@mcp.tool()
+def fagun_security_prompt() -> str:
+    """Return Fagun's advanced authorized-security-testing prompt."""
+    return _security_toolkit.security_platform_prompt()
+
+
+@mcp.tool()
+def list_external_security_tools(category: str = "") -> str:
+    """List Fagun's external security tool catalog, optionally filtered by category/signal."""
+    tools = _security_toolkit.list_security_tools(category)
+    return _security_toolkit.render_tool_catalog(tools)
+
+
+@mcp.tool()
+def recommend_security_tools(goal: str = "", target_profile_json: str = "") -> str:
+    """Recommend external security tools for an authorized goal/target profile."""
+    recommendation = _security_toolkit.recommend_security_tools(goal, target_profile_json)
+    return _security_toolkit.render_recommendation(recommendation)
 
 
 # ---------------------------------------------------------------- browser tools

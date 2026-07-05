@@ -275,6 +275,23 @@ Default sections: Executive Summary, Problem, Analysis, Solution, Implementation
 Test Cases, Edge Cases, Risks, Production Impact, API Validation, Performance,
 Jira Ticket, and Final Recommendation.
 
+## 🧠 Advanced security prompt + tool catalog
+
+For deeper authorized bug-hunting workflows, Fagun now includes an AI security
+engineer prompt and an external-tool catalog. It does **not** blindly run exploit
+tools; it plans adapters, explains when each tool fits, and keeps execution
+scope-gated:
+
+- `fagun_security_prompt` — improved enterprise prompt for authorized security testing.
+- `list_external_security_tools` — catalog for Loxs, Skill Security Scanner,
+  Shannon, Lonkero, payload corpora, RFC822 Email Validator, LostFuzzer,
+  img-payloads, customBsqli, BeeXSS, TimeVault, and NextSploit.
+- `recommend_security_tools` — picks the smallest relevant tool plan from the
+  target profile and goal, then tells the AI how to validate and report evidence.
+
+Use it for attack-graph planning, tool selection, deduplication, validation,
+remediation, and regression tests. Active probes still require authorization.
+
 ---
 
 ## 🔐 Security scanning (authorized targets only)
@@ -307,7 +324,8 @@ GET/HEAD only, no attacks on third parties:
 `check_links` · `test_forms` · `fuzz_forms` · `list_test_data` · `perf_audit` ·
 `a11y_audit` · `security_headers` · `security_scan` · `advanced_security` ·
 `deep_test` · `full_qa_sweep` · `write_report` · `browser_exec` · `save_helper` ·
-`list_helpers` · `load_helper` · `connect_chrome` · `close_browser`
+`list_helpers` · `load_helper` · `connect_chrome` · `fagun_security_prompt` ·
+`list_external_security_tools` · `recommend_security_tools` · `close_browser`
 
 **What's new in v0.7.0 — deeper, smarter, evidence-backed:**
 - **`fuzz_forms`** — actively fills every form field with a labelled test-data

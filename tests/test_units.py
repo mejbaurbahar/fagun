@@ -7,6 +7,7 @@ import re
 import pytest
 
 from fagun import format as fmt
+from fagun import security_toolkit
 from fagun import style
 from fagun import testdata
 from fagun.report import build_markdown
@@ -122,6 +123,48 @@ def test_coerce_payload_accepts_plain_text():
     payload = style.coerce_payload("plain answer")
     assert payload["summary"] == ["plain answer"]
     assert payload["final_recommendation"]
+
+
+# ------------------------------------------------------------- security prompt
+def test_security_tool_catalog_includes_requested_tools():
+    names = {tool["name"] for tool in security_toolkit.EXTERNAL_TOOL_CATALOG}
+    assert {
+        "Loxs",
+        "Skill Security Scanner",
+        "Shannon",
+        "Lonkero",
+        "coffinxp/payloads",
+        "RFC822 Email Validator",
+        "LostFuzzer",
+        "img-payloads",
+        "customBsqli",
+        "BeeXSS",
+        "TimeVault",
+        "NextSploit",
+    } <= names
+    assert all(tool["repo"].startswith("https://github.com/") for tool in security_toolkit.EXTERNAL_TOOL_CATALOG)
+    assert all(tool["integration_mode"].endswith("-adapter") for tool in security_toolkit.EXTERNAL_TOOL_CATALOG)
+
+
+def test_security_platform_prompt_is_scope_gated():
+    prompt = security_toolkit.security_platform_prompt().lower()
+    assert "authorized targets only" in prompt
+    assert "do not run every" in prompt
+    assert "attack graph" in prompt
+    assert "non-destructive" in prompt
+
+
+def test_security_tool_filter_and_recommendations():
+    xss_tools = security_toolkit.list_security_tools("xss")
+    assert {tool["name"] for tool in xss_tools} >= {"Loxs", "BeeXSS"}
+
+    rec = security_toolkit.recommend_security_tools(
+        goal="Validate blind xss in query parameters and check Next.js CVE risk",
+        target_profile_json='{"framework":"Next.js","forms":["search"]}',
+    )
+    names = {tool["name"] for tool in rec["tools"]}
+    assert "BeeXSS" in names
+    assert "NextSploit" in names
 
 
 def test_render_multi_totals():
