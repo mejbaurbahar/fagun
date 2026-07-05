@@ -114,11 +114,48 @@ cards/panels from that structure. For chat/custom instructions, call
   `deep_test` on each URL in `coverage.skipped_urls`.
 - If `coverage.status` is `"limited"` OR `coverage.status` is `"auth_wall"`:
   The app requires authentication. Do NOT present this as a full product test.
-  Follow these exact steps:
+  **Try auto-import first** (no credentials needed):
+  1. `import_chrome_session(url=TARGET)` — reads cookies from user's Chrome automatically
+  2. `deep_test(url=TARGET, auto_chrome_session=True, max_pages=50)`
+  If user is already logged in to the site in Chrome, this works immediately.
+  **If Chrome import fails**, fall back to credentials:
   1. `login_with_credentials(url=TARGET, username='EMAIL', password='PASS', save_as='myapp')`
   2. `deep_test(url=TARGET, session_name='myapp', max_pages=50)`
   This unlocks ALL authenticated pages: dashboards, analytics, settings, billing, etc.
   If the user already provided credentials earlier in the session, use them now without asking again.
+
+## Universal testing — any website, any auth method
+
+**Chrome session import (no credentials, recommended first step):**
+When the user is logged into the target site in Chrome, Fagun can import that session automatically:
+1. `import_chrome_session(url)` — tries CDP first, then reads Chrome profile SQLite
+2. `deep_test(url, auto_chrome_session=True, map_api=True, max_pages=50)`
+→ Tests the full authenticated app as the user, with zero credential sharing.
+
+**Works for:** ANY site Chrome is logged into — SaaS dashboards, e-commerce accounts,
+banking portals, admin panels, Google/GitHub/Slack OAuth apps, SSO-protected apps,
+corporate intranets. If the user is logged in, Fagun can test it.
+
+**Export cookies as file (when CDP unavailable):**
+User installs "Cookie-Editor" Chrome extension → exports cookies.json →
+`import_chrome_session(url, cookie_file='~/Downloads/cookies.json')`
+
+**API surface testing:**
+Run `map_api(url)` to get the full REST/GraphQL/WebSocket surface of any page.
+Detects auth patterns (Bearer, Cookie, API-Key), finds unprotected data endpoints,
+flags error disclosure. Add `include_api_map=True` to `deep_test` for per-page API maps.
+
+**SPA hidden state discovery:**
+Run `explore_interactions(url)` to click through all tabs/modals/drawers/accordions
+and discover pages + states that standard crawlers miss. Add `explore=True` to `deep_test`.
+
+**Complete power command for any authenticated SaaS:**
+```
+import_chrome_session(url='https://app.example.com')
+deep_test(url='https://app.example.com', auto_chrome_session=True,
+          include_api_map=True, explore=True, max_pages=50,
+          report_path='./report.html')
+```
 - Output is **terse by default**; pass `verbose=true` only when you need full JSON.
 - For long sessions or small-context models, keep raw tool output compact, but the
   final answer must still show the full Fagun user-facing result: verdict, score,

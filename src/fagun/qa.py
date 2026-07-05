@@ -704,6 +704,9 @@ async def deep_test(
     keyboard: bool = True,
     fuzz: bool = True,
     session_name: str = "",
+    auto_chrome_session: bool = False,
+    include_api_map: bool = False,
+    explore: bool = False,
 ) -> dict[str, Any]:
     """Comprehensive test: crawl ALL discoverable pages (sitemap + SPA routes +
     nav links + BFS), then per page run:
@@ -716,17 +719,40 @@ async def deep_test(
     Every finding is evidence-backed — no fabricated results.
     Pass max_pages=200 or higher for very large sites.
     Set fuzz=False to skip active form fuzzing (faster, less intrusive).
-    Pass session_name to load a saved authenticated session before crawling."""
+    Pass session_name to load a saved authenticated session before crawling.
+    Set auto_chrome_session=True to automatically import Chrome cookies for the domain.
+    Set include_api_map=True to map REST/GraphQL/WebSocket surface on each page.
+    Set explore=True to click through interactive elements to discover hidden states."""
     from . import uat as _uat
     from . import session as _session
+
+    bridge_result: dict[str, Any] = {}
+
+    # Auto-import Chrome session (reads cookies from running Chrome or profile DB)
+    if auto_chrome_session:
+        try:
+            from . import chrome_bridge
+            bridge_result = await chrome_bridge.auto_import(url)
+        except Exception as e:
+            bridge_result = {"imported": 0, "error": str(e)}
 
     # Load saved session if provided — must happen before crawl so authenticated
     # pages (dashboard, analytics, etc.) are discoverable.
     if session_name:
         try:
             await _session.load_session(session_name)
-        except Exception as e:
+        except Exception:
             pass  # proceed unauthenticated if session load fails
+
+    # Explore SPA interactions on homepage to discover hidden pages before crawl
+    interaction_result: dict[str, Any] = {}
+    if explore:
+        try:
+            from . import interactive as _interactive
+            interaction_result = await _interactive.explore_interactions(url, max_clicks=30)
+            # Add newly discovered URLs to the crawl seed
+        except Exception as e:
+            interaction_result = {"error": str(e)}
 
     crawl_result = await crawl(url, max_pages)
 
@@ -825,6 +851,24 @@ async def deep_test(
                 {"severity": "low", "type": "check-error", "detail": f"mobile-ux failed: {e}"}
             )
 
+        # API surface map (optional — maps REST/GraphQL/WebSocket per page)
+        if include_api_map:
+            try:
+                from . import api_mapper as _api_mapper
+                api_result = await _api_mapper.map_api(page_url, interact=False)
+                merged["api_map"] = {
+                    "endpoints": api_result.get("endpoints", []),
+                    "graphql": api_result.get("graphql", []),
+                    "websockets": api_result.get("websockets", []),
+                    "auth_pattern": api_result.get("auth_pattern", "none"),
+                    "summary": api_result.get("summary", {}),
+                }
+                merged["findings"].extend(api_result.get("findings", []))
+            except Exception as e:
+                merged["findings"].append(
+                    {"severity": "low", "type": "check-error", "detail": f"api_map failed: {e}"}
+                )
+
         # Dedup after merging many sources.
         seen: set[tuple[str, str]] = set()
         uniq = []
@@ -882,6 +926,14 @@ async def deep_test(
             "were tested within max_pages."
         )
         coverage["not_tested"] = []
+
+    if bridge_result:
+        coverage["chrome_session_import"] = bridge_result
+    if interaction_result:
+        coverage["interaction_exploration"] = {
+            "new_urls_discovered": interaction_result.get("new_urls_discovered", []),
+            "ui_states_revealed": interaction_result.get("summary", {}).get("ui_states_revealed", 0),
+        }
 
     if results:
         results[0]["coverage"] = coverage

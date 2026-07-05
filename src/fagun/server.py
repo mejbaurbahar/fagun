@@ -97,11 +97,18 @@ client exposes it, then fall back to Fagun's own browser if needed.
 - `security scan <url>` · `perf audit <url>` · `a11y audit <url>`
 - `emulate mobile` · `keyboard walk <url>` · `run journey <steps>`
 
-**Authenticated app testing (SaaS dashboards, portals)**
-1. `login_with_credentials(url, username, password, save_as='myapp')`
-2. `deep_test(url, session_name='myapp', max_pages=50)`
-   → Fagun loads the session, crawls ALL authenticated pages, and tests everything.
-   Auth wall auto-detected: if only login/signup found, exact fix steps are shown.
+**Authenticated testing — any website, any auth method**
+- `import_chrome_session(url)` → reads your Chrome cookies (no credentials needed)
+  Works for any site you're logged into: SaaS, e-commerce, banking, Google/GitHub OAuth, SSO
+- `login_with_credentials(url, username, password, save_as='myapp')` → logs in directly
+- `deep_test(url, auto_chrome_session=True, max_pages=50)` → auto-imports Chrome session + full test
+- `deep_test(url, session_name='myapp', max_pages=50)` → loads saved session + full test
+  Auth wall auto-detected: if login wall hit, exact fix commands shown.
+
+**Advanced discovery**
+- `map_api(url)` → REST endpoints, GraphQL ops, WebSockets, auth patterns, unprotected endpoints
+- `explore_interactions(url)` → clicks tabs/modals/drawers to find hidden SPA pages
+- `deep_test(url, include_api_map=True, explore=True)` → all-in-one
 
 **What I check**
 `product map` · `journeys` · `auth/session` · `links` · `console` · `network` · `forms` ·
@@ -463,7 +470,11 @@ async def test_forms(url: str, verbose: bool = False) -> str:
 @_browser_tool
 async def deep_test(url: str, max_pages: int = 50, report_path: Optional[str] = None,
                     security: bool = True, perf: bool = True, keyboard: bool = True,
-                    fuzz: bool = True, session_name: str = "", verbose: bool = False) -> str:
+                    fuzz: bool = True, session_name: str = "",
+                    auto_chrome_session: bool = False,
+                    include_api_map: bool = False,
+                    explore: bool = False,
+                    verbose: bool = False) -> str:
     """Full site audit: crawl ALL pages (sitemap + SPA routes + nav links + BFS) then
     per page: QA (console/network/WCAG a11y/SEO+OG/Twitter/JSON-LD) + static form audit
     + active form fuzzing (injection/unicode/boundary/select/checkbox) + security headers
@@ -471,15 +482,23 @@ async def deep_test(url: str, max_pages: int = 50, report_path: Optional[str] = 
     + keyboard reachability + mobile viewport (375px) responsive check.
     Produces a 16-category product-readiness scorecard + release verdict.
 
-    AUTHENTICATED TESTING: If the app requires login, first run:
-      login_with_credentials(url, username, password, save_as='myapp')
-    Then pass session_name='myapp' here — Fagun will load the session before crawling
-    so ALL authenticated pages (dashboard, analytics, settings, etc.) are tested.
+    AUTHENTICATED TESTING (any website, any auth method):
+    - auto_chrome_session=True → reads cookies from your running Chrome automatically
+      (no credentials needed — works for any site you're logged into in Chrome)
+    - session_name='myapp' → loads a previously saved Fagun session
+    - login_with_credentials() → logs in with email/password, then use session_name
+
+    ADVANCED DISCOVERY:
+    - include_api_map=True → maps REST/GraphQL/WebSocket surface per page
+    - explore=True → clicks through tabs/accordions/modals to find hidden SPA states
 
     Set fuzz=False for faster scans. Report format: .md / .html / .json / .xml(JUnit).
     Every finding is evidence-backed — no fabricated results."""
     result = await _deep_test(url, max_pages, security=security, perf=perf,
-                              keyboard=keyboard, fuzz=fuzz, session_name=session_name)
+                              keyboard=keyboard, fuzz=fuzz, session_name=session_name,
+                              auto_chrome_session=auto_chrome_session,
+                              include_api_map=include_api_map,
+                              explore=explore)
     scorecard = _readiness.build_scorecard(result["results"], meta={"target": url, "pages": result["pages_tested"]})
     prefix = ""
     if report_path:
@@ -818,6 +837,137 @@ def list_sessions() -> str:
 def delete_session(name: str) -> str:
     """Delete a saved session by name."""
     return _session.delete_session(name)
+
+
+@mcp.tool()
+@_browser_tool
+async def import_chrome_session(url: str, cookie_file: str = "",
+                                cdp_port: int = 9222, verbose: bool = False) -> str:
+    """Import your real Chrome browser session for a domain into Fagun — no credentials needed.
+
+    Works for ANY website you are currently logged into in Chrome:
+    SaaS dashboards, e-commerce accounts, banking portals, admin panels,
+    Google/GitHub/Slack OAuth apps, SSO-protected apps, etc.
+
+    Three methods tried automatically:
+    1. CDP (best) — reads live cookies from Chrome's debug port (requires Chrome
+       launched with --remote-debugging-port=9222, or run connect_chrome first)
+    2. Chrome profile — reads & decrypts the Cookies SQLite database from your
+       Chrome installation (works without --remote-debugging-port)
+    3. File — pass cookie_file='path/to/cookies.json' exported from a browser extension
+
+    After this call, run deep_test(url, ...) and Fagun tests as the logged-in user."""
+    from . import chrome_bridge as _cb
+    if cookie_file:
+        result = await _cb.import_from_file(cookie_file, url)
+    else:
+        result = await _cb.auto_import(url, cdp_port=cdp_port)
+    if verbose or not fmt.is_terse():
+        return fmt.dumps(result)
+    n = result.get("imported", 0)
+    method = result.get("auto_method") or result.get("method", "?")
+    domain = result.get("domain", url)
+    if n > 0:
+        cookies = result.get("cookies", [])
+        ls_keys = result.get("localStorage_keys", [])
+        lines = [
+            f"✅ Imported {n} cookie(s) for {domain} via {method}.",
+            f"   Cookies: {', '.join(cookies[:8])}{'...' if len(cookies) > 8 else ''}",
+        ]
+        if ls_keys:
+            lines.append(f"   localStorage: {', '.join(ls_keys[:5])}")
+        lines.append(f"Now run: deep_test(url='{url}', max_pages=50)")
+        return "\n".join(lines)
+    return (f"⚠️ Could not import Chrome session for {domain} ({method}). "
+            f"{result.get('error', '')}\n"
+            f"Try: connect_chrome() first, or login_with_credentials(url, username, password)")
+
+
+@mcp.tool()
+@_browser_tool
+async def map_api(url: str, interact: bool = True, verbose: bool = False) -> str:
+    """Intercept ALL network traffic to map the complete API surface of a page.
+
+    Discovers: REST endpoints (method, path, status, auth, response time),
+    GraphQL operations (query names, mutations), WebSocket connections,
+    third-party integrations (analytics, tracking, CDNs).
+
+    Detects auth patterns (Bearer token, Cookie, API-Key, Basic auth) and flags:
+    - API calls over HTTP (not HTTPS)
+    - Data endpoints with no auth header
+    - Verbose error responses disclosing stack traces
+
+    With interact=True (default), scrolls and clicks safe elements to trigger
+    lazy-loaded API calls (tabs, accordions) that only fire on interaction."""
+    from . import api_mapper as _api_mapper
+    r = await _api_mapper.map_api(url, interact=interact)
+    if verbose or not fmt.is_terse():
+        return fmt.dumps(r)
+    s = r.get("summary", {})
+    lines = [
+        f"API map: {url}",
+        f"  REST endpoints: {s.get('rest_endpoints', 0)}",
+        f"  GraphQL ops: {s.get('graphql_operations', 0)}",
+        f"  WebSockets: {s.get('websocket_connections', 0)}",
+        f"  Third-party domains: {s.get('third_party_domains', 0)}",
+        f"  Auth pattern: {r.get('auth_pattern', 'none')}",
+    ]
+    if r.get("endpoints"):
+        lines.append("Top endpoints:")
+        for ep in r["endpoints"][:10]:
+            lines.append(f"    {ep['method']} {ep['path']} → {ep.get('status','?')} "
+                         f"[{ep.get('auth','?')}] {ep.get('ms','?')}ms")
+    if r.get("graphql"):
+        lines.append("GraphQL operations:")
+        for gql in r["graphql"][:5]:
+            lines.append(f"    {gql.get('operation','?')[:60]}")
+    if r.get("websockets"):
+        lines.append("WebSockets: " + ", ".join(r["websockets"][:3]))
+    return "\n".join(lines) + "\n" + fmt.findings_block(url, r.get("findings", []), meta="api-security")
+
+
+@mcp.tool()
+@_browser_tool
+async def explore_interactions(url: str, max_clicks: int = 30, verbose: bool = False) -> str:
+    """Click through ALL interactive elements to discover hidden pages and UI states.
+
+    Standard crawlers follow <a href> links but miss SPA content hidden behind:
+    tabs, accordion sections, drawers/panels, dropdown menus, modal dialogs,
+    JS-router navigation triggered by button clicks.
+
+    This tool clicks every safe interactive element (tabs, aria-expanded toggles,
+    summary/details, data-toggle, nav links), records what appears (new URL,
+    modal content, drawer panels, console errors), and returns:
+    - new_urls_discovered — pages reachable only via interaction
+    - interactive_states — modals/drawers/panels and what they contain
+    - findings — JS errors triggered by interactions
+
+    NON-DESTRUCTIVE: skips submit, delete, pay, cancel, logout buttons."""
+    from . import interactive as _interactive
+    r = await _interactive.explore_interactions(url, max_clicks=max_clicks)
+    if verbose or not fmt.is_terse():
+        return fmt.dumps(r)
+    s = r.get("summary", {})
+    lines = [
+        f"Interaction explorer: {url}",
+        f"  Clicks attempted: {r.get('clicks_attempted', 0)}",
+        f"  New pages discovered: {s.get('new_pages', 0)}",
+        f"  UI states revealed: {s.get('ui_states_revealed', 0)}",
+        f"  Interaction errors: {s.get('interaction_errors', 0)}",
+    ]
+    if r.get("new_urls_discovered"):
+        lines.append("New URLs (add to deep_test):")
+        for u in r["new_urls_discovered"][:10]:
+            lines.append(f"  {u}")
+    if r.get("interactive_states"):
+        lines.append("UI states revealed:")
+        for st in r["interactive_states"][:8]:
+            err = f" [{st['errors']} err]" if st.get("errors") else ""
+            lines.append(f"  {st['trigger']} → {st['reveals']}{err}")
+    return "\n".join(lines) + (
+        "\n" + fmt.findings_block(url, r.get("findings", []), meta="interactions")
+        if r.get("findings") else ""
+    )
 
 
 @mcp.tool()
