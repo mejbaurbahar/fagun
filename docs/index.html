@@ -35,13 +35,13 @@ body{background:#0d0b16}
 .fg-wf-shell{position:relative;background:#050507;border:1px solid rgba(232,176,75,.2);border-radius:22px;padding:28px;box-shadow:0 28px 90px -42px rgba(0,0,0,.95),inset 0 1px 0 rgba(255,255,255,.05);overflow:hidden}
 .fg-wf-shell:before{content:"";position:absolute;inset:0;background:linear-gradient(rgba(255,255,255,.035) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.035) 1px,transparent 1px);background-size:42px 42px;opacity:.42;pointer-events:none}
 .fg-wf-shell:after{content:"";position:absolute;inset:-20%;background:radial-gradient(48% 38% at 50% 20%,rgba(232,176,75,.2),transparent 68%),radial-gradient(34% 28% at 80% 82%,rgba(34,197,94,.13),transparent 72%);pointer-events:none}
-.fg-wf-canvas{position:relative;width:100%;height:930px;min-width:790px;margin:0 auto;z-index:1}
+.fg-wf-canvas{position:relative;width:100%;height:1080px;min-width:790px;margin:0 auto;z-index:1}
 .fg-wf-card{position:absolute;background:linear-gradient(180deg,rgba(31,31,34,.96),rgba(18,18,20,.96));border:1px solid rgba(255,255,255,.13);border-radius:10px;padding:16px 18px;box-shadow:0 24px 70px -36px rgba(0,0,0,.95),inset 0 1px 0 rgba(255,255,255,.05);animation:fgFlowPulse 7s ease-in-out infinite}
 .fg-wf-card strong{display:flex;align-items:center;gap:9px;margin:0 0 13px;font-size:14px;font-weight:650;color:#fff;letter-spacing:0}
 .fg-wf-card p{margin:0;color:#f4f4f4;font-size:14px;line-height:1.45}.fg-wf-card small{display:block;margin-top:8px;color:#9b9b9b;font-size:12px;line-height:1.45}
 .fg-wf-no{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:7px;background:rgba(232,176,75,.14);border:1px solid rgba(232,176,75,.36);color:#f0c877;font-size:11px;font-weight:800}
 .fg-wf-chip{display:inline-flex;align-items:center;gap:6px;border:1px solid rgba(255,255,255,.1);background:#2b2b2e;border-radius:999px;padding:5px 10px;font-size:12px;font-weight:650;color:#ededed;white-space:nowrap}
-.fg-wf-chips{position:absolute;left:50%;top:456px;transform:translateX(-50%);display:flex;flex-wrap:wrap;justify-content:center;gap:8px;width:560px;z-index:3}
+.fg-wf-chips{position:absolute;left:50%;top:520px;transform:translateX(-50%);display:flex;flex-wrap:wrap;justify-content:center;gap:10px;width:620px;z-index:3}
 .fg-wf-pill{position:absolute;display:inline-flex;align-items:center;gap:7px;background:#2b2b2e;border:1px solid rgba(255,255,255,.1);border-radius:999px;padding:5px 11px;font-size:12px;font-weight:650;color:#ececec;white-space:nowrap;z-index:3}
 .fg-wf-label{position:absolute;display:inline-flex;align-items:center;gap:7px;background:#303033;border:1px solid rgba(255,255,255,.08);border-radius:999px;padding:5px 11px;font-size:12px;font-weight:650;color:#f0f0f0;white-space:nowrap;z-index:3}
 .fg-wf-svg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}.fg-wf-svg path,.fg-wf-svg line{stroke:#747474;stroke-width:2;fill:none}.fg-wf-svg .beam{stroke:#E8B04B;stroke-dasharray:11 12;animation:fgBeam 3.5s linear infinite;filter:drop-shadow(0 0 8px rgba(232,176,75,.4))}.fg-wf-dot{fill:#858585}.fg-wf-pulse{animation:fgOrbit 4s ease-in-out infinite}
@@ -182,13 +182,13 @@ body{background:#0d0b16}
     <p style="margin:0 0 30px;font-size:15.5px;line-height:1.6;color:var(--muted);max-width:760px">Users only need to install once, restart the AI tool, then type <span style="color:var(--text)">fagun deep test URL</span>. Fagun opens the target in a real browser, maps the business flow, checks auth, clicks/fills real fields with labelled test data, watches console/network, and saves an action-by-action report.</p>
     <div class="fg-wf-shell">
       <div class="fg-wf-canvas">
-        <svg class="fg-wf-svg" viewBox="0 0 760 930" preserveAspectRatio="none" aria-hidden="true">
+        <svg class="fg-wf-svg" viewBox="0 0 760 1080" preserveAspectRatio="none" aria-hidden="true">
           <path class="beam" d="M380 105 L380 168"/>
-          <path class="beam" d="M380 278 L380 320"/>
-          <path class="beam" d="M380 386 L380 520"/>
-          <path class="beam" d="M380 545 C358 600 286 570 268 636 L268 710 C268 744 218 732 196 770"/>
-          <path class="beam" d="M380 545 C402 600 474 570 492 636 L492 700 C492 734 560 722 574 758"/>
-          <circle class="fg-wf-dot fg-wf-pulse" cx="380" cy="105" r="4"/><circle class="fg-wf-dot fg-wf-pulse" cx="380" cy="278" r="4"/><circle class="fg-wf-dot fg-wf-pulse" cx="380" cy="545" r="5"/>
+          <path class="beam" d="M380 292 L380 350"/>
+          <path class="beam" d="M380 468 L380 590"/>
+          <path class="beam" d="M380 650 C348 710 292 690 264 760 L264 840 C264 878 214 868 196 912"/>
+          <path class="beam" d="M380 650 C412 710 468 690 496 760 L496 825 C496 868 560 852 586 898"/>
+          <circle class="fg-wf-dot fg-wf-pulse" cx="380" cy="105" r="4"/><circle class="fg-wf-dot fg-wf-pulse" cx="380" cy="292" r="4"/><circle class="fg-wf-dot fg-wf-pulse" cx="380" cy="650" r="5"/>
         </svg>
         <div class="fg-wf-card" style="left:calc(50% - 190px);top:0;width:380px">
           <strong><span class="fg-wf-no">01</span> Install and auto-wire</strong>
@@ -199,26 +199,26 @@ body{background:#0d0b16}
           <strong><span class="fg-wf-no">02</span> Open any AI tool</strong>
           <p>Claude, Codex, Cursor, Windsurf</p><small>Fagun loads as a skill plus MCP tools, so every model sees the same interface.</small>
         </div>
-        <div class="fg-wf-pill" style="left:calc(50% - 86px);top:296px">user runs one command</div>
-        <div class="fg-wf-card" style="left:calc(50% - 185px);top:320px;width:370px">
+        <div class="fg-wf-pill" style="left:calc(50% - 86px);top:310px">user runs one command</div>
+        <div class="fg-wf-card" style="left:calc(50% - 185px);top:350px;width:370px">
           <strong><span class="fg-wf-no">03</span> fagun deep test URL</strong>
           <p>Open target, map product, check auth</p><small>Chrome MCP reuses signed-in Chrome; if logged out, Fagun asks for manual login or authorized test credentials.</small>
         </div>
         <div class="fg-wf-chips">
           <span class="fg-wf-chip">product map</span><span class="fg-wf-chip">auth check</span><span class="fg-wf-chip">clicks</span><span class="fg-wf-chip">inputs</span><span class="fg-wf-chip">test data</span><span class="fg-wf-chip">console</span><span class="fg-wf-chip">network</span><span class="fg-wf-chip">a11y</span><span class="fg-wf-chip">security</span>
         </div>
-        <div class="fg-wf-card" style="left:calc(50% - 125px);top:520px;width:250px">
+        <div class="fg-wf-card" style="left:calc(50% - 125px);top:610px;width:250px">
           <strong><span class="fg-wf-no">04</span> Readiness gate</strong>
           <p>Does the app pass?</p><small>Every visit, click, fill, assertion, screenshot, failed request, and console error is recorded.</small>
         </div>
-        <div class="fg-wf-label" style="left:calc(50% - 248px);top:620px;color:#b7f082">pass path</div>
-        <div class="fg-wf-label" style="left:calc(50% + 120px);top:620px;color:#fca5a5">fix path</div>
-        <div class="fg-wf-card" style="left:34px;top:770px;width:255px">
+        <div class="fg-wf-label" style="left:calc(50% - 332px);top:748px;color:#b7f082">pass path</div>
+        <div class="fg-wf-label" style="left:calc(50% + 210px);top:748px;color:#fca5a5">fix path</div>
+        <div class="fg-wf-card" style="left:34px;top:912px;width:255px">
           <strong><span class="fg-wf-no">05A</span> Ship / monitor</strong>
           <p>Ready verdict</p><small>Evidence archived, report saved, retest command included.</small>
         </div>
-        <div class="fg-wf-pill" style="left:calc(50% + 232px);top:736px">immediate</div>
-        <div class="fg-wf-card" style="right:34px;top:758px;width:365px;border-color:rgba(248,113,113,.36)">
+        <div class="fg-wf-pill" style="left:calc(50% + 262px);top:878px">immediate</div>
+        <div class="fg-wf-card" style="right:34px;top:900px;width:365px;border-color:rgba(248,113,113,.36)">
           <strong><span class="fg-wf-no" style="border-color:rgba(248,113,113,.45);background:rgba(248,113,113,.13);color:#fecaca">05B</span> Full bug report</strong>
           <p>Action replay, findings, repro steps, screenshots, failed requests, console errors, fixes.</p><small>HTML · Markdown · JSON · JUnit · CI friendly.</small>
         </div>
