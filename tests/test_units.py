@@ -230,13 +230,11 @@ def test_sitemap_and_robots_regexes():
 
 
 def test_pytest_import_path_is_configured():
-    import tomllib
     from pathlib import Path
 
-    pyproject = tomllib.loads(Path("pyproject.toml").read_text())
-    opts = pyproject["tool"]["pytest"]["ini_options"]
-    assert "src" in opts["pythonpath"]
-    assert "--strict-config" in opts["addopts"]
+    pyproject = Path("pyproject.toml").read_text()
+    assert 'pythonpath = ["src"]' in pyproject
+    assert 'addopts = "--strict-config --strict-markers"' in pyproject
 
 
 # ------------------------------------------------------------------- sessions
