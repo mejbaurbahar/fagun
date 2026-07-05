@@ -378,8 +378,11 @@ def test_website_documents_auto_chrome_and_full_output():
     assert "safe external security-tool planning" in home
     assert 'id="workflow"' in home
     assert 'id="workflow"' in docs
-    assert "Chrome DevTools MCP auto-connects to signed-in Chrome" in docs
-    assert "Full Fagun answer in chat plus HTML, Markdown, JSON, or JUnit report" in home
+    assert "Chrome DevTools MCP auto-connects" in docs
+    assert "Signed-in Chrome reused after Allow" in docs
+    assert "Does the app pass?" in home
+    assert "Full bug report" in home
+    assert "Ship / monitor" in home
 
 
 def test_readme_and_install_docs_prefer_init_and_cover_pip():
