@@ -23,11 +23,13 @@ def main() -> None:
         import os
 
         from .browser import ensure_browser_installed
+        from .install import _open_remote_debugging_setup
 
         engine = os.environ.get("FAGUN_BROWSER", "chromium").lower()
         print(f"Installing {engine} browser engine…")
         ensure_browser_installed(engine)
         print(f"✅ {engine} ready. Add fagun to your AI tool: `fagun install`")
+        _open_remote_debugging_setup()
         return
 
     # `fagun connect-chrome` — launch a debuggable Chrome (no manual chrome://inspect).

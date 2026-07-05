@@ -30,7 +30,9 @@ uvx fagun init
 That's the whole install. `fagun init` installs the Chrome engine **and** auto-detects
 every AI tool on your machine (Claude Code, Claude Desktop, Cursor, Codex, Windsurf)
 and registers the fagun browser tools, **Chrome DevTools MCP**, **+** the `/fagun`
-skill in each one.
+skill in each one. It also opens `chrome://inspect/#remote-debugging` so Chrome
+can show the official **Allow remote debugging?** popup when Fagun attaches to
+your signed-in default Chrome session.
 
 Then restart your AI tool and type **`fagun`** — followed by what you want tested.
 
@@ -109,7 +111,7 @@ Every tool gets two MCP servers:
 
 | Tool | How |
 |------|-----|
-| **Claude Code** | `claude mcp add fagun -- uvx fagun` and `claude mcp add chrome-devtools -- npx -y chrome-devtools-mcp@latest --no-usage-statistics` |
+| **Claude Code** | `claude mcp add fagun -- uvx fagun` and `claude mcp add chrome-devtools -- npx -y chrome-devtools-mcp@latest --auto-connect --no-usage-statistics` |
 | **Claude Desktop** | add the JSON below to `claude_desktop_config.json` |
 | **Cursor** | `uvx fagun install cursor` (writes `~/.cursor/mcp.json`) |
 | **VS Code (Copilot)** | `uvx fagun install vscode` (writes `.vscode/mcp.json`) |
@@ -123,7 +125,7 @@ Every tool gets two MCP servers:
     "fagun": { "command": "uvx", "args": ["fagun"] },
     "chrome-devtools": {
       "command": "npx",
-      "args": ["-y", "chrome-devtools-mcp@latest", "--no-usage-statistics"],
+      "args": ["-y", "chrome-devtools-mcp@latest", "--auto-connect", "--no-usage-statistics"],
       "env": {
         "CHROME_DEVTOOLS_MCP_NO_USAGE_STATISTICS": "1",
         "CHROME_DEVTOOLS_MCP_NO_UPDATE_CHECKS": "1"
@@ -141,14 +143,15 @@ args = ["fagun"]
 
 [mcp_servers.chrome-devtools]
 command = "npx"
-args = ["-y", "chrome-devtools-mcp@latest", "--no-usage-statistics"]
+args = ["-y", "chrome-devtools-mcp@latest", "--auto-connect", "--no-usage-statistics"]
 env = { CHROME_DEVTOOLS_MCP_NO_USAGE_STATISTICS = "1", CHROME_DEVTOOLS_MCP_NO_UPDATE_CHECKS = "1" }
 startup_timeout_ms = 20_000
 ```
 
 The `-y` flag prevents `npx` from asking the user to confirm package download.
-By default Chrome DevTools MCP launches its own dedicated Chrome profile, so no
-manual `chrome://inspect` setup is needed.
+`--auto-connect` makes Chrome DevTools MCP attach to the user's running Chrome.
+On first setup, Fagun opens `chrome://inspect/#remote-debugging`; turn on remote
+debugging there, then click **Allow** when Chrome shows the permission popup.
 Fagun opts out of Chrome DevTools MCP usage statistics and update-check noise in
 generated configs.
 
@@ -274,9 +277,11 @@ GET/HEAD only, no attacks on third parties:
 
 ## 🔌 Use your own logged-in Chrome (self-healing + sessions)
 
-- `connect to my Chrome` → Fagun launches a debuggable Chrome and attaches — **no
-  manual `chrome://inspect` step**. Great for testing behind a login (reuses your
-  session).
+- Chrome DevTools MCP uses `--auto-connect` so it can reuse your already-signed-in
+  default Chrome after you allow remote debugging. Great for testing behind a
+  login without giving credentials to the AI.
+- `connect to my Chrome` → fallback path that launches a dedicated debuggable
+  Chrome profile and attaches to it.
 - `browser_exec` → when no built-in tool fits, the AI writes Python against the live
   page (full Playwright). `save_helper` persists what works, so Fagun gets smarter
   every run.

@@ -27,6 +27,10 @@ practical improvements.
 You drive a real browser through the `fagun` MCP server. When the client also has
 the official `chrome-devtools` MCP server (installed automatically by
 `fagun init`), use it for live DevTools-level debugging and performance traces.
+Fagun configures Chrome DevTools MCP with `--auto-connect`, so it can reuse the
+user's signed-in Chrome after they enable `chrome://inspect/#remote-debugging`
+and click Chrome's **Allow remote debugging** popup. Do not ask for login
+credentials if the signed-in browser session is available.
 **Evidence or it didn't happen** — every finding, score, and verdict must trace
 to a tool result (a console error, a status code, a DOM fact, a screenshot, a
 measured number, a journey step that failed). Never fabricate. If you can't

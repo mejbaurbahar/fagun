@@ -10,11 +10,19 @@ from __future__ import annotations
 
 import json
 import os
+import subprocess
 import sys
+import webbrowser
 from pathlib import Path
 
 SERVER_BLOCK = {"command": "uvx", "args": ["fagun"]}
-CHROME_DEVTOOLS_ARGS = ["-y", "chrome-devtools-mcp@latest", "--no-usage-statistics"]
+REMOTE_DEBUGGING_SETUP_URL = "chrome://inspect/#remote-debugging"
+CHROME_DEVTOOLS_ARGS = [
+    "-y",
+    "chrome-devtools-mcp@latest",
+    "--auto-connect",
+    "--no-usage-statistics",
+]
 CHROME_DEVTOOLS_ENV = {
     "CHROME_DEVTOOLS_MCP_NO_USAGE_STATISTICS": "1",
     "CHROME_DEVTOOLS_MCP_NO_UPDATE_CHECKS": "1",
@@ -39,7 +47,7 @@ args = ["fagun"]
 
 [mcp_servers.chrome-devtools]
 command = "npx"
-args = ["-y", "chrome-devtools-mcp@latest", "--no-usage-statistics"]
+args = ["-y", "chrome-devtools-mcp@latest", "--auto-connect", "--no-usage-statistics"]
 env = { CHROME_DEVTOOLS_MCP_NO_USAGE_STATISTICS = "1", CHROME_DEVTOOLS_MCP_NO_UPDATE_CHECKS = "1" }
 startup_timeout_ms = 20_000"""
 
@@ -52,7 +60,7 @@ Prereqs (once) — no Python/pip needed, uv brings its own:
 
 ────────────────────────────────────────────────────────────────────
 Claude Code        →  run:  claude mcp add fagun -- uvx fagun
-                       claude mcp add chrome-devtools -- npx -y chrome-devtools-mcp@latest --no-usage-statistics
+                       claude mcp add chrome-devtools -- npx -y chrome-devtools-mcp@latest --auto-connect --no-usage-statistics
 Claude Desktop     →  ~/Library/Application Support/Claude/claude_desktop_config.json
 Cursor             →  ~/.cursor/mcp.json   (or .cursor/mcp.json in project)
 Windsurf / Cline / Antigravity  →  their MCP settings, same JSON as Cursor
@@ -79,8 +87,10 @@ Codex CLI          →  ~/.codex/config.toml
   /plugin install fagun@fagun
 ────────────────────────────────────────────────────────────────────
 Fagun also registers Chrome DevTools MCP automatically. It uses `npx -y
-chrome-devtools-mcp@latest --no-usage-statistics`, so Chrome DevTools can launch
-its own dedicated Chrome profile without user-side chrome://inspect setup.
+chrome-devtools-mcp@latest --auto-connect --no-usage-statistics`, so Chrome
+DevTools MCP connects to the user's running Chrome session. Setup opens
+chrome://inspect/#remote-debugging so Chrome can show the official Allow remote
+debugging permission popup on first attach.
 
 After adding: restart the tool, then type  fagun  to start.
 """
@@ -156,7 +166,8 @@ def init() -> None:
         print(f"  ⚠️  browser install failed: {e}")
 
     if shutil.which("npx"):
-        print("• Chrome DevTools MCP ready via npx -y chrome-devtools-mcp@latest --no-usage-statistics")
+        print("• Chrome DevTools MCP ready via npx -y chrome-devtools-mcp@latest --auto-connect --no-usage-statistics")
+        _open_remote_debugging_setup()
     else:
         print("• Chrome DevTools MCP needs Node.js/npx on PATH — install Node.js, then rerun `uvx fagun init`")
 
@@ -258,9 +269,11 @@ def run_cli(argv: list[str]) -> None:
     elif target in ("claude-code", "cc"):
         _install_claude_code()
         _install_claude_code_chrome_devtools()
+        _open_remote_debugging_setup()
         _install_skill(home / ".claude" / "skills")
     elif target in ("chrome", "chrome-devtools"):
         _install_chrome_devtools_only()
+        _open_remote_debugging_setup()
     elif target == "skill":
         _install_skill(home / ".claude" / "skills")
     else:
@@ -349,12 +362,50 @@ def _install_claude_code_chrome_devtools() -> None:
     _run_cli_mcp_add("claude", "chrome-devtools", ["npx", *CHROME_DEVTOOLS_ARGS])
 
 
+def _open_remote_debugging_setup() -> None:
+    """Open Chrome's official remote-debugging setup page.
+
+    Chrome DevTools MCP `--auto-connect` intentionally requires the user to allow
+    remote debugging in Chrome. Opening this page mirrors browser-harness setup:
+    the user can tick the setting, and Chrome 144+ will show the Allow popup on
+    first attach.
+    """
+    try:
+        if sys.platform == "darwin":
+            subprocess.Popen(
+                ["open", "-a", "Google Chrome", REMOTE_DEBUGGING_SETUP_URL],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
+        elif sys.platform.startswith("win"):
+            os.startfile(REMOTE_DEBUGGING_SETUP_URL)  # type: ignore[attr-defined]
+        else:
+            chrome = _which_first("google-chrome", "google-chrome-stable", "chromium", "chromium-browser")
+            if chrome:
+                subprocess.Popen([chrome, REMOTE_DEBUGGING_SETUP_URL], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            else:
+                webbrowser.open(REMOTE_DEBUGGING_SETUP_URL)
+        print("• Opened chrome://inspect/#remote-debugging — enable remote debugging, then click Allow when Chrome asks.")
+    except Exception as e:
+        print(f"• Open Chrome and visit {REMOTE_DEBUGGING_SETUP_URL} to enable remote debugging ({type(e).__name__}: {e})")
+
+
+def _which_first(*names: str) -> str | None:
+    import shutil
+
+    for name in names:
+        found = shutil.which(name)
+        if found:
+            return found
+    return None
+
+
 def _codex_chrome_devtools_block() -> str:
     if sys.platform.startswith("win"):
         return (
             '\n[mcp_servers.chrome-devtools]\n'
             'command = "cmd"\n'
-            'args = ["/c", "npx", "-y", "chrome-devtools-mcp@latest", "--no-usage-statistics"]\n'
+            'args = ["/c", "npx", "-y", "chrome-devtools-mcp@latest", "--auto-connect", "--no-usage-statistics"]\n'
             'env = { SystemRoot = "C:\\\\Windows", PROGRAMFILES = "C:\\\\Program Files", '
             'CHROME_DEVTOOLS_MCP_NO_USAGE_STATISTICS = "1", CHROME_DEVTOOLS_MCP_NO_UPDATE_CHECKS = "1" }\n'
             "startup_timeout_ms = 20_000\n"
@@ -362,7 +413,7 @@ def _codex_chrome_devtools_block() -> str:
     return (
         '\n[mcp_servers.chrome-devtools]\n'
         'command = "npx"\n'
-        'args = ["-y", "chrome-devtools-mcp@latest", "--no-usage-statistics"]\n'
+        'args = ["-y", "chrome-devtools-mcp@latest", "--auto-connect", "--no-usage-statistics"]\n'
         'env = { CHROME_DEVTOOLS_MCP_NO_USAGE_STATISTICS = "1", CHROME_DEVTOOLS_MCP_NO_UPDATE_CHECKS = "1" }\n'
         "startup_timeout_ms = 20_000\n"
     )

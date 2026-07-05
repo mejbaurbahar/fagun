@@ -64,56 +64,44 @@ def _browser_tool(fn):
 
     return wrapper
 
-MENU = f"""🦊 **Fagun v{__version__}** — end-user + UAT + QA agent, ready.
+MENU = f"""🦊 **Fagun v{__version__}** — real-user UAT, QA, security, and readiness.
 
-I don't just hunt bugs — I use your product like real customers do, validate
-whole user journeys, and give you a product-readiness verdict. Ask me to:
+```
+╭────────────────────────────────────────────────────────────╮
+│  FAGUN PROCESS                                             │
+├────────────────────────────────────────────────────────────┤
+│  1. Connect  → real Chrome / Chrome DevTools MCP           │
+│  2. Recon    → crawl, fingerprint, map journeys            │
+│  3. Act      → use the product like real customers         │
+│  4. Hunt     → console, network, forms, a11y, perf, sec    │
+│  5. Prove    → evidence, screenshots, vitals, repro steps  │
+│  6. Decide   → 16-category readiness verdict + report      │
+╰────────────────────────────────────────────────────────────╯
+```
 
-**UAT & end-user simulation**
-- `emulate <persona>` — experience the site as mobile / slow-internet / low-end /
-  keyboard-only / screen-reader / international / dark-mode / first-time user
-- `run journey` — walk a full flow (login, signup, search, checkout…) step by
-  step and tell you if a real user can finish it (screenshots + friction per step)
-- `keyboard walk <url>` — can a keyboard-only user reach & see everything?
-- `readiness report` — 16-category scorecard (UX/UI/business/a11y/perf/security…)
-  + a release verdict: Ready / Minor fixes / Medium fixes / Not ready / Critical
+Chrome DevTools MCP is configured for `--auto-connect`, so when Chrome asks
+**Allow remote debugging?**, click **Allow** to let Fagun/DevTools reuse your
+signed-in default Chrome session. That means logged-in dashboards can be tested
+without sharing passwords with the AI.
 
-**Browse & debug**
-- `open the browser` / `go to <url>`
-- `click <text>` · `type <text> into <field>` · `press Enter`
-- `screenshot` · `show console errors` · `show network requests`
-- `run this JS: <code>`
+**Fast commands**
+- `deep test <url> and save the report to ./fagun-report.html`
+- `run QA on <url>` · `check links on <url>` · `test forms on <url>`
+- `security scan <url>` · `perf audit <url>` · `a11y audit <url>`
+- `emulate mobile` · `keyboard walk <url>` · `run journey <steps>`
 
-**QA & bug hunting**
-- `crawl <url>` — map the site
-- `run QA on <url>` — console errors, failed requests, WCAG a11y, perf, SEO
-- `check links on <url>` — find broken links
-- `test forms on <url>` — static form security / validation / a11y (no submit)
-- `fuzz forms on <url>` — active: fills every field with valid/invalid/edge/
-  boundary/out-of-box/injection data, reports real validation gaps
-- `perf audit <url>` — real Core Web Vitals + Lighthouse-style score
-- `a11y audit <url>` — deep WCAG 2.1 incl. real color contrast
-- `security headers of <url>` — CSP, HSTS, X-Frame, info leaks
-- `security scan <url>` — full: exposed files, secrets, CORS, XSS, redirect,
-  SQLi, CSP, clickjacking, HTTP methods, CRLF, LFI, SSTI, cmdi, GraphQL, more
-- `advanced security <url>` — advanced probe battery only
-- `fingerprint <url>` — detect server / framework / CMS / analytics stack
-- `list test data <type>` — see the test-case catalog fuzz_forms uses
-- `deep test <url>` — crawl + QA + forms + security + vitals + keyboard +
-  readiness scorecard, one report (.md/.html/.json/.xml by extension)
-- `write the report to <path>`
+**What I check**
+`journeys` · `auth/session` · `links` · `console` · `network` · `forms` ·
+`validation` · `a11y` · `SEO` · `visual overflow` · `responsive layout` ·
+`Core Web Vitals` · `headers/CORS/CSP` · `XSS/redirect/SQLi/LFI/SSTI/cmdi` ·
+`secrets/exposed files` · `GraphQL` · `readiness score`
 
-**Authenticated testing**
-- log in once (drive it or `run journey`), then `save session` — Fagun stores
-  cookies + localStorage and can `load session` later to crawl / deep test /
-  security scan AS the logged-in user (dashboards, checkout, authorization)
+**Token-lean mode**
+Use `report_path` for full evidence on disk. Chat stays compact by default.
+Set `FAGUN_TERSE=mini` for extra-short summaries in small-context models.
 
-**Power / self-healing**
-- `connect to my Chrome` — auto-launches debuggable Chrome, no manual setup
-- `browser_exec <python>` — I write any missing automation against the live page
-- `save/list/load helper` — reusable snippets that make me smarter each run
-
-Tell me a URL to start. Example: *"deep test https://example.com and write the report to ./report.md."*
+Tell me a URL to start. Example:
+`fagun deep test https://example.com and save the report to ./report.html`
 """
 
 
