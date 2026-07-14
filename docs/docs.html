@@ -26,7 +26,8 @@ th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);vert
 th{color:var(--gold);font-weight:600;font-size:12px;letter-spacing:.06em;text-transform:uppercase}
 td code{color:var(--gold-soft);font-size:13px}
 .tag{display:inline-block;font-size:11px;padding:3px 9px;border-radius:999px;border:1px solid var(--line);color:var(--muted);margin:3px 4px 0 0}
-.cmd{background:#08060f;border:1px solid var(--line);border-radius:12px;padding:16px 48px 16px 18px;overflow-x:auto;font-size:13.5px;line-height:1.9;white-space:nowrap;position:relative}
+.cmd{background:#08060f;border:1px solid var(--line);border-radius:12px;padding:16px 48px 16px 18px;overflow-x:auto;font-size:13.5px;line-height:1.9;white-space:nowrap}
+@keyframes fgToast{from{opacity:0;transform:translate(-50%,14px)}to{opacity:1;transform:translate(-50%,0)}}
 .cmd-copy{position:absolute;top:10px;right:10px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:7px;padding:5px 7px;cursor:pointer;color:var(--muted);display:flex;align-items:center;justify-content:center;transition:background .15s,color .15s;flex-shrink:0}
 .cmd-copy:hover{background:rgba(232,176,75,.15);border-color:rgba(232,176,75,.4);color:var(--gold)}
 .cmd-copy.copied{background:rgba(74,222,128,.15);border-color:rgba(74,222,128,.4);color:#4ade80}
@@ -48,6 +49,7 @@ section{scroll-margin-top:80px}
 </style>
 </head>
 <body style="color:var(--text);background:linear-gradient(180deg,#0d0b16 0%,#181026 55%,#241a33 100%);min-height:100vh">
+<div id="docs-toast" style="display:none;position:fixed;bottom:26px;left:50%;transform:translateX(-50%);background:rgba(30,24,44,.95);border:1px solid rgba(232,176,75,.35);border-radius:10px;padding:11px 20px;font-size:14px;font-weight:600;color:#F3EEE6;gap:9px;align-items:center;z-index:9999;backdrop-filter:blur(8px);white-space:nowrap"><span style="color:#E8B04B">✓</span> Prompt copied — paste it in any AI chat.</div>
 
 <!-- header -->
 <header style="position:sticky;top:0;z-index:20;backdrop-filter:blur(10px);background:rgba(13,11,22,.72);border-bottom:1px solid var(--line)">
@@ -74,6 +76,10 @@ section{scroll-margin-top:80px}
   </p>
   <div style="display:flex;gap:20px;flex-wrap:wrap;margin-top:24px">
     <span class="tag">6 auto-bundled MCPs</span><span class="tag">56+ Fagun tools</span><span class="tag">70+ Playwright tools</span><span class="tag">11 end-user personas</span><span class="tag">User-journey runner</span><span class="tag">16-category readiness scorecard</span><span class="tag">WCAG 2.1 a11y</span><span class="tag">Real Core Web Vitals</span><span class="tag">20+ security classes</span><span class="tag">VirusTotal threat intel</span><span class="tag">Shodan recon + CVE</span><span class="tag">Authenticated testing</span><span class="tag">Works with local models</span>
+  </div>
+  <div style="margin-top:26px;display:flex;gap:14px;flex-wrap:wrap;align-items:center">
+    <button type="button" onclick="docsFgCopy()" style="display:inline-flex;align-items:center;gap:9px;border:none;cursor:pointer;background:var(--gold);color:#231a08;font-family:inherit;font-size:15px;font-weight:700;padding:14px 26px;border-radius:999px;box-shadow:0 0 24px rgba(232,176,75,.45),0 4px 16px rgba(232,176,75,.2);transition:filter .18s,transform .12s,box-shadow .18s" onmouseover="this.style.filter='brightness(1.1)';this.style.transform='translateY(-1px)';this.style.boxShadow='0 0 36px rgba(232,176,75,.7),0 4px 20px rgba(232,176,75,.32)'" onmouseout="this.style.filter='';this.style.transform='';this.style.boxShadow='0 0 24px rgba(232,176,75,.45),0 4px 16px rgba(232,176,75,.2)'"><span style="font-size:16px">⧉</span> Prompt for LLMs</button>
+    <a href="https://github.com/mejbaurbahar/fagun" style="display:inline-flex;align-items:center;gap:9px;text-decoration:none;color:var(--text);border:1px solid rgba(243,238,230,.2);padding:13px 22px;border-radius:999px;font-size:14px;font-weight:500"><span style="color:var(--gold)">★</span> Star on GitHub<span class="gh-star-count" style="margin-left:4px;background:rgba(232,176,75,.14);border:1px solid rgba(232,176,75,.28);border-radius:999px;padding:1px 7px;font-size:12px;color:var(--gold);font-weight:600"></span></a>
   </div>
 </section>
 
@@ -193,6 +199,9 @@ section{scroll-margin-top:80px}
       </div>
       <p style="color:var(--muted);font-size:13px;margin-top:14px">Chrome DevTools MCP auto-connects to the user's running Chrome during deep tests — no manual setup. Users do not need to run <code>fagun connect to my Chrome</code> first. Fagun opens <code>chrome://inspect/#remote-debugging</code>; click <b>Allow</b> when Chrome shows the permission popup. This lets tests reuse your signed-in session without sharing credentials. If the target is still logged out, Fagun calls <code>auth_status</code> and asks for authorized test credentials; passwords are never printed back.</p>
       <p style="color:var(--muted);font-size:13px;margin-top:8px">Runtime order: <code>uvx fagun init</code> → restart AI tool → <code>fagun deep test URL</code> → Chrome DevTools auto-connects → <code>product_map</code> maps the product → <code>auth_status</code> checks login → pages clicked, inputs fuzzed, console/network watched → full verdict + findings + evidence + fixes + report.</p>
+      <div style="margin-top:20px;display:flex;gap:14px;flex-wrap:wrap">
+        <button type="button" onclick="docsFgCopy()" style="display:inline-flex;align-items:center;gap:9px;border:none;cursor:pointer;background:var(--gold);color:#231a08;font-family:inherit;font-size:14px;font-weight:700;padding:12px 22px;border-radius:999px;box-shadow:0 0 20px rgba(232,176,75,.4),0 4px 14px rgba(232,176,75,.18);transition:filter .18s,box-shadow .18s" onmouseover="this.style.filter='brightness(1.1)';this.style.boxShadow='0 0 32px rgba(232,176,75,.65),0 4px 18px rgba(232,176,75,.28)'" onmouseout="this.style.filter='';this.style.boxShadow='0 0 20px rgba(232,176,75,.4),0 4px 14px rgba(232,176,75,.18)'"><span style="font-size:15px">⧉</span> Copy install prompt for LLMs</button>
+      </div>
       <p style="color:var(--muted);font-size:14px;margin:16px 0 6px">Inside Claude Code, as a plugin:</p>
       <div class="cmd">
 <span style="color:#7fb0e8">/plugin</span> <span style="color:var(--muted)">marketplace add mejbaurbahar/fagun</span>
@@ -492,6 +501,7 @@ section{scroll-margin-top:80px}
       <p style="margin:0 0 20px;color:var(--muted);font-size:15px">One command. Real bugs. Real evidence.</p>
       <div class="cmd" style="display:inline-block;text-align:left;white-space:nowrap"><span style="color:var(--gold)">$</span> <span style="color:var(--text)">uvx fagun init</span></div>
       <div style="margin-top:18px;display:flex;gap:14px;justify-content:center;flex-wrap:wrap">
+        <button type="button" onclick="docsFgCopy()" style="display:inline-flex;align-items:center;gap:9px;border:none;cursor:pointer;background:var(--gold);color:#231a08;font-family:inherit;font-size:15px;font-weight:700;padding:12px 22px;border-radius:999px;box-shadow:0 0 22px rgba(232,176,75,.4),0 4px 14px rgba(232,176,75,.18);transition:filter .18s,box-shadow .18s" onmouseover="this.style.filter='brightness(1.1)'" onmouseout="this.style.filter=''"><span style="font-size:15px">⧉</span> Prompt for LLMs</button>
         <a href="https://github.com/mejbaurbahar/fagun" style="text-decoration:none;color:#231a08;background:var(--gold);padding:12px 22px;border-radius:999px;font-weight:600;font-size:15px">★ Star on GitHub<span class="gh-star-count" style="margin-left:8px;background:rgba(0,0,0,.18);border-radius:999px;padding:2px 8px;font-size:13px"></span></a>
         <a href="./index.html" style="text-decoration:none;color:var(--text);border:1px solid var(--line);padding:12px 22px;border-radius:999px;font-size:15px">← Back home</a>
       </div>
@@ -538,16 +548,30 @@ section{scroll-margin-top:80px}
 </script>
 <script>
 (function(){
+  var _P = "Install and set up fagun for me: install `uv` if missing, run `uvx fagun init`, then `uvx fagun install claude-code`. After setup, `fagun deep test URL` should auto-use Chrome DevTools MCP when available and print the full Fagun result. Follow https://github.com/mejbaurbahar/fagun/blob/main/install.md if anything fails.";
+  var _tt;
+  window.docsFgCopy = function(){
+    function show(){ var t=document.getElementById('docs-toast'); t.style.display='flex'; t.style.animation='fgToast .28s cubic-bezier(.22,1,.36,1) both'; clearTimeout(_tt); _tt=setTimeout(function(){ t.style.display='none'; },2400); }
+    function fb(){ var ta=document.createElement('textarea'); ta.value=_P; ta.style.cssText='position:fixed;opacity:0;top:0;left:0'; document.body.appendChild(ta); ta.focus(); ta.select(); try{document.execCommand('copy');}catch(e){} document.body.removeChild(ta); show(); }
+    if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(_P).then(show,fb); } else { fb(); }
+  };
+})();
+
+(function(){
   var COPY_SVG = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
   var CHECK_SVG = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
   document.querySelectorAll('.cmd').forEach(function(block){
+    var wrap = document.createElement('div');
+    var disp = window.getComputedStyle(block).display;
+    wrap.style.cssText = 'position:relative;display:' + (disp === 'inline-block' ? 'inline-block' : 'block');
+    block.parentNode.insertBefore(wrap, block);
+    wrap.appendChild(block);
     var btn = document.createElement('button');
     btn.className = 'cmd-copy';
     btn.setAttribute('aria-label', 'Copy commands');
     btn.innerHTML = COPY_SVG;
     btn.addEventListener('click', function(){
       var clone = block.cloneNode(true);
-      clone.querySelectorAll('.cmd-copy').forEach(function(el){ el.remove(); });
       clone.querySelectorAll('span[style*="6f6784"]').forEach(function(el){ el.remove(); });
       var text = clone.textContent
         .replace(/^\s*[›$]\s*/gm, '')
@@ -569,7 +593,7 @@ section{scroll-margin-top:80px}
         setTimeout(function(){ btn.innerHTML = COPY_SVG; btn.classList.remove('copied'); }, 1800);
       });
     });
-    block.appendChild(btn);
+    wrap.appendChild(btn);
   });
 })();
 

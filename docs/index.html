@@ -25,7 +25,7 @@ body{background:#0d0b16}
 @keyframes fgFlowDash{to{stroke-dashoffset:-34}}
 .fg-bigeye{transform-origin:center;animation:fgBlink 5.5s ease-in-out infinite}
 .fg-ghpill:hover{border-color:rgba(232,176,75,.55)!important;background:rgba(255,255,255,.07)!important}
-.fg-btn-gold:hover{filter:brightness(1.08)}
+.fg-btn-gold:hover{filter:brightness(1.1);box-shadow:0 0 38px rgba(232,176,75,.72),0 4px 20px rgba(232,176,75,.34)!important;transform:translateY(-1px)}
 .fg-btn-gold:active{transform:scale(.97)}
 .fg-btn-ghost:hover{border-color:var(--gold)!important;background:rgba(232,176,75,.08)!important}
 .fg-footlink:hover{color:var(--text)!important}
@@ -115,11 +115,11 @@ body{background:#0d0b16}
           <p style="margin:0;font-size:clamp(15px,1.7vw,18px);line-height:1.62;color:var(--muted)">Works in Claude, Cursor, Codex &amp; more. <span style="color:var(--text)">fagun deep test URL</span> automatically uses Chrome DevTools MCP when available, reuses signed-in Chrome after you click Allow, and still prints the full Fagun result.</p>
         </div>
         <div class="fg-anim" style="animation:fgRise .9s cubic-bezier(.22,1,.36,1) both;animation-delay:.4s;display:flex;flex-wrap:wrap;gap:14px;margin-top:34px">
-          <button type="button" onclick="fgCopy()" class="fg-btn-gold" style="display:inline-flex;align-items:center;gap:9px;border:none;cursor:pointer;background:var(--gold);color:#231a08;font-family:inherit;font-size:15px;font-weight:600;padding:14px 24px;border-radius:999px;transition:filter .18s,transform .12s">
+          <button type="button" onclick="fgCopy()" class="fg-btn-gold" style="display:inline-flex;align-items:center;gap:9px;border:none;cursor:pointer;background:var(--gold);color:#231a08;font-family:inherit;font-size:15px;font-weight:700;padding:14px 26px;border-radius:999px;transition:filter .18s,transform .12s,box-shadow .18s;box-shadow:0 0 26px rgba(232,176,75,.5),0 4px 16px rgba(232,176,75,.22)">
             <span style="font-size:16px">⧉</span> Prompt for LLMs
           </button>
           <a class="fg-btn-ghost" href="https://github.com/mejbaurbahar/fagun" style="display:inline-flex;align-items:center;gap:9px;text-decoration:none;color:var(--text);border:1px solid rgba(243,238,230,.24);background:transparent;font-size:15px;font-weight:500;padding:14px 24px;border-radius:999px;transition:border-color .2s,background .2s">
-            <span style="color:var(--gold)">★</span> Star on GitHub
+            <span style="color:var(--gold)">★</span> Star on GitHub<span class="gh-star-count" style="margin-left:6px;background:rgba(232,176,75,.14);border:1px solid rgba(232,176,75,.28);border-radius:999px;padding:1px 8px;font-size:12px;color:var(--gold);font-weight:600;display:none"></span>
           </a>
         </div>
       </div>
@@ -650,6 +650,23 @@ body{background:#0d0b16}
     }
     run();
   })();
+})();
+
+(function(){
+  function fmtStars(n){ if(n>=1000) return (n/1000).toFixed(1).replace(/\.0$/,'')+'k'; return String(n); }
+  function _applyStars(n){
+    var fmt = fmtStars(n);
+    document.querySelectorAll('.gh-star-count').forEach(function(el){
+      if(n>0){ el.textContent=fmt; el.style.display=''; }
+    });
+  }
+  function _fetchStars(){
+    fetch('https://api.github.com/repos/mejbaurbahar/fagun',{cache:'no-store'})
+      .then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
+      .then(function(d){ var n=d.stargazers_count; if(typeof n==='number') _applyStars(n); })
+      .catch(function(){ setTimeout(_fetchStars,8000); });
+  }
+  _fetchStars();
 })();
 </script>
 </body>
