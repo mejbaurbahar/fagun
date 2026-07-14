@@ -191,7 +191,7 @@ section{scroll-margin-top:80px}
 <span style="color:var(--gold)">›</span> <span style="color:var(--text)">configure_api_key("shodan", "key")</span>     <span style="color:#6f6784"># enable Shodan (free key at shodan.io)</span>
 <span style="color:var(--gold)">›</span> <span style="color:var(--text)">fagun deep test https://example.com</span>    <span style="color:#6f6784"># full Fagun QA + threat intel + recon</span>
       </div>
-      <p style="color:var(--muted);font-size:13px;margin-top:14px">Chrome DevTools MCP auto-connects to the user's running Chrome during deep tests — no manual setup. Fagun opens <code>chrome://inspect/#remote-debugging</code>; click <b>Allow</b> when Chrome shows the permission popup. This lets tests reuse your signed-in session without sharing credentials. If the target is still logged out, Fagun calls <code>auth_status</code> and asks for authorized test credentials; passwords are never printed back.</p>
+      <p style="color:var(--muted);font-size:13px;margin-top:14px">Chrome DevTools MCP auto-connects to the user's running Chrome during deep tests — no manual setup. Users do not need to run <code>fagun connect to my Chrome</code> first. Fagun opens <code>chrome://inspect/#remote-debugging</code>; click <b>Allow</b> when Chrome shows the permission popup. This lets tests reuse your signed-in session without sharing credentials. If the target is still logged out, Fagun calls <code>auth_status</code> and asks for authorized test credentials; passwords are never printed back.</p>
       <p style="color:var(--muted);font-size:13px;margin-top:8px">Runtime order: <code>uvx fagun init</code> → restart AI tool → <code>fagun deep test URL</code> → Chrome DevTools auto-connects → <code>product_map</code> maps the product → <code>auth_status</code> checks login → pages clicked, inputs fuzzed, console/network watched → full verdict + findings + evidence + fixes + report.</p>
       <p style="color:var(--muted);font-size:14px;margin:16px 0 6px">Inside Claude Code, as a plugin:</p>
       <div class="cmd">
@@ -207,7 +207,7 @@ section{scroll-margin-top:80px}
     <section id="workflow">
       <p class="pill">Workflow</p>
       <h2 style="margin:0 0 16px;font-size:clamp(1.7rem,3.4vw,2.5rem)">What happens after the user types one command.</h2>
-      <p style="color:var(--muted);font-size:15px;line-height:1.6;max-width:760px">The complete Fagun path is install once, restart the AI tool, then run <code>fagun deep test URL</code>. Fagun handles browser connection, Chrome DevTools MCP, product mapping, auth state, clicks, inputs, labelled test data, evidence, and final report generation.</p>
+      <p style="color:var(--muted);font-size:15px;line-height:1.6;max-width:760px">The complete Fagun path is install once, restart the AI tool, then run <code>fagun deep test URL</code>. Fagun covers the full product/business flow — browser connection, Chrome DevTools MCP, product mapping, auth state, clicks, inputs, labelled test data, evidence, and final report generation.</p>
       <div class="wf-scroll" style="margin-top:18px">
         <div class="wf-canvas">
           <svg class="wf-svg" viewBox="0 0 720 1040" preserveAspectRatio="none" aria-hidden="true">
@@ -546,15 +546,23 @@ section{scroll-margin-top:80px}
     btn.setAttribute('aria-label', 'Copy commands');
     btn.innerHTML = COPY_SVG;
     btn.addEventListener('click', function(){
-      var text = block.innerText.replace(/^\s*[›$]\s*/gm, '').replace(/\s*#.*$/gm, '').trim();
+      var clone = block.cloneNode(true);
+      clone.querySelectorAll('.cmd-copy').forEach(function(el){ el.remove(); });
+      clone.querySelectorAll('span[style*="6f6784"]').forEach(function(el){ el.remove(); });
+      var text = clone.textContent
+        .replace(/^\s*[›$]\s*/gm, '')
+        .replace(/[ \t]+$/gm, '')
+        .replace(/\n{3,}/g, '\n\n')
+        .trim();
       navigator.clipboard.writeText(text).then(function(){
         btn.innerHTML = CHECK_SVG;
         btn.classList.add('copied');
         setTimeout(function(){ btn.innerHTML = COPY_SVG; btn.classList.remove('copied'); }, 1800);
       }).catch(function(){
         var ta = document.createElement('textarea');
-        ta.value = text; ta.style.position='fixed'; ta.style.opacity='0';
-        document.body.appendChild(ta); ta.select();
+        ta.value = text;
+        ta.style.cssText = 'position:fixed;opacity:0;top:0;left:0';
+        document.body.appendChild(ta); ta.focus(); ta.select();
         try{ document.execCommand('copy'); } catch(e){}
         document.body.removeChild(ta);
         btn.innerHTML = CHECK_SVG; btn.classList.add('copied');
@@ -570,16 +578,21 @@ section{scroll-margin-top:80px}
     if(n>=1000) return (n/1000).toFixed(1).replace(/\.0$/,'')+'k';
     return String(n);
   }
-  fetch('https://api.github.com/repos/mejbaurbahar/fagun')
-    .then(function(r){ return r.json(); })
-    .then(function(d){
-      var n = d.stargazers_count;
-      if(typeof n !== 'number') return;
-      var fmt = fmtStars(n);
-      var els = document.querySelectorAll('.gh-star-count');
-      for(var i=0;i<els.length;i++) els[i].textContent = fmt;
-    })
-    .catch(function(){});
+  var _ghUrl = 'https://api.github.com/repos/mejbaurbahar/fagun';
+  function _applyStars(n){
+    var fmt = fmtStars(n);
+    document.querySelectorAll('.gh-star-count').forEach(function(el){ el.textContent = fmt; });
+  }
+  function _fetchStars(){
+    fetch(_ghUrl, {cache:'no-store'})
+      .then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
+      .then(function(d){
+        var n = d.stargazers_count;
+        if(typeof n === 'number') _applyStars(n);
+      })
+      .catch(function(){ setTimeout(_fetchStars, 8000); });
+  }
+  _fetchStars();
 })();
 </script>
 </body>
