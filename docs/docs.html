@@ -26,7 +26,10 @@ th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);vert
 th{color:var(--gold);font-weight:600;font-size:12px;letter-spacing:.06em;text-transform:uppercase}
 td code{color:var(--gold-soft);font-size:13px}
 .tag{display:inline-block;font-size:11px;padding:3px 9px;border-radius:999px;border:1px solid var(--line);color:var(--muted);margin:3px 4px 0 0}
-.cmd{background:#08060f;border:1px solid var(--line);border-radius:12px;padding:16px 18px;overflow-x:auto;font-size:13.5px;line-height:1.9;white-space:nowrap}
+.cmd{background:#08060f;border:1px solid var(--line);border-radius:12px;padding:16px 48px 16px 18px;overflow-x:auto;font-size:13.5px;line-height:1.9;white-space:nowrap;position:relative}
+.cmd-copy{position:absolute;top:10px;right:10px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:7px;padding:5px 7px;cursor:pointer;color:var(--muted);display:flex;align-items:center;justify-content:center;transition:background .15s,color .15s;flex-shrink:0}
+.cmd-copy:hover{background:rgba(232,176,75,.15);border-color:rgba(232,176,75,.4);color:var(--gold)}
+.cmd-copy.copied{background:rgba(74,222,128,.15);border-color:rgba(74,222,128,.4);color:#4ade80}
 .tocnav a{display:block;padding:6px 0 6px 10px;color:var(--muted);text-decoration:none;font-size:14px;border-left:2px solid transparent;transition:color .15s,border-color .15s}
 .tocnav a:hover{color:var(--text)}
 .tocnav a.active{color:var(--gold);border-left-color:var(--gold);font-weight:600}
@@ -534,6 +537,34 @@ section{scroll-margin-top:80px}
 })();
 </script>
 <script>
+(function(){
+  var COPY_SVG = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
+  var CHECK_SVG = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
+  document.querySelectorAll('.cmd').forEach(function(block){
+    var btn = document.createElement('button');
+    btn.className = 'cmd-copy';
+    btn.setAttribute('aria-label', 'Copy commands');
+    btn.innerHTML = COPY_SVG;
+    btn.addEventListener('click', function(){
+      var text = block.innerText.replace(/^\s*[›$]\s*/gm, '').replace(/\s*#.*$/gm, '').trim();
+      navigator.clipboard.writeText(text).then(function(){
+        btn.innerHTML = CHECK_SVG;
+        btn.classList.add('copied');
+        setTimeout(function(){ btn.innerHTML = COPY_SVG; btn.classList.remove('copied'); }, 1800);
+      }).catch(function(){
+        var ta = document.createElement('textarea');
+        ta.value = text; ta.style.position='fixed'; ta.style.opacity='0';
+        document.body.appendChild(ta); ta.select();
+        try{ document.execCommand('copy'); } catch(e){}
+        document.body.removeChild(ta);
+        btn.innerHTML = CHECK_SVG; btn.classList.add('copied');
+        setTimeout(function(){ btn.innerHTML = COPY_SVG; btn.classList.remove('copied'); }, 1800);
+      });
+    });
+    block.appendChild(btn);
+  });
+})();
+
 (function(){
   function fmtStars(n){
     if(n>=1000) return (n/1000).toFixed(1).replace(/\.0$/,'')+'k';
