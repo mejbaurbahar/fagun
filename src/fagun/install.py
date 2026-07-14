@@ -18,6 +18,8 @@ from typing import Callable
 
 SERVER_BLOCK = {"command": "uvx", "args": ["fagun"]}
 REMOTE_DEBUGGING_SETUP_URL = "chrome://inspect/#remote-debugging"
+
+# Chrome DevTools MCP — real Chrome session, auto-connect
 CHROME_DEVTOOLS_ARGS = [
     "-y",
     "chrome-devtools-mcp@latest",
@@ -34,38 +36,103 @@ CHROME_DEVTOOLS_BLOCK = {
     "env": CHROME_DEVTOOLS_ENV,
 }
 
-CLAUDE = json.dumps({"mcpServers": {"fagun": SERVER_BLOCK, "chrome-devtools": CHROME_DEVTOOLS_BLOCK}}, indent=2)
-CURSOR = json.dumps({"mcpServers": {"fagun": SERVER_BLOCK, "chrome-devtools": CHROME_DEVTOOLS_BLOCK}}, indent=2)
+# Playwright MCP — 70+ browser automation tools, zero setup
+PLAYWRIGHT_ARGS = ["@playwright/mcp@latest", "--headless"]
+PLAYWRIGHT_BLOCK = {"command": "npx", "args": PLAYWRIGHT_ARGS}
+
+# MCP Fetch — lightweight web content fetching, zero setup
+FETCH_BLOCK = {"command": "uvx", "args": ["mcp-server-fetch"]}
+
+# VirusTotal MCP — URL/IP/domain threat intelligence (needs VIRUSTOTAL_API_KEY)
+VIRUSTOTAL_ARGS = ["-y", "@burtthecoder/mcp-virustotal"]
+
+# Shodan MCP — internet recon, port scan, CVE lookup (needs SHODAN_API_KEY)
+SHODAN_ARGS = ["-y", "@burtthecoder/mcp-shodan"]
+
+
+def _virustotal_block() -> dict:
+    key = os.environ.get("VIRUSTOTAL_API_KEY", "YOUR_VIRUSTOTAL_API_KEY")
+    return {"command": "npx", "args": VIRUSTOTAL_ARGS, "env": {"VIRUSTOTAL_API_KEY": key}}
+
+
+def _shodan_block() -> dict:
+    key = os.environ.get("SHODAN_API_KEY", "YOUR_SHODAN_API_KEY")
+    return {"command": "npx", "args": SHODAN_ARGS, "env": {"SHODAN_API_KEY": key}}
+
+
+# Static template dict for HELP display (uses placeholder keys)
+_ALL_SERVERS_STATIC: dict = {
+    "fagun": SERVER_BLOCK,
+    "playwright": PLAYWRIGHT_BLOCK,
+    "mcp-fetch": FETCH_BLOCK,
+    "chrome-devtools": CHROME_DEVTOOLS_BLOCK,
+    "virustotal": {
+        "command": "npx",
+        "args": VIRUSTOTAL_ARGS,
+        "env": {"VIRUSTOTAL_API_KEY": "YOUR_VIRUSTOTAL_API_KEY"},
+    },
+    "shodan": {
+        "command": "npx",
+        "args": SHODAN_ARGS,
+        "env": {"SHODAN_API_KEY": "YOUR_SHODAN_API_KEY"},
+    },
+}
+
+CLAUDE = json.dumps({"mcpServers": _ALL_SERVERS_STATIC}, indent=2)
+CURSOR = json.dumps({"mcpServers": _ALL_SERVERS_STATIC}, indent=2)
 VSCODE = json.dumps({
-    "servers": {
-        "fagun": {"type": "stdio", **SERVER_BLOCK},
-        "chrome-devtools": {"type": "stdio", **CHROME_DEVTOOLS_BLOCK},
-    }
+    "servers": {k: {"type": "stdio", **v} for k, v in _ALL_SERVERS_STATIC.items()}
 }, indent=2)
-CODEX = """[mcp_servers.fagun]
+CODEX = """\
+[mcp_servers.fagun]
 command = "uvx"
 args = ["fagun"]
+
+[mcp_servers.playwright]
+command = "npx"
+args = ["@playwright/mcp@latest", "--headless"]
+startup_timeout_ms = 20_000
+
+[mcp_servers.mcp-fetch]
+command = "uvx"
+args = ["mcp-server-fetch"]
 
 [mcp_servers.chrome-devtools]
 command = "npx"
 args = ["-y", "chrome-devtools-mcp@latest", "--auto-connect", "--no-usage-statistics"]
 env = { CHROME_DEVTOOLS_MCP_NO_USAGE_STATISTICS = "1", CHROME_DEVTOOLS_MCP_NO_UPDATE_CHECKS = "1" }
-startup_timeout_ms = 20_000"""
+startup_timeout_ms = 20_000
 
-HELP = f"""🦊 Fagun install — add this MCP server to your AI tool, then say "fagun".
+[mcp_servers.virustotal]
+command = "npx"
+args = ["-y", "@burtthecoder/mcp-virustotal"]
+env = { VIRUSTOTAL_API_KEY = "YOUR_VIRUSTOTAL_API_KEY" }
+startup_timeout_ms = 15_000
+
+[mcp_servers.shodan]
+command = "npx"
+args = ["-y", "@burtthecoder/mcp-shodan"]
+env = { SHODAN_API_KEY = "YOUR_SHODAN_API_KEY" }
+startup_timeout_ms = 15_000"""
+
+HELP = f"""🦊 Fagun install — adds 6 MCP servers to your AI tool, then say "fagun".
 
 Recommended setup (no Python/pip needed, uv brings its own):
   macOS/Linux:  curl -LsSf https://astral.sh/uv/install.sh | sh
   Windows:      powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
-  then:         uvx fagun init      # browser + MCP + Chrome DevTools + /fagun skill
+  then:         uvx fagun init      # browser + ALL 6 MCPs + AI tools + /fagun skill
 
 Prefer pip?
   pip install fagun
   fagun init
 
 ────────────────────────────────────────────────────────────────────
-Claude Code        →  run:  claude mcp add fagun -- uvx fagun
+Claude Code        →  run:
+                       claude mcp add fagun -- uvx fagun
+                       claude mcp add playwright -- npx @playwright/mcp@latest --headless
+                       claude mcp add mcp-fetch -- uvx mcp-server-fetch
                        claude mcp add chrome-devtools -- npx -y chrome-devtools-mcp@latest --auto-connect --no-usage-statistics
+                       # VirusTotal/Shodan: set API keys, then re-run fagun init
 Claude Desktop     →  ~/Library/Application Support/Claude/claude_desktop_config.json
 Cursor             →  ~/.cursor/mcp.json   (or .cursor/mcp.json in project)
 Windsurf / Cline / Antigravity  →  their MCP settings, same JSON as Cursor
@@ -77,25 +144,32 @@ VS Code (Copilot MCP) →  .vscode/mcp.json
 Codex CLI          →  ~/.codex/config.toml
 {CODEX}
 ────────────────────────────────────────────────────────────────────
-🚀 ONE COMMAND — sets up EVERYTHING (browser + all detected AI tools + skill):
+🚀 ONE COMMAND — sets up EVERYTHING (browser + all 6 MCPs + all AI tools + skill):
   uvx fagun init
 
-⚡ Or target one tool (also installs the /fagun skill):
-  uvx fagun install claude-code    # registers MCP in Claude Code (all projects)
+⚡ Or target one tool:
+  uvx fagun install claude-code    # registers all MCPs in Claude Code (all projects)
   uvx fagun install cursor         # writes ~/.cursor/mcp.json
   uvx fagun install claude         # Claude Desktop
   uvx fagun install vscode         # .vscode/mcp.json
   uvx fagun install skill          # just the /fagun skill
 
+🔐 Security intelligence MCPs (set API key → re-run fagun init to activate):
+  export VIRUSTOTAL_API_KEY=your-key    # free at virustotal.com
+  export SHODAN_API_KEY=your-key        # free tier at shodan.io
+  uvx fagun init
+
 🧩 Claude Code plugin (skill + MCP together):
   /plugin marketplace add mejbaurbahar/fagun
   /plugin install fagun@fagun
 ────────────────────────────────────────────────────────────────────
-Fagun also registers Chrome DevTools MCP automatically. It uses `npx -y
-chrome-devtools-mcp@latest --auto-connect --no-usage-statistics`, so Chrome
-DevTools MCP connects to the user's running Chrome session. Setup opens
-chrome://inspect/#remote-debugging so Chrome can show the official Allow remote
-debugging permission popup on first attach.
+Fagun auto-registers 6 MCP servers:
+  fagun          → QA, UAT, security testing (this server)
+  playwright     → 70+ browser tools — tabs, PDF, recording, mocking
+  mcp-fetch      → lightweight web content fetching
+  chrome-devtools→ connects to your running Chrome session
+  virustotal     → URL/IP/domain threat intelligence (needs VIRUSTOTAL_API_KEY)
+  shodan         → internet recon, open ports, CVE lookup (needs SHODAN_API_KEY)
 
 After adding: restart the tool, then type  fagun  to start.
 """
@@ -171,15 +245,34 @@ def _write_json_server(path: Path, key: str) -> None:
 
 
 def _default_servers() -> dict[str, dict]:
-    return {"fagun": SERVER_BLOCK, "chrome-devtools": CHROME_DEVTOOLS_BLOCK}
+    return {
+        "fagun": SERVER_BLOCK,
+        "playwright": PLAYWRIGHT_BLOCK,
+        "mcp-fetch": FETCH_BLOCK,
+        "chrome-devtools": CHROME_DEVTOOLS_BLOCK,
+        "virustotal": _virustotal_block(),
+        "shodan": _shodan_block(),
+    }
 
 
 def _write_codex(path: Path) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    chrome_block = _codex_chrome_devtools_block()
     blocks = {
         "fagun": '\n[mcp_servers.fagun]\ncommand = "uvx"\nargs = ["fagun"]\n',
-        "chrome-devtools": chrome_block,
+        "playwright": (
+            '\n[mcp_servers.playwright]\n'
+            'command = "npx"\n'
+            'args = ["@playwright/mcp@latest", "--headless"]\n'
+            "startup_timeout_ms = 20_000\n"
+        ),
+        "mcp-fetch": (
+            '\n[mcp_servers.mcp-fetch]\n'
+            'command = "uvx"\n'
+            'args = ["mcp-server-fetch"]\n'
+        ),
+        "chrome-devtools": _codex_chrome_devtools_block(),
+        "virustotal": _codex_virustotal_block(),
+        "shodan": _codex_shodan_block(),
     }
     existing = path.read_text(encoding="utf-8") if path.exists() else ""
     changed = False
@@ -193,7 +286,7 @@ def _write_codex(path: Path) -> None:
 
 def init() -> None:
     """One command to rule them all: install the browser engine, then auto-detect
-    every AI tool on this machine and register the fagun MCP server + /fagun skill.
+    every AI tool on this machine and register all 6 MCP servers + /fagun skill.
     """
     import shutil
 
@@ -205,31 +298,65 @@ def init() -> None:
 
     print(_box("🦊 FAGUN CLI", "AI testing platform setup"))
     _section("🚀 Current Task")
-    print("  Initialize Fagun, browser automation, Chrome DevTools MCP, and AI tool skills.")
+    print("  Initialize Fagun, browser automation, 6 MCP servers, and AI tool skills.")
     _section("⏳ Progress")
 
     # 1. Browser engine.
-    browser_status = "Ready"
     try:
         from .browser import ensure_browser_installed
 
         ensure_browser_installed("chromium")
         components.append(("✓", "Chromium browser", "Ready"))
     except Exception as e:
-        browser_status = f"Failed: {type(e).__name__}"
-        components.append(("✗", "Chromium browser", browser_status))
+        components.append(("✗", "Chromium browser", f"Failed: {type(e).__name__}"))
         notes.append(str(e))
 
-    chrome_status = "Not found"
-    if shutil.which("npx"):
-        chrome_status = "Auto-connect ready"
+    has_npx = bool(shutil.which("npx"))
+    has_uvx = bool(shutil.which("uvx"))
+
+    # Chrome DevTools MCP
+    if has_npx:
         components.append(("✓", "Chrome DevTools MCP", "--auto-connect"))
         notes.append(_open_remote_debugging_setup())
     else:
         components.append(("⚠", "Chrome DevTools MCP", "Needs Node.js/npx"))
 
+    # Playwright MCP
+    if has_npx:
+        components.append(("✓", "Playwright MCP", "70+ browser tools"))
+    else:
+        components.append(("⚠", "Playwright MCP", "Needs Node.js/npx"))
+
+    # MCP Fetch
+    if has_uvx:
+        components.append(("✓", "MCP Fetch", "Web content fetching"))
+    else:
+        components.append(("⚠", "MCP Fetch", "Needs uvx"))
+
+    # VirusTotal MCP
+    vt_key = os.environ.get("VIRUSTOTAL_API_KEY", "")
+    if vt_key:
+        components.append(("✓", "VirusTotal MCP", "API key detected"))
+    else:
+        components.append(("ℹ", "VirusTotal MCP", "Set VIRUSTOTAL_API_KEY"))
+        notes.append(
+            "VirusTotal: get free key at virustotal.com → "
+            "export VIRUSTOTAL_API_KEY=your-key → uvx fagun init"
+        )
+
+    # Shodan MCP
+    shodan_key = os.environ.get("SHODAN_API_KEY", "")
+    if shodan_key:
+        components.append(("✓", "Shodan MCP", "API key detected"))
+    else:
+        components.append(("ℹ", "Shodan MCP", "Set SHODAN_API_KEY"))
+        notes.append(
+            "Shodan: free tier at shodan.io → "
+            "export SHODAN_API_KEY=your-key → uvx fagun init"
+        )
+
     wired = []
-    skilled: set = set()  # dirs we've already dropped the skill into (avoid dupes)
+    skilled: set = set()
 
     def skill_once(d: Path) -> None:
         key = str(d.resolve())
@@ -238,7 +365,6 @@ def init() -> None:
             skilled.add(key)
 
     def step(name: str, fn: Callable[[], list[Path] | Path | None]) -> None:
-        """Run one tool's wiring; never let a failure abort the rest of init."""
         try:
             result = fn()
             if isinstance(result, Path):
@@ -255,9 +381,17 @@ def init() -> None:
     # 2. Claude Code (CLI).
     if shutil.which("claude"):
         def _cc():
-            status = _install_claude_code()
-            chrome = _install_claude_code_chrome_devtools()
-            notes.append(f"Claude Code: Fagun {status}; Chrome DevTools {chrome}")
+            statuses = [
+                f"Fagun {_install_claude_code()}",
+                f"Playwright {_install_claude_code_playwright()}",
+                f"Fetch {_install_claude_code_fetch()}",
+                f"Chrome DevTools {_install_claude_code_chrome_devtools()}",
+            ]
+            if vt_key:
+                statuses.append(f"VirusTotal {_install_claude_code_virustotal()}")
+            if shodan_key:
+                statuses.append(f"Shodan {_install_claude_code_shodan()}")
+            notes.append("Claude Code: " + "; ".join(statuses))
             skill_once(home / ".claude" / "skills")
         step("Claude Code", _cc)
 
@@ -295,7 +429,11 @@ def init() -> None:
             files_written.append(path)
         step("Windsurf", _windsurf)
 
-    reload_cmd = "open a new terminal window" if sys.platform.startswith("win") else "exec $SHELL   (or just open a new terminal)"
+    reload_cmd = (
+        "open a new terminal window"
+        if sys.platform.startswith("win")
+        else "exec $SHELL   (or just open a new terminal)"
+    )
 
     _table(("Component", "Status"), components)
     _section("📂 Configuration Files")
@@ -320,7 +458,7 @@ def init() -> None:
         print(f"  ✓ Connected: {', '.join(connected)}")
         print("  ✓ Ready to use")
         _section("🚀 Next Commands")
-        print("  1. Restart your AI tool so it loads Fagun.")
+        print("  1. Restart your AI tool so it loads all MCPs.")
         print(f"  2. Reload this terminal: {reload_cmd}")
         print("  3. In your AI tool, type one command:")
         print()
@@ -328,7 +466,10 @@ def init() -> None:
         print("  fagun security scan https://example.com")
         print("  fagun check links on https://example.com")
         print("  fagun test the signup form on https://example.com")
-        print("\n  Chrome DevTools MCP auto-connects during deep tests when available.")
+        print()
+        print("  Chrome DevTools MCP auto-connects during deep tests when available.")
+        print("  Playwright MCP provides 70+ additional browser automation tools.")
+        print("  VirusTotal/Shodan: set API keys above, then re-run fagun init.")
     else:
         print("No AI tools detected automatically.\n")
         print("Run one of:")
@@ -354,7 +495,6 @@ def run_cli(argv: list[str]) -> None:
         init()
         return
 
-    # `fagun install cursor` / `install claude` writes the file for you.
     target = argv[1] if len(argv) > 1 else ""
     home = Path.home()
     files: list[Path] = []
@@ -381,23 +521,33 @@ def run_cli(argv: list[str]) -> None:
         path = home / ".cursor" / "mcp.json"
         _write_json_server(path, "mcpServers")
         files += [path, _install_skill(home / ".cursor" / "skills")]
-        rows.append(("✓", "Cursor", "Configured"))
+        rows.append(("✓", "Cursor (6 MCPs)", "Configured"))
         finish("Cursor install")
     elif target == "claude":
         path = _claude_desktop_config_path()
         _write_json_server(path, "mcpServers")
         files += [path, _install_skill(home / ".claude" / "skills")]
-        rows.append(("✓", "Claude Desktop", "Configured"))
+        rows.append(("✓", "Claude Desktop (6 MCPs)", "Configured"))
         finish("Claude Desktop install")
     elif target == "vscode":
         path = Path.cwd() / ".vscode" / "mcp.json"
         _write_json_server(path, "servers")
         files.append(path)
-        rows.append(("✓", "VS Code", "Configured"))
+        rows.append(("✓", "VS Code (6 MCPs)", "Configured"))
         finish("VS Code install")
     elif target in ("claude-code", "cc"):
-        rows.append(("✓", "Claude Code", _install_claude_code()))
+        rows.append(("✓", "Fagun", _install_claude_code()))
+        rows.append(("✓", "Playwright MCP", _install_claude_code_playwright()))
+        rows.append(("✓", "MCP Fetch", _install_claude_code_fetch()))
         rows.append(("✓", "Chrome DevTools MCP", _install_claude_code_chrome_devtools()))
+        if os.environ.get("VIRUSTOTAL_API_KEY"):
+            rows.append(("✓", "VirusTotal MCP", _install_claude_code_virustotal()))
+        else:
+            rows.append(("ℹ", "VirusTotal MCP", "Set VIRUSTOTAL_API_KEY → re-run"))
+        if os.environ.get("SHODAN_API_KEY"):
+            rows.append(("✓", "Shodan MCP", _install_claude_code_shodan()))
+        else:
+            rows.append(("ℹ", "Shodan MCP", "Set SHODAN_API_KEY → re-run"))
         files.append(_install_skill(home / ".claude" / "skills"))
         finish("Claude Code install")
     elif target in ("chrome", "chrome-devtools"):
@@ -414,7 +564,6 @@ def run_cli(argv: list[str]) -> None:
 
 
 def _install_skill(skills_dir: Path) -> Path:
-    """Copy the bundled /fagun skill into a tool's skills directory."""
     try:
         from importlib.resources import files
 
@@ -428,22 +577,13 @@ def _install_skill(skills_dir: Path) -> Path:
 
 
 def _install_claude_code() -> str:
-    """Register the fagun MCP server in Claude Code (user scope), all projects.
-
-    Robust across OSes: resolves the full `claude` path (on Windows it's a .cmd, so a
-    bare name fails CreateProcess), captures output, and NEVER raises — a broken or
-    missing CLI must not abort `fagun init`.
-    """
     import shutil
-    import subprocess
 
     claude = shutil.which("claude")
     if not claude:
         return "CLI not found"
     try:
         args = [claude, "mcp", "add", "fagun", "--scope", "user", "--", "uvx", "fagun"]
-        # On Windows the resolved binary is a .cmd/.bat, which CreateProcess can't
-        # exec directly by list form — run through the shell there.
         win = sys.platform.startswith("win")
         r = subprocess.run(
             subprocess.list2cmdline(args) if win else args,
@@ -462,14 +602,22 @@ def _install_claude_code() -> str:
         return f"Skipped: {type(e).__name__}"
 
 
-def _run_cli_mcp_add(cli_name: str, server_name: str, command: list[str]) -> str:
+def _run_cli_mcp_add(
+    cli_name: str,
+    server_name: str,
+    command: list[str],
+    env: dict[str, str] | None = None,
+) -> str:
     import shutil
-    import subprocess
 
     cli = shutil.which(cli_name)
     if not cli:
         return "CLI not found"
-    args = [cli, "mcp", "add", server_name, "--scope", "user", "--", *command]
+    args = [cli, "mcp", "add", server_name, "--scope", "user"]
+    if env:
+        for k, v in env.items():
+            args += ["--env", f"{k}={v}"]
+    args += ["--", *command]
     win = sys.platform.startswith("win")
     r = subprocess.run(
         subprocess.list2cmdline(args) if win else args,
@@ -487,18 +635,38 @@ def _run_cli_mcp_add(cli_name: str, server_name: str, command: list[str]) -> str
 
 
 def _install_claude_code_chrome_devtools() -> str:
-    """Register Chrome DevTools MCP in Claude Code with zero install prompts."""
     return _run_cli_mcp_add("claude", "chrome-devtools", ["npx", *CHROME_DEVTOOLS_ARGS])
 
 
-def _open_remote_debugging_setup() -> str:
-    """Open Chrome's official remote-debugging setup page.
+def _install_claude_code_playwright() -> str:
+    return _run_cli_mcp_add("claude", "playwright", ["npx", *PLAYWRIGHT_ARGS])
 
-    Chrome DevTools MCP `--auto-connect` intentionally requires the user to allow
-    remote debugging in Chrome. Opening this page mirrors browser-harness setup:
-    the user can tick the setting, and Chrome 144+ will show the Allow popup on
-    first attach.
-    """
+
+def _install_claude_code_fetch() -> str:
+    return _run_cli_mcp_add("claude", "mcp-fetch", ["uvx", "mcp-server-fetch"])
+
+
+def _install_claude_code_virustotal() -> str:
+    key = os.environ.get("VIRUSTOTAL_API_KEY", "")
+    if not key:
+        return "Skipped: VIRUSTOTAL_API_KEY not set"
+    return _run_cli_mcp_add(
+        "claude", "virustotal", ["npx", *VIRUSTOTAL_ARGS],
+        env={"VIRUSTOTAL_API_KEY": key},
+    )
+
+
+def _install_claude_code_shodan() -> str:
+    key = os.environ.get("SHODAN_API_KEY", "")
+    if not key:
+        return "Skipped: SHODAN_API_KEY not set"
+    return _run_cli_mcp_add(
+        "claude", "shodan", ["npx", *SHODAN_ARGS],
+        env={"SHODAN_API_KEY": key},
+    )
+
+
+def _open_remote_debugging_setup() -> str:
     try:
         if sys.platform == "darwin":
             subprocess.Popen(
@@ -511,7 +679,11 @@ def _open_remote_debugging_setup() -> str:
         else:
             chrome = _which_first("google-chrome", "google-chrome-stable", "chromium", "chromium-browser")
             if chrome:
-                subprocess.Popen([chrome, REMOTE_DEBUGGING_SETUP_URL], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                subprocess.Popen(
+                    [chrome, REMOTE_DEBUGGING_SETUP_URL],
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                )
             else:
                 webbrowser.open(REMOTE_DEBUGGING_SETUP_URL)
         return "Opened chrome://inspect/#remote-debugging"
@@ -548,17 +720,35 @@ def _codex_chrome_devtools_block() -> str:
     )
 
 
+def _codex_virustotal_block() -> str:
+    key = os.environ.get("VIRUSTOTAL_API_KEY", "YOUR_VIRUSTOTAL_API_KEY")
+    return (
+        '\n[mcp_servers.virustotal]\n'
+        'command = "npx"\n'
+        'args = ["-y", "@burtthecoder/mcp-virustotal"]\n'
+        f'env = {{ VIRUSTOTAL_API_KEY = "{key}" }}\n'
+        "startup_timeout_ms = 15_000\n"
+    )
+
+
+def _codex_shodan_block() -> str:
+    key = os.environ.get("SHODAN_API_KEY", "YOUR_SHODAN_API_KEY")
+    return (
+        '\n[mcp_servers.shodan]\n'
+        'command = "npx"\n'
+        'args = ["-y", "@burtthecoder/mcp-shodan"]\n'
+        f'env = {{ SHODAN_API_KEY = "{key}" }}\n'
+        "startup_timeout_ms = 15_000\n"
+    )
+
+
 def _install_chrome_devtools_only() -> list[Path]:
     """Install only Chrome DevTools MCP into detected JSON/TOML MCP configs."""
     home = Path.home()
     files: list[Path] = []
     if (home / ".cursor").exists() or _app_exists("Cursor"):
         path = home / ".cursor" / "mcp.json"
-        _write_json_servers(
-            path,
-            "mcpServers",
-            {"chrome-devtools": CHROME_DEVTOOLS_BLOCK},
-        )
+        _write_json_servers(path, "mcpServers", {"chrome-devtools": CHROME_DEVTOOLS_BLOCK})
         files.append(path)
     cd = _claude_desktop_config_path()
     if cd.parent.exists() or _app_exists("Claude"):
@@ -576,7 +766,6 @@ def _install_chrome_devtools_only() -> list[Path]:
 
 
 def _claude_desktop_config_path() -> Path:
-    """Claude Desktop config path per OS."""
     home = Path.home()
     if sys.platform == "darwin":
         return home / "Library" / "Application Support" / "Claude" / "claude_desktop_config.json"

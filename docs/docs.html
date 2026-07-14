@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Fagun — Documentation, Why &amp; Who it's for</title>
-<meta name="description" content="Full Fagun documentation: automatic Fagun + Chrome DevTools MCP setup, end-user simulation, UAT, personas, user journeys, product-readiness scorecard, authenticated testing, every MCP tool, the test taxonomy, security classes, and example prompts. Real bugs, real evidence, no fake results.">
+<meta name="description" content="Full Fagun documentation: 6 auto-bundled MCP servers (Playwright, VirusTotal, Shodan, Chrome DevTools, mcp-fetch), end-user simulation, UAT, personas, user journeys, product-readiness scorecard, authenticated testing, every MCP tool, the test taxonomy, security classes, and example prompts. Real bugs, real evidence, no fake results.">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='13' font-size='13'>🦊</text></svg>">
 <style>
 *{box-sizing:border-box}
@@ -64,13 +64,13 @@ section{scroll-margin-top:80px}
 
 <!-- hero -->
 <section class="wrap" style="padding-top:clamp(46px,8vh,90px);padding-bottom:20px">
-  <p class="pill">Documentation · v0.9.0 · Open source (MIT)</p>
+  <p class="pill">Documentation · v0.10.0 · Open source (MIT)</p>
   <h1 style="margin:0;font-size:clamp(2.4rem,6vw,4.4rem);line-height:1">The complete guide to <span style="font-style:italic;color:var(--gold)">Fagun</span>.</h1>
   <p style="max-width:720px;margin:22px 0 0;font-size:clamp(16px,2vw,19px);line-height:1.6;color:var(--muted)">
-    One MCP server that gives <b style="color:var(--text)">any</b> AI tool a real browser to use your product like real customers do — as multiple personas, across whole user journeys — run full <b style="color:var(--text)">UAT</b>, hunt <b style="color:var(--text)">real</b> bugs (functional, security, performance, accessibility, SEO), and return a <b style="color:var(--text)">product-readiness verdict</b>. Every finding is backed by evidence. Nothing is faked; if it can't be reproduced, it isn't reported.
+    One <code style="color:var(--gold-soft)">uvx fagun init</code> bundles <b style="color:var(--text)">6 MCP servers</b> — Fagun, Playwright, MCP-Fetch, Chrome DevTools, VirusTotal, and Shodan — giving <b style="color:var(--text)">any</b> AI tool a real browser, threat intelligence, and internet recon all at once. Use your product like real customers do — as multiple personas, across whole user journeys — run full <b style="color:var(--text)">UAT</b>, hunt <b style="color:var(--text)">real</b> bugs (functional, security, performance, accessibility, SEO), and return a <b style="color:var(--text)">product-readiness verdict</b>. Every finding is backed by evidence. Nothing is faked; if it can't be reproduced, it isn't reported.
   </p>
   <div style="display:flex;gap:20px;flex-wrap:wrap;margin-top:24px">
-    <span class="tag">45+ MCP tools</span><span class="tag">11 end-user personas</span><span class="tag">User-journey runner</span><span class="tag">16-category readiness scorecard</span><span class="tag">WCAG 2.1 a11y</span><span class="tag">Real Core Web Vitals</span><span class="tag">20+ security classes</span><span class="tag">Authenticated testing</span><span class="tag">Works with local models</span>
+    <span class="tag">6 auto-bundled MCPs</span><span class="tag">56+ Fagun tools</span><span class="tag">70+ Playwright tools</span><span class="tag">11 end-user personas</span><span class="tag">User-journey runner</span><span class="tag">16-category readiness scorecard</span><span class="tag">WCAG 2.1 a11y</span><span class="tag">Real Core Web Vitals</span><span class="tag">20+ security classes</span><span class="tag">VirusTotal threat intel</span><span class="tag">Shodan recon + CVE</span><span class="tag">Authenticated testing</span><span class="tag">Works with local models</span>
   </div>
 </section>
 
@@ -87,6 +87,7 @@ section{scroll-margin-top:80px}
       <a href="#install">Install</a>
       <a href="#workflow">Workflow</a>
       <a href="#tools">All tools</a>
+      <a href="#integrations">API integrations</a>
       <a href="#taxonomy">Test taxonomy</a>
       <a href="#testdata">Test data</a>
       <a href="#security">Security classes</a>
@@ -102,11 +103,13 @@ section{scroll-margin-top:80px}
     <section id="what">
       <p class="pill">What is Fagun</p>
       <h2 style="margin:0 0 16px;font-size:clamp(1.7rem,3.4vw,2.5rem)">A senior UAT, QA &amp; security engineer that lives in your AI tool.</h2>
-      <p style="color:var(--muted);font-size:16px;line-height:1.7;max-width:720px">Fagun is a <b style="color:var(--text)">Model Context Protocol (MCP)</b> server. Install it once and your AI assistant — Claude Code, Cursor, Codex, Windsurf, Claude Desktop, or any MCP client — gains 42 browser + QA tools plus the official <b style="color:var(--text)">Chrome DevTools MCP</b> companion for live DevTools debugging and performance traces. It drives a <b style="color:var(--text)">real Chromium browser</b> (auto-installed) and does what a whole product team would: <b style="color:var(--text)">uses the product as real customers</b> (mobile, slow-internet, keyboard-only, screen-reader…), <b style="color:var(--text)">walks complete journeys</b> (signup, login, search, checkout…), hunts defects, and ends with a <b style="color:var(--text)">product-readiness verdict</b> — every finding with steps, evidence, severity, and a suggested fix.</p>
+      <p style="color:var(--muted);font-size:16px;line-height:1.7;max-width:720px">Fagun is a <b style="color:var(--text)">Model Context Protocol (MCP)</b> bundle. One command — <code style="color:var(--gold-soft)">uvx fagun init</code> — wires up <b style="color:var(--text)">6 MCP servers</b> into every AI tool on your machine: Fagun (QA + UAT + security), Playwright (70+ browser tools), MCP-Fetch (web content), Chrome DevTools (real Chrome), VirusTotal (threat intel), and Shodan (internet recon + CVE lookup). Your AI assistant — Claude Code, Cursor, Codex, Windsurf, Claude Desktop, or any MCP client — gains a <b style="color:var(--text)">real Chromium browser</b> plus security intelligence and does what a whole product team would: <b style="color:var(--text)">uses the product as real customers</b> (mobile, slow-internet, keyboard-only, screen-reader…), <b style="color:var(--text)">walks complete journeys</b> (signup, login, search, checkout…), hunts defects, and ends with a <b style="color:var(--text)">product-readiness verdict</b> — every finding with steps, evidence, severity, and a suggested fix.</p>
       <div class="grid g3" style="margin-top:24px">
         <div class="card"><div style="font-size:22px">🎯</div><h3 style="margin:.4em 0 .3em;font-size:17px;color:var(--text)">Real, not hallucinated</h3><p style="margin:0;color:var(--muted);font-size:14px;line-height:1.6">Every finding comes from an actual tool result — a console error, a status code, a measured metric. No "could potentially".</p></div>
         <div class="card"><div style="font-size:22px">🔌</div><h3 style="margin:.4em 0 .3em;font-size:17px;color:var(--text)">Any AI, any model</h3><p style="margin:0;color:var(--muted);font-size:14px;line-height:1.6">Pure MCP — no built-in model. Works with frontier models <i>and</i> fully local open-source ones via Ollama (Qwen, DeepSeek, Llama, Mistral…).</p></div>
         <div class="card"><div style="font-size:22px">🪶</div><h3 style="margin:.4em 0 .3em;font-size:17px;color:var(--text)">Token-lean</h3><p style="margin:0;color:var(--muted);font-size:14px;line-height:1.6">Terse output by default cuts tool-result tokens ~70%. Full detail goes to a Markdown report on disk, not your context.</p></div>
+        <div class="card"><div style="font-size:22px">🧩</div><h3 style="margin:.4em 0 .3em;font-size:17px;color:var(--text)">6 MCPs, one command</h3><p style="margin:0;color:var(--muted);font-size:14px;line-height:1.6"><code>uvx fagun init</code> auto-registers Fagun, Playwright, MCP-Fetch, Chrome DevTools, VirusTotal, and Shodan across every AI tool on your machine.</p></div>
+        <div class="card"><div style="font-size:22px">🔐</div><h3 style="margin:.4em 0 .3em;font-size:17px;color:var(--text)">Interactive key setup</h3><p style="margin:0;color:var(--muted);font-size:14px;line-height:1.6">API keys asked on first use, stored in <code>~/.fagun/api_keys.json</code>, loaded automatically — no manual env-var exports needed.</p></div>
       </div>
     </section>
 
@@ -173,18 +176,20 @@ section{scroll-margin-top:80px}
     <!-- INSTALL -->
     <section id="install">
       <p class="pill">Install</p>
-      <h2 style="margin:0 0 16px;font-size:clamp(1.7rem,3.4vw,2.5rem)">One line. Nothing to configure.</h2>
-      <p style="color:var(--muted);font-size:15px;line-height:1.6;max-width:760px">Use <code style="color:var(--gold-soft)">uvx fagun init</code> for the easiest setup with no Python required. If you already use Python, <code style="color:var(--gold-soft)">pip install --upgrade fagun</code> then <code style="color:var(--gold-soft)">fagun init</code> does the same setup. If old terminal output appears, run <code style="color:var(--gold-soft)">uvx --upgrade --reinstall fagun init</code>. Fagun auto-detects every AI tool on your machine and wires up the Fagun MCP server, Chrome DevTools MCP via <code style="color:var(--gold-soft)">npx -y chrome-devtools-mcp@latest --auto-connect --no-usage-statistics</code>, and the <code style="color:var(--gold-soft)">/fagun</code> skill.</p>
+      <h2 style="margin:0 0 16px;font-size:clamp(1.7rem,3.4vw,2.5rem)">One line. Six MCPs. Nothing to configure.</h2>
+      <p style="color:var(--muted);font-size:15px;line-height:1.6;max-width:760px"><code style="color:var(--gold-soft)">uvx fagun init</code> auto-detects every AI tool on your machine and wires up all <b style="color:var(--text)">6 MCP servers</b>: Fagun (QA/UAT/security), Playwright (70+ browser tools), MCP-Fetch (web content), Chrome DevTools (real Chrome session), VirusTotal (threat intel), and Shodan (host recon + CVE). No Python, no npm calls, no manual config. VirusTotal and Shodan need free API keys — Fagun asks you for them on first use and saves them to <code>~/.fagun/api_keys.json</code>.</p>
       <div class="cmd" style="margin-top:18px">
-<span style="color:var(--gold)">$</span> <span style="color:var(--text)">uvx fagun init</span>                    <span style="color:#6f6784"># browser + Fagun MCP + Chrome DevTools MCP + skill</span>
-<span style="color:var(--gold)">$</span> <span style="color:var(--text)">uvx --upgrade --reinstall fagun init</span> <span style="color:#6f6784"># force latest if old output appears</span>
-<span style="color:var(--gold)">$</span> <span style="color:var(--text)">pip install --upgrade fagun &amp;&amp; fagun init</span> <span style="color:#6f6784"># same setup for pip/Python users</span>
-<span style="color:var(--gold)">$</span> <span style="color:var(--text)">uvx fagun install claude-code</span>       <span style="color:#6f6784"># or target one tool</span>
-<span style="color:var(--gold)">$</span> <span style="color:var(--text)">uvx fagun install chrome-devtools</span>   <span style="color:#6f6784"># Chrome DevTools MCP only</span>
-<span style="color:var(--gold)">›</span> <span style="color:var(--text)">fagun deep test https://example.com</span> <span style="color:#6f6784"># auto Chrome MCP + full Fagun output</span>
+<span style="color:var(--gold)">$</span> <span style="color:var(--text)">uvx fagun init</span>                       <span style="color:#6f6784"># browser + ALL 6 MCPs + /fagun skill — one command</span>
+<span style="color:var(--gold)">$</span> <span style="color:var(--text)">uvx --upgrade --reinstall fagun init</span>  <span style="color:#6f6784"># force latest if old output appears</span>
+<span style="color:var(--gold)">$</span> <span style="color:var(--text)">pip install --upgrade fagun &amp;&amp; fagun init</span> <span style="color:#6f6784"># pip users</span>
+<span style="color:var(--gold)">$</span> <span style="color:var(--text)">uvx fagun install claude-code</span>          <span style="color:#6f6784"># target one AI tool only</span>
+<span style="color:var(--gold)">›</span> <span style="color:var(--text)">check_integrations()</span>                   <span style="color:#6f6784"># see which MCPs are active + key setup instructions</span>
+<span style="color:var(--gold)">›</span> <span style="color:var(--text)">configure_api_key("virustotal", "key")</span> <span style="color:#6f6784"># enable VirusTotal (free key at virustotal.com)</span>
+<span style="color:var(--gold)">›</span> <span style="color:var(--text)">configure_api_key("shodan", "key")</span>     <span style="color:#6f6784"># enable Shodan (free key at shodan.io)</span>
+<span style="color:var(--gold)">›</span> <span style="color:var(--text)">fagun deep test https://example.com</span>    <span style="color:#6f6784"># full Fagun QA + threat intel + recon</span>
       </div>
-      <p style="color:var(--muted);font-size:13px;margin-top:14px">Chrome DevTools MCP auto-connects to the user's running Chrome during normal deep tests. Fagun opens <code>chrome://inspect/#remote-debugging</code>; enable remote debugging there, then click <b>Allow</b> when Chrome shows the permission popup. Users do not need to run <code>fagun connect to my Chrome</code> first. This lets tests reuse logged-in sessions without asking for credentials. If the target is still logged out, Fagun runs <code>auth_status</code> and asks the user to log in manually or provide authorized test credentials through <code>login_with_credentials</code>; passwords are never printed back.</p>
-      <p style="color:var(--muted);font-size:13px;margin-top:8px">The intended runtime order is: install with <code>uvx fagun init</code> or <code>pip install fagun &amp;&amp; fagun init</code> → restart the AI tool → type <code>fagun deep test URL</code> → Chrome DevTools MCP auto-connects → Fagun maps the product/business flow with <code>product_map</code> → checks auth with <code>auth_status</code> → opens pages, clicks buttons, fills inputs with labelled test data, checks console/network after actions → prints the full verdict, all findings, evidence, fixes, coverage, action replay, and report path.</p>
+      <p style="color:var(--muted);font-size:13px;margin-top:14px">Chrome DevTools MCP auto-connects to the user's running Chrome during deep tests — no manual setup. Fagun opens <code>chrome://inspect/#remote-debugging</code>; click <b>Allow</b> when Chrome shows the permission popup. This lets tests reuse your signed-in session without sharing credentials. If the target is still logged out, Fagun calls <code>auth_status</code> and asks for authorized test credentials; passwords are never printed back.</p>
+      <p style="color:var(--muted);font-size:13px;margin-top:8px">Runtime order: <code>uvx fagun init</code> → restart AI tool → <code>fagun deep test URL</code> → Chrome DevTools auto-connects → <code>product_map</code> maps the product → <code>auth_status</code> checks login → pages clicked, inputs fuzzed, console/network watched → full verdict + findings + evidence + fixes + report.</p>
       <p style="color:var(--muted);font-size:14px;margin:16px 0 6px">Inside Claude Code, as a plugin:</p>
       <div class="cmd">
 <span style="color:#7fb0e8">/plugin</span> <span style="color:var(--muted)">marketplace add mejbaurbahar/fagun</span>
@@ -210,7 +215,7 @@ section{scroll-margin-top:80px}
             <path class="beam" d="M360 635 C392 695 446 675 470 745 L470 812 C470 852 530 836 558 878"/>
             <circle class="wf-dot wf-pulse" cx="360" cy="96" r="4"/><circle class="wf-dot wf-pulse" cx="360" cy="258" r="4"/><circle class="wf-dot wf-pulse" cx="360" cy="635" r="5"/>
           </svg>
-          <div class="wf-card" style="left:calc(50% - 165px);top:0;width:330px"><strong><span class="wf-no">01</span> Install and auto-wire</strong><p>uvx fagun init</p><small>Browser engine, Fagun MCP, Chrome DevTools MCP, AI-tool configs.</small></div>
+          <div class="wf-card" style="left:calc(50% - 165px);top:0;width:330px"><strong><span class="wf-no">01</span> Install and auto-wire</strong><p>uvx fagun init</p><small>Browser engine, all 6 MCPs (Fagun, Playwright, Fetch, Chrome DevTools, VirusTotal, Shodan), AI-tool configs.</small></div>
           <div class="wf-pill" style="left:calc(50% - 64px);top:118px">one-time setup</div>
           <div class="wf-card" style="left:calc(50% - 165px);top:150px;width:330px"><strong><span class="wf-no">02</span> Open any AI tool</strong><p>Claude, Codex, Cursor, Windsurf</p><small>Fagun MCP + /fagun skill loaded for the model.</small></div>
           <div class="wf-pill" style="left:calc(50% - 86px);top:290px">user runs one command</div>
@@ -317,6 +322,76 @@ section{scroll-margin-top:80px}
         <tr><td><code>save_helper</code> · <code>list_helpers</code> · <code>load_helper</code></td><td>Persist reusable snippets so the agent gets smarter each run.</td></tr>
         <tr><td><code>fagun_start</code></td><td>Show the capability menu.</td></tr>
       </table></div>
+
+      <h3 style="font-size:16px;color:var(--gold);margin:26px 0 8px">API integration management</h3>
+      <div class="card" style="padding:0;overflow-x:auto"><table>
+        <tr><th>Tool</th><th>What it does</th></tr>
+        <tr><td><code>check_integrations</code></td><td>Show status of all 6 bundled MCPs — which are active (no key needed), which need an API key, with exact instructions per service.</td></tr>
+        <tr><td><code>configure_api_key(service, key)</code></td><td>Set an API key for <code>virustotal</code> or <code>shodan</code>. Applies immediately to the session, saves to <code>~/.fagun/api_keys.json</code> (auto-loaded on every future start), and patches any existing JSON MCP config files on disk so the external MCP process gets the key after the next AI tool restart.</td></tr>
+      </table></div>
+    </section>
+
+    <!-- INTEGRATIONS -->
+    <section id="integrations">
+      <p class="pill">API integrations</p>
+      <h2 style="margin:0 0 16px;font-size:clamp(1.7rem,3.4vw,2.5rem)">Security intelligence MCPs — zero extra setup.</h2>
+      <p style="color:var(--muted);font-size:15px;line-height:1.7;max-width:760px"><code>fagun init</code> registers all 6 MCPs automatically. VirusTotal and Shodan need free API keys — Fagun asks for them on first use via <code>configure_api_key()</code>, stores them in <code>~/.fagun/api_keys.json</code>, and loads them on every subsequent start. No manual env-var exports. No repeated setup.</p>
+      <div class="grid g2" style="margin-top:20px">
+        <div class="card" style="border-color:rgba(232,176,75,.25)">
+          <div style="font-size:22px">🦠</div>
+          <h3 style="margin:.4em 0 .4em;font-size:17px;color:var(--text)">VirusTotal MCP</h3>
+          <p style="margin:0 0 10px;color:var(--muted);font-size:14px;line-height:1.6">Scan any URL, IP address, domain, or file hash against 90+ antivirus engines and threat-intel feeds. Identifies malware, phishing, and suspicious infrastructure during security audits.</p>
+          <div style="font-size:13px;color:var(--muted);line-height:1.9">
+            <div><b style="color:var(--text)">Key:</b> <code>VIRUSTOTAL_API_KEY</code> (free at <a href="https://www.virustotal.com/gui/my-apikey">virustotal.com</a>)</div>
+            <div><b style="color:var(--text)">Setup:</b> <code>configure_api_key("virustotal", "your-key")</code></div>
+            <div><b style="color:var(--text)">Package:</b> <code>@burtthecoder/mcp-virustotal</code></div>
+            <div><b style="color:var(--text)">Tools:</b> URL/file/IP/domain reports, relationship graphs, sandbox behaviour, threat collections, corpus search</div>
+          </div>
+        </div>
+        <div class="card" style="border-color:rgba(232,176,75,.25)">
+          <div style="font-size:22px">🔭</div>
+          <h3 style="margin:.4em 0 .4em;font-size:17px;color:var(--text)">Shodan MCP</h3>
+          <p style="margin:0 0 10px;color:var(--muted);font-size:14px;line-height:1.6">Query Shodan's index of internet-connected devices. Look up open ports, running services, SSL certificates, geolocation, and known CVEs for any host — passive recon with no traffic to the target.</p>
+          <div style="font-size:13px;color:var(--muted);line-height:1.9">
+            <div><b style="color:var(--text)">Key:</b> <code>SHODAN_API_KEY</code> (free tier at <a href="https://account.shodan.io/register">shodan.io</a>)</div>
+            <div><b style="color:var(--text)">Setup:</b> <code>configure_api_key("shodan", "your-key")</code></div>
+            <div><b style="color:var(--text)">Package:</b> <code>@burtthecoder/mcp-shodan</code></div>
+            <div><b style="color:var(--text)">Tools:</b> IP lookup, DNS/reverse-DNS, host search, CVE lookup, CPE vuln search, port/protocol listing</div>
+          </div>
+        </div>
+        <div class="card">
+          <div style="font-size:22px">🎭</div>
+          <h3 style="margin:.4em 0 .4em;font-size:17px;color:var(--text)">Playwright MCP</h3>
+          <p style="margin:0 0 10px;color:var(--muted);font-size:14px;line-height:1.6">Microsoft's official Playwright MCP server. 70+ tools for browser automation via accessibility-tree snapshots — click, type, navigate, record video, mock network, manage tabs, generate PDFs. Zero API key.</p>
+          <div style="font-size:13px;color:var(--muted);line-height:1.9">
+            <div><b style="color:var(--text)">Package:</b> <code>@playwright/mcp</code> (npx, no key needed)</div>
+            <div><b style="color:var(--text)">Flags:</b> <code>--headless</code> · <code>--browser chrome|firefox|webkit</code> · <code>--device "iPhone 15"</code></div>
+            <div><b style="color:var(--text)">Status:</b> Auto-registered by <code>fagun init</code></div>
+          </div>
+        </div>
+        <div class="card">
+          <div style="font-size:22px">📡</div>
+          <h3 style="margin:.4em 0 .4em;font-size:17px;color:var(--text)">MCP Fetch</h3>
+          <p style="margin:0 0 10px;color:var(--muted);font-size:14px;line-height:1.6">Official MCP fetch server — retrieve and process web page content as Markdown. Supports chunked reading for large pages. Lightweight and dependency-free. Zero API key.</p>
+          <div style="font-size:13px;color:var(--muted);line-height:1.9">
+            <div><b style="color:var(--text)">Package:</b> <code>mcp-server-fetch</code> (uvx, no key needed)</div>
+            <div><b style="color:var(--text)">Status:</b> Auto-registered by <code>fagun init</code></div>
+          </div>
+        </div>
+      </div>
+      <div class="cmd" style="margin-top:20px">
+<span style="color:#6f6784"># See integration status</span>
+<span style="color:var(--gold)">›</span> <span style="color:var(--text)">check_integrations()</span>
+
+<span style="color:#6f6784"># Enable VirusTotal (asks for key, saves it, no restart needed for this session)</span>
+<span style="color:var(--gold)">›</span> <span style="color:var(--text)">configure_api_key("virustotal", "your-api-key")</span>
+
+<span style="color:#6f6784"># Enable Shodan</span>
+<span style="color:var(--gold)">›</span> <span style="color:var(--text)">configure_api_key("shodan", "your-api-key")</span>
+
+<span style="color:#6f6784"># Push keys to all AI tool MCP config files (so the external MCP servers start with the key)</span>
+<span style="color:var(--gold)">$</span> <span style="color:var(--text)">uvx fagun init</span>
+      </div>
     </section>
 
     <!-- TAXONOMY -->
@@ -373,6 +448,10 @@ section{scroll-margin-top:80px}
         <div class="card mono" style="font-size:13.5px;line-height:1.7;color:var(--muted)">"log into my app, save the session, then deep test the dashboard as that user"</div>
         <div class="card mono" style="font-size:13.5px;line-height:1.7;color:var(--muted)">"fingerprint example.com, then security scan it — I own it — and rank by severity"</div>
         <div class="card mono" style="font-size:13.5px;line-height:1.7;color:var(--muted)">"a11y audit + keyboard walk this page for WCAG AA and focus issues"</div>
+        <div class="card mono" style="font-size:13.5px;line-height:1.7;color:var(--muted)">"check_integrations() — which MCPs do I have active right now?"</div>
+        <div class="card mono" style="font-size:13.5px;line-height:1.7;color:var(--muted)">"scan example.com with virustotal and shodan, then deep test it — I own it"</div>
+        <div class="card mono" style="font-size:13.5px;line-height:1.7;color:var(--muted)">"map the API surface of my SPA, check for unauth endpoints, then VirusTotal the domain"</div>
+        <div class="card mono" style="font-size:13.5px;line-height:1.7;color:var(--muted)">"use Playwright MCP to record a signup flow, then run Fagun security_scan on the result"</div>
       </div>
     </section>
 
@@ -396,10 +475,12 @@ section{scroll-margin-top:80px}
       <p class="pill">FAQ</p>
       <h2 style="margin:0 0 16px;font-size:clamp(1.7rem,3.4vw,2.5rem)">Quick answers.</h2>
       <div class="grid" style="gap:14px">
-        <div class="card"><h3 style="margin:0 0 6px;font-size:16px;color:var(--text)">Does it need an API key?</h3><p style="margin:0;color:var(--muted);font-size:14.5px;line-height:1.6">No. Fagun is a browser tool server. Your AI client provides the model — frontier or local (Ollama).</p></div>
+        <div class="card"><h3 style="margin:0 0 6px;font-size:16px;color:var(--text)">Does it need an API key?</h3><p style="margin:0;color:var(--muted);font-size:14.5px;line-height:1.6">Fagun itself needs no key. VirusTotal and Shodan each need a <b style="color:var(--text)">free</b> API key — Fagun asks for them on first use via <code>configure_api_key()</code> and saves them automatically to <code>~/.fagun/api_keys.json</code>. Playwright and MCP-Fetch need no keys at all.</p></div>
         <div class="card"><h3 style="margin:0 0 6px;font-size:16px;color:var(--text)">Which AI tools work?</h3><p style="margin:0;color:var(--muted);font-size:14.5px;line-height:1.6">Any MCP client: Claude Code &amp; Desktop, Cursor, Codex, Windsurf, Cline, VS Code, and more.</p></div>
-        <div class="card"><h3 style="margin:0 0 6px;font-size:16px;color:var(--text)">Do I need to install Chrome or Python?</h3><p style="margin:0;color:var(--muted);font-size:14.5px;line-height:1.6">No. <code>uv</code> bundles its runtime and Chromium auto-installs on first run.</p></div>
+        <div class="card"><h3 style="margin:0 0 6px;font-size:16px;color:var(--text)">Do I need to install Chrome or Python?</h3><p style="margin:0;color:var(--muted);font-size:14.5px;line-height:1.6">No. <code>uv</code> bundles its runtime and Chromium auto-installs on first run. Node.js is needed for Playwright/Chrome DevTools MCP but most machines already have it.</p></div>
         <div class="card"><h3 style="margin:0 0 6px;font-size:16px;color:var(--text)">Is the security scan safe to run?</h3><p style="margin:0;color:var(--muted);font-size:14.5px;line-height:1.6">It's non-destructive (read-only probes). Still — only run it on systems you're authorized to test.</p></div>
+        <div class="card"><h3 style="margin:0 0 6px;font-size:16px;color:var(--text)">Why are VirusTotal/Shodan not showing results?</h3><p style="margin:0;color:var(--muted);font-size:14.5px;line-height:1.6">Call <code>check_integrations()</code> — it shows exactly which keys are missing and how to set them. Then <code>configure_api_key("virustotal", "key")</code> to activate immediately.</p></div>
+        <div class="card"><h3 style="margin:0 0 6px;font-size:16px;color:var(--text)">How many total tools are available?</h3><p style="margin:0;color:var(--muted);font-size:14.5px;line-height:1.6">56+ in Fagun, 70+ in Playwright MCP, 11 in VirusTotal MCP, 7 in Shodan MCP, and more from Chrome DevTools and MCP-Fetch — 150+ total across the 6 bundled servers.</p></div>
       </div>
     </section>
 
@@ -418,7 +499,7 @@ section{scroll-margin-top:80px}
 
 <footer style="border-top:1px solid var(--line);padding:26px 0">
   <div class="wrap" style="display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap;color:var(--muted);font-size:13px">
-    <span>🦊 Fagun v0.9.0 · MIT © <a href="https://github.com/mejbaurbahar" style="color:var(--muted)">Mejbaur Bahar Fagun</a></span>
+    <span>🦊 Fagun v0.10.0 · MIT © <a href="https://github.com/mejbaurbahar" style="color:var(--muted)">Mejbaur Bahar Fagun</a></span>
     <span><a href="https://github.com/mejbaurbahar/fagun" style="color:var(--muted)">GitHub</a> · <a href="https://pypi.org/project/fagun/" style="color:var(--muted)">PyPI</a> · <a href="./index.html" style="color:var(--muted)">Home</a></span>
   </div>
 </footer>

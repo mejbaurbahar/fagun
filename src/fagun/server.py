@@ -11,7 +11,9 @@ import functools
 import inspect
 import json
 import os
+import sys
 import tempfile
+from pathlib import Path
 from typing import Optional
 
 from mcp.server.fastmcp import FastMCP
@@ -43,6 +45,36 @@ from .report import build_markdown
 from .report import write_report as _write_report
 
 mcp = FastMCP("fagun")
+
+# ─── persistent API key store ─────────────────────────────────────────────────
+_FAGUN_DIR = Path.home() / ".fagun"
+_KEYS_FILE = _FAGUN_DIR / "api_keys.json"
+_SERVICE_KEYS: dict[str, str] = {
+    "virustotal": "VIRUSTOTAL_API_KEY",
+    "shodan": "SHODAN_API_KEY",
+}
+_SERVICE_URLS: dict[str, str] = {
+    "virustotal": "https://www.virustotal.com/gui/my-apikey",
+    "shodan": "https://account.shodan.io/register",
+}
+
+
+def _load_stored_keys() -> dict:
+    try:
+        if _KEYS_FILE.exists():
+            return json.loads(_KEYS_FILE.read_text())
+    except Exception:
+        pass
+    return {}
+
+
+def _apply_stored_keys() -> None:
+    for env_var, key in _load_stored_keys().items():
+        if not os.environ.get(env_var):
+            os.environ[env_var] = key
+
+
+_apply_stored_keys()
 
 
 def _browser_tool(fn):
@@ -89,6 +121,12 @@ without sharing passwords with the AI.
 You do **not** need to run `fagun connect to my Chrome` first. A normal
 `fagun deep test <url>` should use Chrome DevTools MCP auto-connect when the
 client exposes it, then fall back to Fagun's own browser if needed.
+
+**6 MCP servers bundled** (playwright · mcp-fetch · chrome-devtools auto-wired; virustotal · shodan need free API keys)
+- `check_integrations()` → see which are active and which need API keys
+- `configure_api_key("virustotal", "your-key")` → URL/IP/domain threat intelligence (free key at virustotal.com)
+- `configure_api_key("shodan", "your-key")` → host recon + CVE lookup (free key at shodan.io)
+  Keys persist to `~/.fagun/api_keys.json` and load automatically. Re-run `fagun init` after setting keys to push them to all MCP configs so virustotal/shodan MCPs start with the key.
 
 **Fast commands**
 - `deep test <url> and save the report to ./fagun-report.html`
@@ -1004,6 +1042,146 @@ async def write_report(results_json: str, path: str, title: str = "Fagun QA Repo
     _write_report(results, path, title=title, scorecard=sc)
     verdict = f" — {sc['verdict']} ({sc['overall_score']}/100)" if sc else ""
     return f"Report written to {path}{verdict}"
+
+
+# ─── integration management ───────────────────────────────────────────────────
+
+def _update_mcp_server_env_key(env_var: str, key: str) -> list[str]:
+    """Write the API key into all detected JSON MCP config files. Returns updated paths."""
+    updated: list[str] = []
+    home = Path.home()
+    candidates: list[tuple[Path, str]] = []
+    p = home / ".cursor" / "mcp.json"
+    if p.exists():
+        candidates.append((p, "mcpServers"))
+    if sys.platform == "darwin":
+        p = home / "Library" / "Application Support" / "Claude" / "claude_desktop_config.json"
+    elif sys.platform.startswith("win"):
+        base = os.environ.get("APPDATA", str(home / "AppData" / "Roaming"))
+        p = Path(base) / "Claude" / "claude_desktop_config.json"
+    else:
+        p = home / ".config" / "Claude" / "claude_desktop_config.json"
+    if p.exists():
+        candidates.append((p, "mcpServers"))
+    p = home / ".codeium" / "windsurf" / "mcp_config.json"
+    if p.exists():
+        candidates.append((p, "mcpServers"))
+    for path, section in candidates:
+        try:
+            data = json.loads(path.read_text() or "{}")
+            changed = False
+            for _server_block in data.get(section, {}).values():
+                if isinstance(_server_block.get("env"), dict) and env_var in _server_block["env"]:
+                    _server_block["env"][env_var] = key
+                    changed = True
+            if changed:
+                path.write_text(json.dumps(data, indent=2))
+                updated.append(str(path))
+        except Exception:
+            pass
+    return updated
+
+
+@mcp.tool()
+def check_integrations() -> str:
+    """Check the status of all 6 Fagun MCP integrations.
+
+    Shows which are active (no key needed) and which optional integrations
+    need an API key — with exact instructions to enable them.
+    Call this any time to see what's configured."""
+    lines = [f"🦊 Fagun v{__version__} — Integration Status", ""]
+    lines += [
+        "✅ fagun           — QA, UAT, security, readiness (active)",
+        "✅ playwright      — 70+ browser tools, no key needed",
+        "✅ mcp-fetch       — web content fetching, no key needed",
+        "✅ chrome-devtools — real Chrome session, no key needed",
+        "",
+    ]
+    missing: list[str] = []
+    for service, env_var in _SERVICE_KEYS.items():
+        key_val = os.environ.get(env_var, "")
+        if key_val and not key_val.startswith("YOUR_"):
+            lines.append(f"✅ {service:<17}— {env_var} configured")
+        else:
+            lines.append(f"❌ {service:<17}— NOT configured ({env_var} not set)")
+            missing.append(service)
+    if missing:
+        lines += ["", "─── To enable missing integrations ────────────────────────"]
+        for svc in missing:
+            env_var = _SERVICE_KEYS[svc]
+            url = _SERVICE_URLS.get(svc, "")
+            lines += [
+                f"",
+                f"  {svc.upper()} (free key at {url})",
+                f'  → say: configure_api_key("{svc}", "your-key-here")',
+                f"  → or:  export {env_var}=your-key  then restart your AI tool",
+            ]
+        lines += [
+            "",
+            "Keys saved to ~/.fagun/api_keys.json and loaded automatically on next start.",
+            "Run  uvx fagun init  after setting keys to push them to all AI tool configs.",
+        ]
+    else:
+        lines += ["", "All integrations active. 🎉"]
+    return "\n".join(lines)
+
+
+@mcp.tool()
+def configure_api_key(service: str, key: str, persist: bool = True) -> str:
+    """Store an API key for a Fagun optional integration (virustotal or shodan).
+
+    - Sets the key immediately in the current session.
+    - With persist=True (default) saves to ~/.fagun/api_keys.json so it loads
+      automatically on every future start — no env-var export needed.
+    - Also updates any existing JSON MCP config files on disk so the external
+      MCP server picks up the key on next restart.
+
+    After calling this, say: run `fagun init` to push the key to all AI tool
+    MCP configs (Claude Desktop, Cursor, Codex, Windsurf) so the external MCP
+    process also receives the key.
+
+    Example: configure_api_key("virustotal", "abc123...")
+    """
+    service = service.strip().lower()
+    env_var = _SERVICE_KEYS.get(service)
+    if not env_var:
+        return (
+            f"Unknown service '{service}'. Supported: {', '.join(_SERVICE_KEYS)}\n"
+            f"Call check_integrations() to see full status."
+        )
+    if not key or key.startswith("YOUR_"):
+        return (
+            f"Please provide a real API key, not a placeholder.\n"
+            f"Get a free key at: {_SERVICE_URLS.get(service, '')}\n"
+            f'Then call: configure_api_key("{service}", "your-real-key")'
+        )
+
+    os.environ[env_var] = key
+    lines = [f"✅ {service} key set for this session ({env_var}={key[:8]}…)"]
+
+    if persist:
+        try:
+            _FAGUN_DIR.mkdir(parents=True, exist_ok=True)
+            stored = _load_stored_keys()
+            stored[env_var] = key
+            _KEYS_FILE.write_text(json.dumps(stored, indent=2))
+            lines.append("✅ Saved to ~/.fagun/api_keys.json — loads automatically on every future start.")
+        except Exception as e:
+            lines.append(f"⚠️  Could not save to disk: {e}")
+
+    updated = _update_mcp_server_env_key(env_var, key)
+    if updated:
+        lines.append(f"✅ Updated MCP config files: {', '.join(updated)}")
+        lines.append(f"⚡ Restart your AI tool to activate the {service} MCP server with the new key.")
+    else:
+        lines.append(f"ℹ️  No existing MCP config files found with {service} block.")
+        lines.append(f"   Run: uvx fagun init   to register and push the key to all AI tool configs.")
+
+    lines += [
+        "",
+        f"To verify: call check_integrations()",
+    ]
+    return "\n".join(lines)
 
 
 def serve() -> None:

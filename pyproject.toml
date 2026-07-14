@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "fagun"
-version = "0.9.1"
+version = "0.10.0"
 description = "Fagun — one MCP server that lets any AI tool (Claude, Cursor, Codex, Antigravity, Windsurf) use a site as real end users, run full UAT, hunt bugs, and give a product-readiness verdict."
 readme = "README.md"
 requires-python = ">=3.10"
