@@ -412,8 +412,8 @@ def test_package_version_bumped_for_release():
 
     pyproject = Path("pyproject.toml").read_text()
     init_py = Path("src/fagun/__init__.py").read_text()
-    assert 'version = "0.10.0"' in pyproject
-    assert '__version__ = "0.10.0"' in init_py
+    assert 'version = "0.11.0"' in pyproject
+    assert '__version__ = "0.11.0"' in init_py
 
 
 # ------------------------------------------------------------------- sessions

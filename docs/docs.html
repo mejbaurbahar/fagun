@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Fagun — Documentation, Why &amp; Who it's for</title>
-<meta name="description" content="Full Fagun documentation: 6 auto-bundled MCP servers (Playwright, VirusTotal, Shodan, Chrome DevTools, mcp-fetch), end-user simulation, UAT, personas, user journeys, product-readiness scorecard, authenticated testing, every MCP tool, the test taxonomy, security classes, and example prompts. Real bugs, real evidence, no fake results.">
+<meta name="description" content="Full Fagun documentation: 8 auto-bundled MCP servers (Playwright, VirusTotal, Shodan, Chrome DevTools, mcp-fetch, Jam, Context7), end-user simulation, UAT, personas, user journeys, product-readiness scorecard, authenticated testing, every MCP tool, the test taxonomy, security classes, and example prompts. Real bugs, real evidence, no fake results.">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='13' font-size='13'>🦊</text></svg>">
 <style>
 *{box-sizing:border-box}
@@ -45,14 +45,14 @@ td code{color:var(--gold-soft);font-size:13px}
 .wf-scroll{position:relative;background:#050507;border:1px solid rgba(232,176,75,.2);border-radius:22px;padding:26px;box-shadow:0 28px 90px -42px rgba(0,0,0,.95),inset 0 1px 0 rgba(255,255,255,.05);overflow:hidden}.wf-scroll:before{content:"";position:absolute;inset:0;background:linear-gradient(rgba(255,255,255,.035) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.035) 1px,transparent 1px);background-size:42px 42px;opacity:.42;pointer-events:none}.wf-scroll:after{content:"";position:absolute;inset:-20%;background:radial-gradient(48% 38% at 50% 20%,rgba(232,176,75,.2),transparent 68%),radial-gradient(34% 28% at 80% 82%,rgba(34,197,94,.13),transparent 72%);pointer-events:none}.wf-canvas{position:relative;width:100%;height:1040px;min-width:640px;margin:0 auto;z-index:1}.wf-card{position:absolute;background:linear-gradient(180deg,rgba(31,31,34,.96),rgba(18,18,20,.96));border:1px solid rgba(255,255,255,.13);border-radius:10px;padding:15px 17px;box-shadow:0 24px 70px -36px rgba(0,0,0,.95),inset 0 1px 0 rgba(255,255,255,.05);animation:flowPulse 7s ease-in-out infinite}.wf-card strong{display:flex;align-items:center;gap:9px;margin:0 0 12px;font-size:14px;font-weight:650;color:#fff;letter-spacing:0}.wf-card p{margin:0;color:#f4f4f4;font-size:13.5px;line-height:1.45}.wf-card small{display:block;margin-top:8px;color:#9b9b9b;font-size:12px;line-height:1.45}.wf-no{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:7px;background:rgba(232,176,75,.14);border:1px solid rgba(232,176,75,.36);color:#f0c877;font-size:11px;font-weight:800}.wf-pill,.wf-label{position:absolute;display:inline-flex;align-items:center;gap:7px;background:#2b2b2e;border:1px solid rgba(255,255,255,.1);border-radius:999px;padding:5px 11px;font-size:12px;font-weight:650;color:#ececec;white-space:nowrap;z-index:3}.wf-label{background:#303033}.wf-chips{position:absolute;left:50%;top:500px;transform:translateX(-50%);display:flex;flex-wrap:wrap;justify-content:center;gap:10px;width:520px;z-index:3}.wf-chip{display:inline-flex;align-items:center;border:1px solid rgba(255,255,255,.1);background:#2b2b2e;border-radius:999px;padding:5px 10px;font-size:12px;font-weight:650;color:#ededed;white-space:nowrap}.wf-svg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}.wf-svg path,.wf-svg line{stroke:#747474;stroke-width:2;fill:none}.wf-svg .beam{stroke:#E8B04B;stroke-dasharray:11 12;animation:flowBeam 3.5s linear infinite;filter:drop-shadow(0 0 8px rgba(232,176,75,.4))}.wf-dot{fill:#858585}.wf-pulse{animation:flowFloat 4s ease-in-out infinite}
 @media (max-width:760px){.wf-scroll{overflow-x:auto;padding:20px}.wf-canvas{width:640px!important;min-width:640px!important}}
 @media (prefers-reduced-motion:reduce){.flow-node{animation:none!important}}
-section{scroll-margin-top:80px}
+section{scroll-margin-top:72px}
 </style>
 </head>
 <body style="color:var(--text);background:linear-gradient(180deg,#0d0b16 0%,#181026 55%,#241a33 100%);min-height:100vh">
 <div id="docs-toast" style="display:none;position:fixed;bottom:26px;left:50%;transform:translateX(-50%);background:rgba(30,24,44,.95);border:1px solid rgba(232,176,75,.35);border-radius:10px;padding:11px 20px;font-size:14px;font-weight:600;color:#F3EEE6;gap:9px;align-items:center;z-index:9999;backdrop-filter:blur(8px);white-space:nowrap"><span style="color:#E8B04B">✓</span> Prompt copied — paste it in any AI chat.</div>
 
 <!-- header -->
-<header style="position:sticky;top:0;z-index:20;backdrop-filter:blur(10px);background:rgba(13,11,22,.72);border-bottom:1px solid var(--line)">
+<header style="position:fixed;top:0;left:0;right:0;z-index:50;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);background:rgba(13,11,22,.85);border-bottom:1px solid var(--line)">
   <div class="wrap" style="display:flex;align-items:center;justify-content:space-between;gap:16px;padding-top:16px;padding-bottom:16px">
     <a href="./index.html" style="display:flex;align-items:center;gap:11px;text-decoration:none;color:var(--text)">
       <svg viewBox="0 0 64 64" width="28" height="28"><path d="M6 8 L28 22 L36 22 L58 8 L52 32 L12 32 Z" fill="#E8B04B"/><path d="M12 32 L32 54 L52 32 Z" fill="#d99f3c"/><path d="M10 12 L26 23 L15 27 Z" fill="#1a1226"/><path d="M54 12 L38 23 L49 27 Z" fill="#1a1226"/><circle cx="24" cy="34" r="2.7" fill="#1a1226"/><circle cx="40" cy="34" r="2.7" fill="#1a1226"/><path d="M27 44 L32 49 L37 44 Z" fill="#1a1226"/></svg>
@@ -68,14 +68,14 @@ section{scroll-margin-top:80px}
 </header>
 
 <!-- hero -->
-<section class="wrap" style="padding-top:clamp(46px,8vh,90px);padding-bottom:20px">
-  <p class="pill">Documentation · v0.10.0 · Open source (MIT)</p>
+<section class="wrap" style="padding-top:clamp(90px,10vh,120px);padding-bottom:20px">
+  <p class="pill">Documentation · v0.11.0 · Open source (MIT)</p>
   <h1 style="margin:0;font-size:clamp(2.4rem,6vw,4.4rem);line-height:1">The complete guide to <span style="font-style:italic;color:var(--gold)">Fagun</span>.</h1>
   <p style="max-width:720px;margin:22px 0 0;font-size:clamp(16px,2vw,19px);line-height:1.6;color:var(--muted)">
-    One <code style="color:var(--gold-soft)">uvx fagun init</code> bundles <b style="color:var(--text)">6 MCP servers</b> — Fagun, Playwright, MCP-Fetch, Chrome DevTools, VirusTotal, and Shodan — giving <b style="color:var(--text)">any</b> AI tool a real browser, threat intelligence, and internet recon all at once. Use your product like real customers do — as multiple personas, across whole user journeys — run full <b style="color:var(--text)">UAT</b>, hunt <b style="color:var(--text)">real</b> bugs (functional, security, performance, accessibility, SEO), and return a <b style="color:var(--text)">product-readiness verdict</b>. Every finding is backed by evidence. Nothing is faked; if it can't be reproduced, it isn't reported.
+    One <code style="color:var(--gold-soft)">uvx fagun init</code> bundles <b style="color:var(--text)">8 MCP servers</b> — Fagun, Playwright, MCP-Fetch, Chrome DevTools, VirusTotal, Shodan, Jam, and Context7 — giving <b style="color:var(--text)">any</b> AI tool a real browser, threat intelligence, and internet recon all at once. Use your product like real customers do — as multiple personas, across whole user journeys — run full <b style="color:var(--text)">UAT</b>, hunt <b style="color:var(--text)">real</b> bugs (functional, security, performance, accessibility, SEO), and return a <b style="color:var(--text)">product-readiness verdict</b>. Every finding is backed by evidence. Nothing is faked; if it can't be reproduced, it isn't reported.
   </p>
   <div style="display:flex;gap:20px;flex-wrap:wrap;margin-top:24px">
-    <span class="tag">6 auto-bundled MCPs</span><span class="tag">56+ Fagun tools</span><span class="tag">70+ Playwright tools</span><span class="tag">11 end-user personas</span><span class="tag">User-journey runner</span><span class="tag">16-category readiness scorecard</span><span class="tag">WCAG 2.1 a11y</span><span class="tag">Real Core Web Vitals</span><span class="tag">20+ security classes</span><span class="tag">VirusTotal threat intel</span><span class="tag">Shodan recon + CVE</span><span class="tag">Authenticated testing</span><span class="tag">Works with local models</span>
+    <span class="tag">8 auto-bundled MCPs</span><span class="tag">56+ Fagun tools</span><span class="tag">70+ Playwright tools</span><span class="tag">11 end-user personas</span><span class="tag">User-journey runner</span><span class="tag">16-category readiness scorecard</span><span class="tag">WCAG 2.1 a11y</span><span class="tag">Real Core Web Vitals</span><span class="tag">20+ security classes</span><span class="tag">VirusTotal threat intel</span><span class="tag">Shodan recon + CVE</span><span class="tag">Authenticated testing</span><span class="tag">Works with local models</span>
   </div>
   <div style="margin-top:26px;display:flex;gap:14px;flex-wrap:wrap;align-items:center">
     <button type="button" onclick="docsFgCopy()" style="display:inline-flex;align-items:center;gap:9px;border:none;cursor:pointer;background:var(--gold);color:#231a08;font-family:inherit;font-size:15px;font-weight:700;padding:14px 26px;border-radius:999px;box-shadow:0 0 24px rgba(232,176,75,.45),0 4px 16px rgba(232,176,75,.2);transition:filter .18s,transform .12s,box-shadow .18s" onmouseover="this.style.filter='brightness(1.1)';this.style.transform='translateY(-1px)';this.style.boxShadow='0 0 36px rgba(232,176,75,.7),0 4px 20px rgba(232,176,75,.32)'" onmouseout="this.style.filter='';this.style.transform='';this.style.boxShadow='0 0 24px rgba(232,176,75,.45),0 4px 16px rgba(232,176,75,.2)'"><span style="font-size:16px">⧉</span> Prompt for LLMs</button>
@@ -112,12 +112,12 @@ section{scroll-margin-top:80px}
     <section id="what">
       <p class="pill">What is Fagun</p>
       <h2 style="margin:0 0 16px;font-size:clamp(1.7rem,3.4vw,2.5rem)">A senior UAT, QA &amp; security engineer that lives in your AI tool.</h2>
-      <p style="color:var(--muted);font-size:16px;line-height:1.7;max-width:720px">Fagun is a <b style="color:var(--text)">Model Context Protocol (MCP)</b> bundle. One command — <code style="color:var(--gold-soft)">uvx fagun init</code> — wires up <b style="color:var(--text)">6 MCP servers</b> into every AI tool on your machine: Fagun (QA + UAT + security), Playwright (70+ browser tools), MCP-Fetch (web content), Chrome DevTools (real Chrome), VirusTotal (threat intel), and Shodan (internet recon + CVE lookup). Your AI assistant — Claude Code, Cursor, Codex, Windsurf, Claude Desktop, or any MCP client — gains a <b style="color:var(--text)">real Chromium browser</b> plus security intelligence and does what a whole product team would: <b style="color:var(--text)">uses the product as real customers</b> (mobile, slow-internet, keyboard-only, screen-reader…), <b style="color:var(--text)">walks complete journeys</b> (signup, login, search, checkout…), hunts defects, and ends with a <b style="color:var(--text)">product-readiness verdict</b> — every finding with steps, evidence, severity, and a suggested fix.</p>
+      <p style="color:var(--muted);font-size:16px;line-height:1.7;max-width:720px">Fagun is a <b style="color:var(--text)">Model Context Protocol (MCP)</b> bundle. One command — <code style="color:var(--gold-soft)">uvx fagun init</code> — wires up <b style="color:var(--text)">8 MCP servers</b> into every AI tool on your machine: Fagun (QA + UAT + security), Playwright (70+ browser tools), MCP-Fetch (web content), Chrome DevTools (real Chrome), VirusTotal (threat intel), Shodan (internet recon + CVE lookup), Jam (visual bug reports), and Context7 (live library docs). Your AI assistant — Claude Code, Cursor, Codex, Windsurf, Claude Desktop, or any MCP client — gains a <b style="color:var(--text)">real Chromium browser</b> plus security intelligence and does what a whole product team would: <b style="color:var(--text)">uses the product as real customers</b> (mobile, slow-internet, keyboard-only, screen-reader…), <b style="color:var(--text)">walks complete journeys</b> (signup, login, search, checkout…), hunts defects, and ends with a <b style="color:var(--text)">product-readiness verdict</b> — every finding with steps, evidence, severity, and a suggested fix.</p>
       <div class="grid g3" style="margin-top:24px">
         <div class="card"><div style="font-size:22px">🎯</div><h3 style="margin:.4em 0 .3em;font-size:17px;color:var(--text)">Real, not hallucinated</h3><p style="margin:0;color:var(--muted);font-size:14px;line-height:1.6">Every finding comes from an actual tool result — a console error, a status code, a measured metric. No "could potentially".</p></div>
         <div class="card"><div style="font-size:22px">🔌</div><h3 style="margin:.4em 0 .3em;font-size:17px;color:var(--text)">Any AI, any model</h3><p style="margin:0;color:var(--muted);font-size:14px;line-height:1.6">Pure MCP — no built-in model. Works with frontier models <i>and</i> fully local open-source ones via Ollama (Qwen, DeepSeek, Llama, Mistral…).</p></div>
         <div class="card"><div style="font-size:22px">🪶</div><h3 style="margin:.4em 0 .3em;font-size:17px;color:var(--text)">Token-lean</h3><p style="margin:0;color:var(--muted);font-size:14px;line-height:1.6">Terse output by default cuts tool-result tokens ~70%. Full detail goes to a Markdown report on disk, not your context.</p></div>
-        <div class="card"><div style="font-size:22px">🧩</div><h3 style="margin:.4em 0 .3em;font-size:17px;color:var(--text)">6 MCPs, one command</h3><p style="margin:0;color:var(--muted);font-size:14px;line-height:1.6"><code>uvx fagun init</code> auto-registers Fagun, Playwright, MCP-Fetch, Chrome DevTools, VirusTotal, and Shodan across every AI tool on your machine.</p></div>
+        <div class="card"><div style="font-size:22px">🧩</div><h3 style="margin:.4em 0 .3em;font-size:17px;color:var(--text)">8 MCPs, one command</h3><p style="margin:0;color:var(--muted);font-size:14px;line-height:1.6"><code>uvx fagun init</code> auto-registers Fagun, Playwright, MCP-Fetch, Chrome DevTools, VirusTotal, Shodan, Jam, and Context7 across every AI tool on your machine.</p></div>
         <div class="card"><div style="font-size:22px">🔐</div><h3 style="margin:.4em 0 .3em;font-size:17px;color:var(--text)">Interactive key setup</h3><p style="margin:0;color:var(--muted);font-size:14px;line-height:1.6">API keys asked on first use, stored in <code>~/.fagun/api_keys.json</code>, loaded automatically — no manual env-var exports needed.</p></div>
       </div>
     </section>
@@ -186,9 +186,9 @@ section{scroll-margin-top:80px}
     <section id="install">
       <p class="pill">Install</p>
       <h2 style="margin:0 0 16px;font-size:clamp(1.7rem,3.4vw,2.5rem)">One line. Six MCPs. Nothing to configure.</h2>
-      <p style="color:var(--muted);font-size:15px;line-height:1.6;max-width:760px"><code style="color:var(--gold-soft)">uvx fagun init</code> auto-detects every AI tool on your machine and wires up all <b style="color:var(--text)">6 MCP servers</b>: Fagun (QA/UAT/security), Playwright (70+ browser tools), MCP-Fetch (web content), Chrome DevTools (real Chrome session), VirusTotal (threat intel), and Shodan (host recon + CVE). No Python, no npm calls, no manual config. VirusTotal and Shodan need free API keys — Fagun asks you for them on first use and saves them to <code>~/.fagun/api_keys.json</code>.</p>
+      <p style="color:var(--muted);font-size:15px;line-height:1.6;max-width:760px"><code style="color:var(--gold-soft)">uvx fagun init</code> auto-detects every AI tool on your machine and wires up all <b style="color:var(--text)">8 MCP servers</b>: Fagun (QA/UAT/security), Playwright (70+ browser tools), MCP-Fetch (web content), Chrome DevTools (real Chrome session), VirusTotal (threat intel), Shodan (host recon + CVE), Jam (visual bug reports), and Context7 (live library docs). No Python, no npm calls, no manual config. VirusTotal and Shodan need free API keys — Fagun asks you for them on first use and saves them to <code>~/.fagun/api_keys.json</code>.</p>
       <div class="cmd" style="margin-top:18px">
-<span style="color:var(--gold)">$</span> <span style="color:var(--text)">uvx fagun init</span>                       <span style="color:#6f6784"># browser + ALL 6 MCPs + /fagun skill — one command</span>
+<span style="color:var(--gold)">$</span> <span style="color:var(--text)">uvx fagun init</span>                       <span style="color:#6f6784"># browser + ALL 8 MCPs + /fagun skill — one command</span>
 <span style="color:var(--gold)">$</span> <span style="color:var(--text)">uvx --upgrade --reinstall fagun init</span>  <span style="color:#6f6784"># force latest if old output appears</span>
 <span style="color:var(--gold)">$</span> <span style="color:var(--text)">pip install --upgrade fagun &amp;&amp; fagun init</span> <span style="color:#6f6784"># pip users</span>
 <span style="color:var(--gold)">$</span> <span style="color:var(--text)">uvx fagun install claude-code</span>          <span style="color:#6f6784"># target one AI tool only</span>
@@ -227,7 +227,7 @@ section{scroll-margin-top:80px}
             <path class="beam" d="M360 635 C392 695 446 675 470 745 L470 812 C470 852 530 836 558 878"/>
             <circle class="wf-dot wf-pulse" cx="360" cy="96" r="4"/><circle class="wf-dot wf-pulse" cx="360" cy="258" r="4"/><circle class="wf-dot wf-pulse" cx="360" cy="635" r="5"/>
           </svg>
-          <div class="wf-card" style="left:calc(50% - 165px);top:0;width:330px"><strong><span class="wf-no">01</span> Install and auto-wire</strong><p>uvx fagun init</p><small>Browser engine, all 6 MCPs (Fagun, Playwright, Fetch, Chrome DevTools, VirusTotal, Shodan), AI-tool configs.</small></div>
+          <div class="wf-card" style="left:calc(50% - 165px);top:0;width:330px"><strong><span class="wf-no">01</span> Install and auto-wire</strong><p>uvx fagun init</p><small>Browser engine, all 8 MCPs (Fagun, Playwright, Fetch, Chrome DevTools, VirusTotal, Shodan, Jam, Context7), AI-tool configs.</small></div>
           <div class="wf-pill" style="left:calc(50% - 64px);top:118px">one-time setup</div>
           <div class="wf-card" style="left:calc(50% - 165px);top:150px;width:330px"><strong><span class="wf-no">02</span> Open any AI tool</strong><p>Claude, Codex, Cursor, Windsurf</p><small>Fagun MCP + /fagun skill loaded for the model.</small></div>
           <div class="wf-pill" style="left:calc(50% - 86px);top:290px">user runs one command</div>
@@ -338,7 +338,7 @@ section{scroll-margin-top:80px}
       <h3 style="font-size:16px;color:var(--gold);margin:26px 0 8px">API integration management</h3>
       <div class="card" style="padding:0;overflow-x:auto"><table>
         <tr><th>Tool</th><th>What it does</th></tr>
-        <tr><td><code>check_integrations</code></td><td>Show status of all 6 bundled MCPs — which are active (no key needed), which need an API key, with exact instructions per service.</td></tr>
+        <tr><td><code>check_integrations</code></td><td>Show status of all 8 bundled MCPs — which are active (no key needed), which need an API key, with exact instructions per service.</td></tr>
         <tr><td><code>configure_api_key(service, key)</code></td><td>Set an API key for <code>virustotal</code> or <code>shodan</code>. Applies immediately to the session, saves to <code>~/.fagun/api_keys.json</code> (auto-loaded on every future start), and patches any existing JSON MCP config files on disk so the external MCP process gets the key after the next AI tool restart.</td></tr>
       </table></div>
     </section>
@@ -347,7 +347,7 @@ section{scroll-margin-top:80px}
     <section id="integrations">
       <p class="pill">API integrations</p>
       <h2 style="margin:0 0 16px;font-size:clamp(1.7rem,3.4vw,2.5rem)">Security intelligence MCPs — zero extra setup.</h2>
-      <p style="color:var(--muted);font-size:15px;line-height:1.7;max-width:760px"><code>fagun init</code> registers all 6 MCPs automatically. VirusTotal and Shodan need free API keys — Fagun asks for them on first use via <code>configure_api_key()</code>, stores them in <code>~/.fagun/api_keys.json</code>, and loads them on every subsequent start. No manual env-var exports. No repeated setup.</p>
+      <p style="color:var(--muted);font-size:15px;line-height:1.7;max-width:760px"><code>fagun init</code> registers all 8 MCPs automatically. VirusTotal and Shodan need free API keys — Fagun asks for them on first use via <code>configure_api_key()</code>, stores them in <code>~/.fagun/api_keys.json</code>, and loads them on every subsequent start. No manual env-var exports. No repeated setup.</p>
       <div class="grid g2" style="margin-top:20px">
         <div class="card" style="border-color:rgba(232,176,75,.25)">
           <div style="font-size:22px">🦠</div>
@@ -388,6 +388,27 @@ section{scroll-margin-top:80px}
           <div style="font-size:13px;color:var(--muted);line-height:1.9">
             <div><b style="color:var(--text)">Package:</b> <code>mcp-server-fetch</code> (uvx, no key needed)</div>
             <div><b style="color:var(--text)">Status:</b> Auto-registered by <code>fagun init</code></div>
+          </div>
+        </div>
+        <div class="card">
+          <div style="font-size:22px">🐛</div>
+          <h3 style="margin:.4em 0 .4em;font-size:17px;color:var(--text)">Jam — Visual bug reports</h3>
+          <p style="margin:0 0 10px;color:var(--muted);font-size:14px;line-height:1.6">Captures screen recordings, console logs, network requests, and device info in one click. Every bug report Fagun creates is shareable with full reproduction context. No API key — uses OAuth.</p>
+          <div style="font-size:13px;color:var(--muted);line-height:1.9">
+            <div><b style="color:var(--text)">Package:</b> <code>@jam-dev/jam-mcp</code> (npx, no key needed)</div>
+            <div><b style="color:var(--text)">Auth:</b> OAuth — sign in once via browser popup</div>
+            <div><b style="color:var(--text)">Status:</b> Auto-registered by <code>fagun init</code></div>
+            <div><b style="color:var(--text)">Tools:</b> Create bug reports with screen recordings, console + network capture</div>
+          </div>
+        </div>
+        <div class="card">
+          <div style="font-size:22px">📚</div>
+          <h3 style="margin:.4em 0 .4em;font-size:17px;color:var(--text)">Context7 — Live library docs</h3>
+          <p style="margin:0 0 10px;color:var(--muted);font-size:14px;line-height:1.6">Injects up-to-date library documentation into AI context. When testing React, Next.js, or Vue apps, Fagun gets current API docs automatically — no hallucinated method names. Zero-config.</p>
+          <div style="font-size:13px;color:var(--muted);line-height:1.9">
+            <div><b style="color:var(--text)">Package:</b> <code>@upstash/context7-mcp</code> (npx, no key needed)</div>
+            <div><b style="color:var(--text)">Status:</b> Auto-registered by <code>fagun init</code></div>
+            <div><b style="color:var(--text)">Tools:</b> Resolve library IDs, fetch current docs for any version</div>
           </div>
         </div>
       </div>
@@ -492,7 +513,7 @@ section{scroll-margin-top:80px}
         <div class="card"><h3 style="margin:0 0 6px;font-size:16px;color:var(--text)">Do I need to install Chrome or Python?</h3><p style="margin:0;color:var(--muted);font-size:14.5px;line-height:1.6">No. <code>uv</code> bundles its runtime and Chromium auto-installs on first run. Node.js is needed for Playwright/Chrome DevTools MCP but most machines already have it.</p></div>
         <div class="card"><h3 style="margin:0 0 6px;font-size:16px;color:var(--text)">Is the security scan safe to run?</h3><p style="margin:0;color:var(--muted);font-size:14.5px;line-height:1.6">It's non-destructive (read-only probes). Still — only run it on systems you're authorized to test.</p></div>
         <div class="card"><h3 style="margin:0 0 6px;font-size:16px;color:var(--text)">Why are VirusTotal/Shodan not showing results?</h3><p style="margin:0;color:var(--muted);font-size:14.5px;line-height:1.6">Call <code>check_integrations()</code> — it shows exactly which keys are missing and how to set them. Then <code>configure_api_key("virustotal", "key")</code> to activate immediately.</p></div>
-        <div class="card"><h3 style="margin:0 0 6px;font-size:16px;color:var(--text)">How many total tools are available?</h3><p style="margin:0;color:var(--muted);font-size:14.5px;line-height:1.6">56+ in Fagun, 70+ in Playwright MCP, 11 in VirusTotal MCP, 7 in Shodan MCP, and more from Chrome DevTools and MCP-Fetch — 150+ total across the 6 bundled servers.</p></div>
+        <div class="card"><h3 style="margin:0 0 6px;font-size:16px;color:var(--text)">How many total tools are available?</h3><p style="margin:0;color:var(--muted);font-size:14.5px;line-height:1.6">56+ in Fagun, 70+ in Playwright MCP, 11 in VirusTotal MCP, 7 in Shodan MCP, and more from Chrome DevTools, MCP-Fetch, Jam, and Context7 — 170+ total across the 8 bundled servers.</p></div>
       </div>
     </section>
 
@@ -512,7 +533,7 @@ section{scroll-margin-top:80px}
 
 <footer style="border-top:1px solid var(--line);padding:26px 0">
   <div class="wrap" style="display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap;color:var(--muted);font-size:13px">
-    <span>🦊 Fagun v0.10.0 · MIT © <a href="https://github.com/mejbaurbahar" style="color:var(--muted)">Mejbaur Bahar Fagun</a></span>
+    <span>🦊 Fagun v0.11.0 · MIT © <a href="https://github.com/mejbaurbahar" style="color:var(--muted)">Mejbaur Bahar Fagun</a></span>
     <span><a href="https://github.com/mejbaurbahar/fagun" style="color:var(--muted)">GitHub ★<span class="gh-star-count"></span></a> · <a href="https://pypi.org/project/fagun/" style="color:var(--muted)">PyPI</a> · <a href="./index.html" style="color:var(--muted)">Home</a></span>
   </div>
 </footer>

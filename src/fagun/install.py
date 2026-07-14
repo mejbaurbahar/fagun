@@ -49,6 +49,14 @@ VIRUSTOTAL_ARGS = ["-y", "@burtthecoder/mcp-virustotal"]
 # Shodan MCP — internet recon, port scan, CVE lookup (needs SHODAN_API_KEY)
 SHODAN_ARGS = ["-y", "@burtthecoder/mcp-shodan"]
 
+# Jam MCP — visual bug reporting with screen recording, console + network capture
+JAM_ARGS = ["-y", "@jam-dev/jam-mcp"]
+JAM_BLOCK = {"command": "npx", "args": JAM_ARGS}
+
+# Context7 MCP — up-to-date library docs injected into AI context, zero setup
+CONTEXT7_ARGS = ["-y", "@upstash/context7-mcp"]
+CONTEXT7_BLOCK = {"command": "npx", "args": CONTEXT7_ARGS}
+
 
 def _virustotal_block() -> dict:
     key = os.environ.get("VIRUSTOTAL_API_KEY", "YOUR_VIRUSTOTAL_API_KEY")
@@ -76,6 +84,8 @@ _ALL_SERVERS_STATIC: dict = {
         "args": SHODAN_ARGS,
         "env": {"SHODAN_API_KEY": "YOUR_SHODAN_API_KEY"},
     },
+    "jam": JAM_BLOCK,
+    "context7": CONTEXT7_BLOCK,
 }
 
 CLAUDE = json.dumps({"mcpServers": _ALL_SERVERS_STATIC}, indent=2)
@@ -113,14 +123,24 @@ startup_timeout_ms = 15_000
 command = "npx"
 args = ["-y", "@burtthecoder/mcp-shodan"]
 env = { SHODAN_API_KEY = "YOUR_SHODAN_API_KEY" }
+startup_timeout_ms = 15_000
+
+[mcp_servers.jam]
+command = "npx"
+args = ["-y", "@jam-dev/jam-mcp"]
+startup_timeout_ms = 15_000
+
+[mcp_servers.context7]
+command = "npx"
+args = ["-y", "@upstash/context7-mcp"]
 startup_timeout_ms = 15_000"""
 
-HELP = f"""🦊 Fagun install — adds 6 MCP servers to your AI tool, then say "fagun".
+HELP = f"""🦊 Fagun install — adds 8 MCP servers to your AI tool, then say "fagun".
 
 Recommended setup (no Python/pip needed, uv brings its own):
   macOS/Linux:  curl -LsSf https://astral.sh/uv/install.sh | sh
   Windows:      powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
-  then:         uvx fagun init      # browser + ALL 6 MCPs + AI tools + /fagun skill
+  then:         uvx fagun init      # browser + ALL 8 MCPs + AI tools + /fagun skill
 
 Prefer pip?
   pip install fagun
@@ -144,7 +164,7 @@ VS Code (Copilot MCP) →  .vscode/mcp.json
 Codex CLI          →  ~/.codex/config.toml
 {CODEX}
 ────────────────────────────────────────────────────────────────────
-🚀 ONE COMMAND — sets up EVERYTHING (browser + all 6 MCPs + all AI tools + skill):
+🚀 ONE COMMAND — sets up EVERYTHING (browser + all 8 MCPs + all AI tools + skill):
   uvx fagun init
 
 ⚡ Or target one tool:
@@ -163,13 +183,15 @@ Codex CLI          →  ~/.codex/config.toml
   /plugin marketplace add mejbaurbahar/fagun
   /plugin install fagun@fagun
 ────────────────────────────────────────────────────────────────────
-Fagun auto-registers 6 MCP servers:
+Fagun auto-registers 8 MCP servers:
   fagun          → QA, UAT, security testing (this server)
   playwright     → 70+ browser tools — tabs, PDF, recording, mocking
   mcp-fetch      → lightweight web content fetching
   chrome-devtools→ connects to your running Chrome session
   virustotal     → URL/IP/domain threat intelligence (needs VIRUSTOTAL_API_KEY)
   shodan         → internet recon, open ports, CVE lookup (needs SHODAN_API_KEY)
+  jam            → visual bug reports with screen recording + console/network capture
+  context7       → up-to-date library docs injected into AI context
 
 After adding: restart the tool, then type  fagun  to start.
 """
@@ -252,6 +274,8 @@ def _default_servers() -> dict[str, dict]:
         "chrome-devtools": CHROME_DEVTOOLS_BLOCK,
         "virustotal": _virustotal_block(),
         "shodan": _shodan_block(),
+        "jam": JAM_BLOCK,
+        "context7": CONTEXT7_BLOCK,
     }
 
 
@@ -273,6 +297,18 @@ def _write_codex(path: Path) -> None:
         "chrome-devtools": _codex_chrome_devtools_block(),
         "virustotal": _codex_virustotal_block(),
         "shodan": _codex_shodan_block(),
+        "jam": (
+            '\n[mcp_servers.jam]\n'
+            'command = "npx"\n'
+            'args = ["-y", "@jam-dev/jam-mcp"]\n'
+            "startup_timeout_ms = 15_000\n"
+        ),
+        "context7": (
+            '\n[mcp_servers.context7]\n'
+            'command = "npx"\n'
+            'args = ["-y", "@upstash/context7-mcp"]\n'
+            "startup_timeout_ms = 15_000\n"
+        ),
     }
     existing = path.read_text(encoding="utf-8") if path.exists() else ""
     changed = False
@@ -298,7 +334,7 @@ def init() -> None:
 
     print(_box("🦊 FAGUN CLI", "AI testing platform setup"))
     _section("🚀 Current Task")
-    print("  Initialize Fagun, browser automation, 6 MCP servers, and AI tool skills.")
+    print("  Initialize Fagun, browser automation, 8 MCP servers, and AI tool skills.")
     _section("⏳ Progress")
 
     # 1. Browser engine.
@@ -355,6 +391,18 @@ def init() -> None:
             "export SHODAN_API_KEY=your-key → uvx fagun init"
         )
 
+    # Jam MCP
+    if has_npx:
+        components.append(("✓", "Jam MCP", "Visual bug reports"))
+    else:
+        components.append(("⚠", "Jam MCP", "Needs Node.js/npx"))
+
+    # Context7 MCP
+    if has_npx:
+        components.append(("✓", "Context7 MCP", "Live library docs"))
+    else:
+        components.append(("⚠", "Context7 MCP", "Needs Node.js/npx"))
+
     wired = []
     skilled: set = set()
 
@@ -391,6 +439,8 @@ def init() -> None:
                 statuses.append(f"VirusTotal {_install_claude_code_virustotal()}")
             if shodan_key:
                 statuses.append(f"Shodan {_install_claude_code_shodan()}")
+            statuses.append(f"Jam {_install_claude_code_jam()}")
+            statuses.append(f"Context7 {_install_claude_code_context7()}")
             notes.append("Claude Code: " + "; ".join(statuses))
             skill_once(home / ".claude" / "skills")
         step("Claude Code", _cc)
@@ -521,19 +571,19 @@ def run_cli(argv: list[str]) -> None:
         path = home / ".cursor" / "mcp.json"
         _write_json_server(path, "mcpServers")
         files += [path, _install_skill(home / ".cursor" / "skills")]
-        rows.append(("✓", "Cursor (6 MCPs)", "Configured"))
+        rows.append(("✓", "Cursor (8 MCPs)", "Configured"))
         finish("Cursor install")
     elif target == "claude":
         path = _claude_desktop_config_path()
         _write_json_server(path, "mcpServers")
         files += [path, _install_skill(home / ".claude" / "skills")]
-        rows.append(("✓", "Claude Desktop (6 MCPs)", "Configured"))
+        rows.append(("✓", "Claude Desktop (8 MCPs)", "Configured"))
         finish("Claude Desktop install")
     elif target == "vscode":
         path = Path.cwd() / ".vscode" / "mcp.json"
         _write_json_server(path, "servers")
         files.append(path)
-        rows.append(("✓", "VS Code (6 MCPs)", "Configured"))
+        rows.append(("✓", "VS Code (8 MCPs)", "Configured"))
         finish("VS Code install")
     elif target in ("claude-code", "cc"):
         rows.append(("✓", "Fagun", _install_claude_code()))
@@ -548,6 +598,8 @@ def run_cli(argv: list[str]) -> None:
             rows.append(("✓", "Shodan MCP", _install_claude_code_shodan()))
         else:
             rows.append(("ℹ", "Shodan MCP", "Set SHODAN_API_KEY → re-run"))
+        rows.append(("✓", "Jam MCP", _install_claude_code_jam()))
+        rows.append(("✓", "Context7 MCP", _install_claude_code_context7()))
         files.append(_install_skill(home / ".claude" / "skills"))
         finish("Claude Code install")
     elif target in ("chrome", "chrome-devtools"):
@@ -664,6 +716,14 @@ def _install_claude_code_shodan() -> str:
         "claude", "shodan", ["npx", *SHODAN_ARGS],
         env={"SHODAN_API_KEY": key},
     )
+
+
+def _install_claude_code_jam() -> str:
+    return _run_cli_mcp_add("claude", "jam", ["npx", *JAM_ARGS])
+
+
+def _install_claude_code_context7() -> str:
+    return _run_cli_mcp_add("claude", "context7", ["npx", *CONTEXT7_ARGS])
 
 
 def _open_remote_debugging_setup() -> str:

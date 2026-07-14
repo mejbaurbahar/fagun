@@ -122,10 +122,12 @@ You do **not** need to run `fagun connect to my Chrome` first. A normal
 `fagun deep test <url>` should use Chrome DevTools MCP auto-connect when the
 client exposes it, then fall back to Fagun's own browser if needed.
 
-**6 MCP servers bundled** (playwright · mcp-fetch · chrome-devtools auto-wired; virustotal · shodan need free API keys)
+**8 MCP servers bundled** (playwright · mcp-fetch · chrome-devtools · jam · context7 auto-wired; virustotal · shodan need free API keys)
 - `check_integrations()` → see which are active and which need API keys
 - `configure_api_key("virustotal", "your-key")` → URL/IP/domain threat intelligence (free key at virustotal.com)
 - `configure_api_key("shodan", "your-key")` → host recon + CVE lookup (free key at shodan.io)
+- **Jam** — visual bug reports with screen recording + console/network capture (OAuth, no API key needed)
+- **Context7** — up-to-date library docs injected into AI context (zero-config, no key needed)
   Keys persist to `~/.fagun/api_keys.json` and load automatically. Re-run `fagun init` after setting keys to push them to all MCP configs so virustotal/shodan MCPs start with the key.
 
 **Fast commands**
@@ -1084,7 +1086,7 @@ def _update_mcp_server_env_key(env_var: str, key: str) -> list[str]:
 
 @mcp.tool()
 def check_integrations() -> str:
-    """Check the status of all 6 Fagun MCP integrations.
+    """Check the status of all 8 Fagun MCP integrations.
 
     Shows which are active (no key needed) and which optional integrations
     need an API key — with exact instructions to enable them.
@@ -1095,6 +1097,8 @@ def check_integrations() -> str:
         "✅ playwright      — 70+ browser tools, no key needed",
         "✅ mcp-fetch       — web content fetching, no key needed",
         "✅ chrome-devtools — real Chrome session, no key needed",
+        "✅ jam             — visual bug reports, screen recording (OAuth, no key needed)",
+        "✅ context7        — up-to-date library docs, no key needed",
         "",
     ]
     missing: list[str] = []
