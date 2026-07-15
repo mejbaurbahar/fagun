@@ -259,10 +259,27 @@ def cases_for(field_type: str, name: str = "", include: Iterable[str] = CATEGORI
     builder = _FIELD_BUILDERS.get(ft)
     if builder is None:
         # Heuristic: infer intent from the field name for generic text inputs.
-        for kw, b in (("email", _email), ("mail", _email), ("phone", _tel),
-                      ("tel", _tel), ("url", _url), ("website", _url),
-                      ("date", _date), ("dob", _date), ("pass", _password),
-                      ("amount", _number), ("qty", _number), ("age", _number)):
+        for kw, b in (
+            # email variants
+            ("email", _email), ("mail", _email),
+            # phone/tel
+            ("phone", _tel), ("tel", _tel), ("mobile", _tel), ("cell", _tel), ("fax", _tel),
+            # url/website
+            ("url", _url), ("website", _url), ("site", _url), ("link", _url), ("href", _url),
+            # date/time
+            ("date", _date), ("dob", _date), ("birth", _date), ("born", _date),
+            ("birthday", _date), ("expiry", _date), ("expire", _date), ("valid_until", _date),
+            # password / secrets
+            ("pass", _password), ("pwd", _password), ("secret", _password), ("pin", _password),
+            ("token", _password), ("key", _password),
+            # numeric quantities
+            ("amount", _number), ("qty", _number), ("quantity", _number), ("age", _number),
+            ("price", _number), ("cost", _number), ("fee", _number), ("rate", _number),
+            ("count", _number), ("num", _number), ("number", _number), ("year", _number),
+            ("month", _number), ("day", _number), ("hour", _number), ("minute", _number),
+            ("score", _number), ("rank", _number), ("weight", _number), ("height", _number),
+            ("percent", _number), ("discount", _number), ("tax", _number),
+        ):
             if kw in nm:
                 builder = b
                 break

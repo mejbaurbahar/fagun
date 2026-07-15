@@ -63,7 +63,7 @@ _COLLECT_JS = """
   const out = {LCP: 0, CLS: 0, TBT: 0, longTasks: 0, INP: 0};
   try {
     new PerformanceObserver((l) => {
-      for (const e of l.getEntries()) out.LCP = Math.max(out.LCP, e.startTime + (e.renderTime ? 0 : 0));
+      for (const e of l.getEntries()) out.LCP = Math.max(out.LCP, e.renderTime || e.loadTime || e.startTime);
     }).observe({type: 'largest-contentful-paint', buffered: true});
   } catch (e) {}
   try {

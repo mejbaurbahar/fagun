@@ -144,7 +144,7 @@ def build_scorecard(results: list[dict[str, Any]], meta: dict[str, Any] | None =
         sev = f.get("severity", "low")
         w = _WEIGHT.get(sev, 3)
         for cat in _categorize(f.get("type", "")):
-            scores[cat] = max(0.0, scores[cat] - w)
+            scores[cat] = max(0.0, scores[cat] * (1.0 - w / 130.0))
             hits[cat].append(f)
 
     # Production Readiness = weighted floor of the rest (worst areas dominate).

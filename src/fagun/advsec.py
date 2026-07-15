@@ -371,6 +371,146 @@ async def check_sensitive_url(url: str) -> list[dict[str, Any]]:
     return findings
 
 
+async def check_jwt_alg_none(url: str) -> list[dict[str, Any]]:
+    """Test whether the server accepts a JWT with alg:none (signature-stripped token).
+    Looks for any JWT in the page's cookies, then replays it with alg changed to
+    'none' and the signature removed. GET-only, non-destructive."""
+    import base64
+    import json as _json
+    findings = []
+    page = await manager.page()
+    try:
+        cookies = await page.context.cookies()
+    except Exception:
+        return findings
+    jwt_pattern = re.compile(r"eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]*")
+    candidates: list[tuple[str, str]] = []
+    for c in cookies:
+        m = jwt_pattern.search(c.get("value", ""))
+        if m:
+            candidates.append(("cookie", m.group()))
+    if not candidates:
+        return findings
+    for _source, jwt in candidates[:2]:
+        parts = jwt.split(".")
+        if len(parts) != 3:
+            continue
+        try:
+            header_json = base64.urlsafe_b64decode(parts[0] + "==").decode("utf-8", errors="replace")
+        except Exception:
+            continue
+        if "alg" not in header_json.lower():
+            continue
+        try:
+            header = _json.loads(header_json)
+            header["alg"] = "none"
+            new_header = base64.urlsafe_b64encode(
+                _json.dumps(header, separators=(",", ":")).encode()
+            ).rstrip(b"=").decode()
+            none_jwt = f"{new_header}.{parts[1]}."
+        except Exception:
+            continue
+        try:
+            r = await _req("GET", url, headers={"Authorization": f"Bearer {none_jwt}"})
+            body = (await r.text())[:500]
+        except Exception:
+            continue
+        if r.status in (200, 201, 204) and "401" not in body and "403" not in body:
+            findings.append({
+                "severity": "high",
+                "type": "jwt-alg-none",
+                "detail": (
+                    f"Server accepted JWT with alg:none (signature removed) — "
+                    f"authentication bypass, verify manually. Status {r.status}."
+                ),
+                "evidence": f"Bearer {none_jwt[:40]}… → HTTP {r.status}",
+            })
+    return findings
+
+
+async def check_business_logic(url: str) -> list[dict[str, Any]]:
+    """Probe for business logic flaws: price/qty tampering in URL params and
+    negative quantities. GET-only, non-destructive. Only observes server
+    responses — never submits real orders or payments."""
+    findings = []
+    p = urlparse(url)
+    params = dict(parse_qsl(p.query))
+    if not params:
+        return findings
+
+    price_keys = [k for k in params if re.search(r"price|amount|total|cost|fee|subtotal", k, re.I)]
+    qty_keys = [k for k in params if re.search(r"qty|quantity|count|num|items", k, re.I)]
+    coupon_keys = [k for k in params if re.search(r"coupon|promo|code|discount|voucher", k, re.I)]
+
+    async def _get_len(test_url: str) -> tuple[int, int]:
+        try:
+            r = await _req("GET", test_url)
+            body = await r.text()
+            return r.status, len(body)
+        except Exception:
+            return 0, 0
+
+    orig_status, orig_len = await _get_len(url)
+    if orig_status not in (200, 304):
+        return findings
+
+    for key in price_keys[:2]:
+        for tampered in ("0", "-1", "0.01"):
+            test_params = dict(params)
+            test_params[key] = tampered
+            test_url = urlunparse(p._replace(query=urlencode(test_params)))
+            status, length = await _get_len(test_url)
+            if status in (200, 304) and abs(length - orig_len) < 200:
+                findings.append({
+                    "severity": "medium",
+                    "type": "business-logic-price-tamper",
+                    "detail": (
+                        f"Price parameter {key!r}={tampered!r} returns HTTP {status} "
+                        f"with similar body size to original — possible price manipulation, verify manually"
+                    ),
+                    "evidence": f"GET {test_url} → {status}, {length} bytes",
+                })
+                break
+
+    for key in qty_keys[:2]:
+        for tampered in ("-1", "0", "-99999"):
+            test_params = dict(params)
+            test_params[key] = tampered
+            test_url = urlunparse(p._replace(query=urlencode(test_params)))
+            status, length = await _get_len(test_url)
+            if status in (200, 304):
+                findings.append({
+                    "severity": "medium",
+                    "type": "business-logic-negative-qty",
+                    "detail": (
+                        f"Negative/zero quantity {key!r}={tampered!r} returns HTTP {status} "
+                        f"without error — potential negative-price exploit, verify manually"
+                    ),
+                    "evidence": f"GET {test_url} → {status}",
+                })
+                break
+
+    for key in coupon_keys[:2]:
+        for code in ("FAGUN100", "100OFF", "FREE", "ADMIN"):
+            test_params = dict(params)
+            test_params[key] = code
+            test_url = urlunparse(p._replace(query=urlencode(test_params)))
+            status, length = await _get_len(test_url)
+            if status in (200, 304) and length > orig_len + 50:
+                findings.append({
+                    "severity": "low",
+                    "type": "business-logic-coupon-probe",
+                    "detail": (
+                        f"Coupon/promo field {key!r}={code!r} returns longer response "
+                        f"({length} vs {orig_len} bytes) — possible undisclosed discount, verify"
+                    ),
+                    "evidence": f"GET {test_url} → {status}, {length} bytes",
+                })
+                break
+
+    return findings
+
+
 def clip(s: Any, n: int = 120) -> str:
     s = str(s)
     return s if len(s) <= n else s[: n - 1] + "…"
@@ -392,6 +532,8 @@ _CHECKS = [
     ("graphql", check_graphql),
     ("error-disclosure", check_error_disclosure),
     ("sensitive-url", check_sensitive_url),
+    ("jwt-alg-none", check_jwt_alg_none),
+    ("business-logic", check_business_logic),
 ]
 
 

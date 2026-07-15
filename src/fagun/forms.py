@@ -103,7 +103,7 @@ _FIELD_META_JS = r"""
 """
 
 
-async def fuzz_forms(url: str, submit: bool = False, max_cases_per_field: int = 40) -> dict[str, Any]:
+async def fuzz_forms(url: str, submit: bool = False, max_cases_per_field: int = 60) -> dict[str, Any]:
     """Fuzz every form field with labelled test data; report real validation gaps."""
     page = await manager.page()
     await page.goto(url, wait_until="load", timeout=30000)

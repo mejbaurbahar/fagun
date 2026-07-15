@@ -735,9 +735,22 @@ def build_html_report(
       <circle cx="40" cy="34" r="2.7" fill="#E8B04B" opacity=".75"/>
       <path d="M27 44 L32 49 L37 44 Z" fill="#1a1226"/>
     </svg>"""
+    def _node_dot(n: dict) -> str:
+        icon = str(n.get("icon") or "")
+        if n.get("type") == "site" and icon:
+            safe = escape(icon)
+            return (
+                f'<span class="dot">'
+                f'<img src="{safe}" width="14" height="14" '
+                f'style="border-radius:3px;object-fit:contain;display:block" '
+                f"onerror=\"this.style.display='none'\">"
+                f'</span>'
+            )
+        return '<span class="dot"></span>'
+
     node_cards = "\n".join(
         f"""<button class="node node-{escape(str(n.get("type", "step")))}" data-node="{i}">
-          <span class="dot"></span>
+          {_node_dot(n)}
           <span class="node-title">{escape(str(n.get("title", "Node")))}</span>
           <span class="node-type">{escape(str(n.get("type", "step")).upper())}</span>
         </button>"""

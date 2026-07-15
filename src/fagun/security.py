@@ -251,6 +251,55 @@ async def probe_sqli_error(url: str) -> list[dict[str, Any]]:
     return findings
 
 
+async def probe_idor(url: str) -> list[dict[str, Any]]:
+    """Probe for IDOR by detecting numeric IDs in the URL path and checking if
+    adjacent IDs return different-sized responses. GET-only, non-destructive.
+    Only reports when response sizes diverge significantly (different data returned).
+    Never mass-enumerates — tests at most 2 adjacent IDs."""
+    findings = []
+    p = urlparse(url)
+    segments = [s for s in p.path.split("/") if s]
+    id_indices = [i for i, s in enumerate(segments) if re.fullmatch(r"\d{1,10}", s)]
+    if not id_indices:
+        return findings
+    idx = id_indices[-1]
+    orig_id = int(segments[idx])
+    try:
+        r_orig = await _get(url)
+        orig_body = await r_orig.text()
+        orig_len = len(orig_body)
+    except Exception:
+        return findings
+    for delta in (1, -1):
+        candidate_id = orig_id + delta
+        if candidate_id < 1:
+            continue
+        new_segments = segments[:]
+        new_segments[idx] = str(candidate_id)
+        candidate_url = urlunparse(p._replace(path="/" + "/".join(new_segments)))
+        try:
+            r_cand = await _get(candidate_url)
+            if r_cand.status not in (200, 304):
+                continue
+            cand_body = await r_cand.text()
+            cand_len = len(cand_body)
+        except Exception:
+            continue
+        if orig_len > 200 and cand_len > 200 and abs(cand_len - orig_len) > 50:
+            findings.append({
+                "severity": "medium",
+                "type": "idor-candidate",
+                "detail": (
+                    f"ID {orig_id} at {url} and adjacent ID {candidate_id} at "
+                    f"{candidate_url} both return 200 with different body sizes "
+                    f"({orig_len} vs {cand_len} bytes) — potential IDOR, verify manually"
+                ),
+                "evidence": f"GET {candidate_url} → {r_cand.status}, {cand_len} bytes vs {orig_len} bytes",
+            })
+            break
+    return findings
+
+
 async def security_scan(url: str) -> dict[str, Any]:
     """Run all safe security probes and aggregate findings.
 
@@ -274,6 +323,7 @@ async def security_scan(url: str) -> dict[str, Any]:
         ("reflection", probe_reflection),
         ("open-redirect", probe_open_redirect),
         ("sqli", probe_sqli_error),
+        ("idor", probe_idor),
     ]
     groups = await asyncio.gather(*(_run(name, fn) for name, fn in parallel))
     findings += [f for g in groups for f in g]

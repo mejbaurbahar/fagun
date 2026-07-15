@@ -705,6 +705,105 @@ async def deep_test(url: str, max_pages: int = 50, report_path: Optional[str] = 
 
 @mcp.tool()
 @_browser_tool
+async def full_test(url: str, session_name: str = "", report_path: str = "") -> str:
+    """One-command comprehensive test: runs ALL Fagun checks automatically and
+    writes an HTML report. Equivalent to typing 'fagun test {url}'.
+
+    Pipeline: fingerprint → deep crawl + QA + forms + fuzzing + security (core +
+    advanced + IDOR + business-logic + JWT) + real Core Web Vitals + keyboard
+    walk + API map + SPA exploration + readiness scorecard → HTML report.
+
+    Authenticated: pass session_name to test behind login. Report written to
+    report_path (defaults to reports/<site>-full-test.html).
+
+    NON-DESTRUCTIVE — all probes are GET/HEAD only. Authorized targets only."""
+    # 1. Fingerprint
+    fp_result: dict = {}
+    try:
+        fp_result = await _fingerprint(url)
+    except Exception as e:
+        fp_result = {"summary": f"fingerprint error: {e}", "findings": []}
+
+    # 2. Deep test (crawl + QA + forms + fuzz + security + perf + keyboard + API + SPA)
+    result = await _deep_test(
+        url, max_pages=50,
+        security=True, perf=True, keyboard=True, fuzz=True,
+        session_name=session_name,
+        include_api_map=True,
+        explore=True,
+    )
+
+    # 3. Extra security pass (core + advanced — catches IDOR, JWT, business logic)
+    extra_sec: list[dict] = []
+    try:
+        sec = await _security_scan(url)
+        extra_sec.extend(sec.get("findings", []))
+    except Exception:
+        pass
+    try:
+        adv = await _advanced_scan(url)
+        extra_sec.extend(adv.get("findings", []))
+    except Exception:
+        pass
+
+    # Merge extra security findings (dedup against deep_test results)
+    all_results = list(result.get("results", []))
+    if extra_sec:
+        seen_types = {(f.get("type"), f.get("detail")) for r in all_results for f in r.get("findings", [])}
+        merged_extra = [f for f in extra_sec if (f.get("type"), f.get("detail")) not in seen_types]
+        if merged_extra:
+            all_results.append({"url": url, "type": "security-extra", "findings": merged_extra})
+
+    # 4. Readiness scorecard
+    scorecard = _readiness.build_scorecard(
+        all_results,
+        meta={"target": url, "pages": result.get("pages_tested", 0), "stack": fp_result.get("summary", "")},
+    )
+
+    # 5. Write HTML report
+    from . import autoqa as _autoqa  # local import avoids circular at module level
+    import re as _re
+    from pathlib import Path
+    if not report_path:
+        slug = _re.sub(r"[^\w-]", "-", url.split("//")[-1].split("/")[0])[:40]
+        report_path = str(Path("reports") / f"{slug}-full-test.html")
+    findings_flat = [f for r in all_results for f in r.get("findings", [])]
+    payload_json = json.dumps({
+        "verdict": scorecard["verdict"],
+        "overall_score": scorecard["overall_score"],
+        "findings": findings_flat,
+        "steps": [],
+        "tech_stack": fp_result.get("summary", ""),
+    })
+    try:
+        written = _autoqa.write_html_report(
+            project_name=url,
+            target_url=url,
+            goal="Full automated test via `full_test` command",
+            result_json_or_text=payload_json,
+            report_path=report_path,
+            source="fagun-full-test",
+        )
+    except Exception as e:
+        written = f"(report write failed: {e})"
+
+    verdict_str = (
+        f"🧭 {scorecard['verdict']} ({scorecard['overall_score']}/100) — "
+        f"{scorecard['verdict_reason']}\n"
+    )
+    sev = scorecard["severity_counts"]
+    summary_line = (
+        f"Findings: {sev.get('high', 0)} high · {sev.get('medium', 0)} medium · "
+        f"{sev.get('low', 0)} low | Pages tested: {result.get('pages_tested', 0)} | "
+        f"Stack: {fp_result.get('summary', 'unknown')}\n"
+    )
+    return f"Report → {written}\n{verdict_str}{summary_line}" + fmt.render_multi(
+        all_results, fmt.is_terse(), f"Full test {url}"
+    )
+
+
+@mcp.tool()
+@_browser_tool
 async def security_scan(url: str, advanced: bool = True, verbose: bool = False) -> str:
     """Active-but-safe security scan. Core: exposed files, leaked secrets, CORS,
     cookie flags, reflected-XSS, open redirect, SQLi error signals. With
