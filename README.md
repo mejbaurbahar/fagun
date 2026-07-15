@@ -40,7 +40,31 @@ fagun https://example.com: search for "pricing" and verify results load
 
 The AI should call `autoqa_prompt(url, goal)`, create a small plan with its own
 model, then execute it with Fagun tools like `navigate`, `click`, `fill`,
-`screenshot`, `get_console`, and `get_network`.
+`screenshot`, `get_console`, and `get_network`. Fagun should open Chrome through
+Chrome DevTools MCP automatically when the AI client exposes it, using the user's
+default Chrome session. It should only fall back to Fagun's browser if Chrome MCP
+is unavailable or attach fails, and the fallback should be shown in the report.
+Fagun remains the main tool and report brand, but it should call installed
+supporting MCPs when useful. Jam MCP should be used when available for each
+important Interactive Test Flow step and for reproducible bugs, attaching a
+screenshot or screen recording with console/network context. At the end it should
+call `autoqa_write_html_report` to create a branded HTML report under
+`./reports/`, then open the returned Report URL with Chrome DevTools MCP/default
+Chrome. The report includes project name, collected target URL, opened website
+logo, full prompt, Fagun Tools title, Interactive Test Flow steps, per-step
+evidence, Jam links/recordings, bugs, and fixes.
+
+Supporting MCPs are routed by job:
+
+- **chrome-devtools**: real/default Chrome session, logged-in testing, DevTools console/network/performance, report opening.
+- **jam**: per-step screenshots/screen recordings and visual bug evidence.
+- **playwright**: isolated/headless regression runs, multi-context checks, downloads/uploads, PDF/export checks, stable screenshots, trace/video-style automation.
+- **mcp-fetch**: static page/API/header/robots/sitemap fetching without changing browser state.
+- **context7**: current framework/library docs before fix advice that depends on library behavior.
+- **virustotal** and **shodan**: optional authorized security intelligence when API keys are configured.
+- **LangGraph or similar host-side orchestration**: useful for durable state,
+  branching, retries, reviewer loops, or multi-agent test plans. Fagun remains
+  the execution/reporting layer.
 
 ---
 

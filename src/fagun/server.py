@@ -120,16 +120,31 @@ signed-in default Chrome session. That means logged-in dashboards can be tested
 without sharing passwords with the AI.
 
 You do **not** need to run `fagun connect to my Chrome` first. A normal
-`fagun deep test <url>` should use Chrome DevTools MCP auto-connect when the
-client exposes it, then fall back to Fagun's own browser if needed.
+`fagun <url>: <goal>` or `fagun deep test <url>` should use Chrome DevTools MCP
+auto-connect when the client exposes it. Do not open Fagun's own browser unless
+Chrome MCP is unavailable or attach fails; if fallback is used, record that in
+the report. After the run, generate an HTML report with
+`autoqa_write_html_report`, then open the returned Report URL with Chrome
+DevTools MCP / default Chrome unless the user explicitly asks not to create a
+file.
 
 **8 MCP servers bundled** (playwright · mcp-fetch · chrome-devtools · jam · context7 auto-wired; virustotal · shodan need free API keys)
 - `check_integrations()` → see which are active and which need API keys
 - `configure_api_key("virustotal", "your-key")` → URL/IP/domain threat intelligence (free key at virustotal.com)
 - `configure_api_key("shodan", "your-key")` → host recon + CVE lookup (free key at shodan.io)
-- **Jam** — visual bug reports with screen recording + console/network capture (OAuth, no API key needed)
+- **Jam** — visual bug reports with screen recording + console/network capture (OAuth, no API key needed). Use it for reproducible bugs and attach the Jam link/recording to report findings when available.
 - **Context7** — up-to-date library docs injected into AI context (zero-config, no key needed)
   Keys persist to `~/.fagun/api_keys.json` and load automatically. Re-run `fagun init` after setting keys to push them to all MCP configs so virustotal/shodan MCPs start with the key.
+
+**Supporting MCP routing during Fagun tests**
+- **chrome-devtools** → primary default Chrome session, DevTools console/network/perf, report opening
+- **jam** → per-step screenshots/screen recordings and visual bug evidence
+- **playwright** → isolated/headless regression runs, multi-context checks, downloads/uploads, PDF/export checks, stable screenshots, trace/video-style automation
+- **mcp-fetch** → static content/API/header/robots/sitemap fetching without changing browser state
+- **context7** → current framework/library docs before implementation-specific fix advice
+- **virustotal** → optional URL/domain/IP reputation for authorized security checks
+- **shodan** → optional exposure, open-port, service, and CVE intelligence for authorized assets
+- **LangGraph or similar host orchestration** → optional durable state, branching, retries, reviewer loops, or multi-agent plans; Fagun remains the execution/reporting layer
 
 **Fast commands**
 - `fagun https://example.com: verify search works` → no Groq/API key; your AI model plans, Fagun drives browser
@@ -230,6 +245,49 @@ def autoqa_prompt(url: str = "", goal: str = "") -> str:
 def autoqa_plan_template(url: str = "", goal: str = "") -> str:
     """Return a JSON plan template the host AI can fill before running Fagun tools."""
     return _autoqa.plan_template(url=url, goal=goal)
+
+
+@mcp.tool()
+async def autoqa_write_html_report(
+    project_name: str = "",
+    target_url: str = "",
+    goal: str = "",
+    result_json_or_text: str = "",
+    report_path: str = "",
+    source: str = "Chrome DevTools MCP/default Chrome; Jam MCP evidence when available",
+    open_in_browser: bool = False,
+) -> str:
+    """Write a branded HTML report for a completed `fagun <url>: <goal>` run.
+
+    Include project name, collected target/source, user goal, Fagun tools used,
+    executed steps, evidence, findings, fixes, and final verdict. If project_name
+    or report_path is omitted, Fagun infers a project title from the target URL
+    and writes to ./reports/. By default this returns a file URL and does not
+    launch Fagun's own browser; the host AI should open that Report URL through
+    Chrome DevTools MCP / the user's default Chrome. Set open_in_browser=True only
+    for an explicit local fallback.
+    """
+    path = _autoqa.write_html_report(
+        project_name=project_name,
+        target_url=target_url,
+        goal=goal,
+        result_json_or_text=result_json_or_text,
+        report_path=report_path,
+        source=source,
+    )
+    file_url = Path(path).resolve().as_uri()
+    if not open_in_browser:
+        return (
+            f"HTML report written: {path}\n"
+            f"Report URL: {file_url}\n"
+            "Open the Report URL with Chrome DevTools MCP / the user's default Chrome."
+        )
+    async with manager.lock:
+        if not manager.is_open:
+            await manager.start(headless=os.environ.get("FAGUN_HEADLESS", "1") != "0")
+        page = await manager.page()
+        await page.goto(file_url, wait_until="load", timeout=30000)
+    return f"HTML report written and opened: {path}\nReport URL: {file_url}"
 
 
 @mcp.tool()

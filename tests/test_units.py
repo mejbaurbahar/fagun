@@ -133,6 +133,16 @@ def test_autoqa_prompt_is_model_key_free():
     assert "do not ask the user" in lowered
     assert "groq" in lowered
     assert "current ai client/model" in lowered
+    assert "chrome devtools mcp" in lowered
+    assert "jam mcp" in lowered
+    assert "main orchestration tool" in lowered
+    assert "playwright" in lowered
+    assert "mcp-fetch" in lowered
+    assert "context7" in lowered
+    assert "virustotal" in lowered
+    assert "shodan" in lowered
+    assert "langgraph" in lowered
+    assert "report url" in lowered
     assert "https://example.test" in prompt
     assert "verify search" in prompt
 
@@ -141,6 +151,90 @@ def test_autoqa_plan_template_contains_target_and_goal():
     plan = autoqa.plan_template("https://example.test", "verify search")
     assert '"target_url": "https://example.test"' in plan
     assert '"objective": "verify search"' in plan
+
+
+def test_autoqa_html_report_contains_project_source_and_tools():
+    html = autoqa.build_html_report(
+        project_name="Example Project",
+        target_url="https://example.test",
+        goal="verify search",
+        result_json_or_text='{"verdict":"PASS","summary":["Loaded"],"website_logo":"https://example.test/logo.png","steps":[{"label":"open","detail":"200 OK","screenshot":"/tmp/shot.png","jam_url":"https://jam.dev/c/step","screen_recording":"https://jam.dev/c/recording","console_errors":"none","network_failures":"none"}],"evidence":["/tmp/shot.png"],"findings":[]}',
+    )
+    assert "Example Project" in html
+    assert "Collected From" in html
+    assert "https://example.test" in html
+    assert "Fagun Tools" in html
+    assert "Chrome DevTools MCP/default Chrome first" in html
+    assert "Jam MCP evidence" in html
+    assert "verify search" in html
+    assert "Fagun logo" in html
+    assert "site-logo" in html
+    assert "https://example.test/logo.png" in html
+    assert "User Full Prompt" in html
+    assert "Opened Website" in html
+    assert "Interactive Test Flow" in html
+    assert "Jam report" in html
+    assert "Screen recording" in html
+    assert "evidence-grid" in html
+    assert "evidence-card" in html
+    assert "Console" in html
+    assert "Network" in html
+    assert "Fagun Pages" in html
+    assert "https://mejbaurbahar.github.io/fagun/" in html
+    assert "https://mejbaurbahar.github.io/fagun/docs.html" in html
+    assert "https://github.com/mejbaurbahar/fagun" in html
+    assert "https://pypi.org/project/fagun/" in html
+    assert "./index.html" not in html
+    assert "./docs.html" not in html
+    assert "--gold:#E8B04B" in html
+    assert ".flow { position:sticky; top:92px;" in html
+    assert ".detail-panel { min-height:260px; max-height:calc(100vh - 112px); overflow-y:auto;" in html
+    assert "<h2>Executive Summary</h2>" not in html
+    assert "<h2>Steps Executed</h2>" not in html
+    assert "<h2>Evidence</h2>" not in html
+    assert "<h2>Recommendations / Fixes</h2>" not in html
+    assert "node-signup" in autoqa.build_html_report(
+        project_name="Example Project",
+        target_url="https://example.test",
+        goal="signup",
+        result_json_or_text='{"steps":[{"label":"Click signup","detail":"Open signup form"}],"findings":[{"type":"Signup bug","detail":"Submit failed","severity":"high"}]}',
+    )
+    ticket_html = autoqa.build_html_report(
+        project_name="Example Project",
+        target_url="https://example.test",
+        goal="bug",
+        result_json_or_text='{"findings":[{"type":"Signup bug","detail":"Submit failed","severity":"high","request":"POST /signup","status":"500","jam_url":"https://jam.dev/c/bug","screen_recording":"https://jam.dev/c/recording"}]}',
+    )
+    assert "FAGUN-1" in ticket_html
+    assert "Jira Bug Report" in ticket_html
+    assert "Bug Summary" in ticket_html
+    assert "API Information (If Applicable)" in ticket_html
+    assert "Request Payload (Optional)" in ticket_html
+    assert "Response (Optional)" in ticket_html
+    assert "Labels" in ticket_html
+    assert "Assignee" in ticket_html
+    assert "QA Notes" in ticket_html
+    assert "Steps to Reproduce" in ticket_html
+    assert "Actual Result" in ticket_html
+    assert "Expected Result" in ticket_html
+    assert "POST /signup" in ticket_html
+    assert "https://jam.dev/c/bug" in ticket_html
+    assert "https://jam.dev/c/recording" in ticket_html
+
+
+def test_autoqa_write_html_report_defaults_to_reports_dir(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    path = autoqa.write_html_report(
+        project_name="",
+        target_url="https://example.test",
+        goal="verify search",
+        result_json_or_text="PASS",
+    )
+    assert path.startswith("reports/example-autoqa-")
+    assert path.endswith(".html")
+    content = (tmp_path / path).read_text()
+    assert "Example" in content
+    assert "No model" not in content
 
 
 # ------------------------------------------------------------- security prompt
