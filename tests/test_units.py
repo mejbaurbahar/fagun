@@ -6,6 +6,7 @@ import re
 
 import pytest
 
+from fagun import autoqa
 from fagun import format as fmt
 from fagun import security_toolkit
 from fagun import style
@@ -123,6 +124,23 @@ def test_coerce_payload_accepts_plain_text():
     payload = style.coerce_payload("plain answer")
     assert payload["summary"] == ["plain answer"]
     assert payload["final_recommendation"]
+
+
+# --------------------------------------------------------------------- autoqa
+def test_autoqa_prompt_is_model_key_free():
+    prompt = autoqa.workflow_prompt("https://example.test", "verify search")
+    lowered = prompt.lower()
+    assert "do not ask the user" in lowered
+    assert "groq" in lowered
+    assert "current ai client/model" in lowered
+    assert "https://example.test" in prompt
+    assert "verify search" in prompt
+
+
+def test_autoqa_plan_template_contains_target_and_goal():
+    plan = autoqa.plan_template("https://example.test", "verify search")
+    assert '"target_url": "https://example.test"' in plan
+    assert '"objective": "verify search"' in plan
 
 
 # ------------------------------------------------------------- security prompt

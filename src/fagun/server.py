@@ -19,6 +19,7 @@ from typing import Optional
 from mcp.server.fastmcp import FastMCP
 
 from . import __version__
+from . import autoqa as _autoqa
 from . import format as fmt
 from . import healing
 from . import readiness as _readiness
@@ -131,6 +132,7 @@ client exposes it, then fall back to Fagun's own browser if needed.
   Keys persist to `~/.fagun/api_keys.json` and load automatically. Re-run `fagun init` after setting keys to push them to all MCP configs so virustotal/shodan MCPs start with the key.
 
 **Fast commands**
+- `fagun https://example.com: verify search works` → no Groq/API key; your AI model plans, Fagun drives browser
 - `deep test <url> and save the report to ./fagun-report.html`
 - `understand product <url>` · `auth status <url>` · `login with test credentials`
 - `run QA on <url>` · `check links on <url>` · `test forms on <url>`
@@ -211,6 +213,23 @@ def fagun_render_response(response_json_or_text: str, title: str = "Fagun Respon
     """Render JSON/plain text into Fagun's consistent Markdown panel style."""
     payload = _style.coerce_payload(response_json_or_text, title=title)
     return _style.render_response(payload, title=payload.get("_title", title))
+
+
+@mcp.tool()
+def autoqa_prompt(url: str = "", goal: str = "") -> str:
+    """Return the no-model-key AutoQA workflow for the current AI client.
+
+    This is the replacement for app-level Groq planning: Claude, Codex,
+    Antigravity, Cursor, Windsurf, or another MCP-capable host uses its own model
+    to plan, then calls Fagun browser tools to execute and collect evidence.
+    """
+    return _autoqa.workflow_prompt(url=url, goal=goal)
+
+
+@mcp.tool()
+def autoqa_plan_template(url: str = "", goal: str = "") -> str:
+    """Return a JSON plan template the host AI can fill before running Fagun tools."""
+    return _autoqa.plan_template(url=url, goal=goal)
 
 
 @mcp.tool()

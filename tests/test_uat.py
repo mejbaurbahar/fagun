@@ -209,5 +209,6 @@ async def test_style_tools_are_registered():
     tools = await mcp.list_tools()
     names = {t.name for t in tools}
     assert {"fagun_style_prompt", "fagun_style_schema", "fagun_render_response"} <= names
+    assert {"autoqa_prompt", "autoqa_plan_template"} <= names
     assert {"fagun_security_prompt", "list_external_security_tools", "recommend_security_tools"} <= names
     assert {"product_map", "auth_status", "login_with_credentials"} <= names

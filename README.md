@@ -25,6 +25,25 @@ You set it up **once**. It works in **every** AI tool. Chrome installs **itself*
 
 ---
 
+## No model API key required
+
+Fagun does not require users to bring a Groq, OpenAI, Anthropic, Gemini, or other
+model API key. It runs inside the AI app the user already chose. Claude, Codex,
+Antigravity, Cursor, Windsurf, or a local MCP-capable model does the reasoning;
+Fagun supplies the browser, QA, security, evidence, and report tools.
+
+For plain-English browser tests, ask your AI:
+
+```text
+fagun https://example.com: search for "pricing" and verify results load
+```
+
+The AI should call `autoqa_prompt(url, goal)`, create a small plan with its own
+model, then execute it with Fagun tools like `navigate`, `click`, `fill`,
+`screenshot`, `get_console`, and `get_network`.
+
+---
+
 ## ⚡ One command sets up everything
 
 **Recommended, no Python needed:**

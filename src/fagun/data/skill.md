@@ -12,7 +12,8 @@ description: >
   performance regressions, security misconfig). Produces a product-readiness
   scorecard and a release verdict. Drives the `fagun` MCP browser tools. Triggers:
   "/fagun", "test this site", "UAT <url>", "is <url> ready for users", "review the
-  UX of <url>", "find bugs on <url>", "deep test", "audit <url>", "readiness of <url>".
+  UX of <url>", "find bugs on <url>", "deep test", "audit <url>", "readiness of <url>",
+  "fagun <url>: <goal>".
 ---
 
 # Fagun — End-User, UAT & Bug-Hunting Agent
@@ -109,6 +110,19 @@ rules), and crucially **the customer** (UX, clarity, trust, delight).
 **Model-agnostic / local-first:** Fagun is a pure MCP server — no model of its own,
 works in ANY MCP client incl. local open-source (Ollama Qwen/DeepSeek/Llama/Mistral).
 Keep guidance model-neutral and privacy-first.
+
+## AutoQA without model API keys
+When the user asks for plain-English browser testing with `fagun <url>: <goal>`,
+do not ask for Groq, OpenAI, Anthropic, Gemini, or other model API keys. Use the
+current AI client/model to plan, then call Fagun tools for execution and evidence.
+
+Default flow:
+1. Call `autoqa_prompt(url, goal)` to load the operating rules.
+2. Call `product_map(url)` unless the user supplied exact steps.
+3. Fill a compact plan from `autoqa_plan_template(url, goal)`.
+4. Execute with `navigate`, `click`, `fill`, `press_key`, `screenshot`,
+   `evaluate_js`, `get_console`, and `get_network`.
+5. Return verdict, steps run, evidence, bugs, fixes, and residual risk.
 
 ## Fagun Style — always format answers consistently
 For any user-facing answer, use Fagun Style unless the user explicitly asks for a
@@ -415,6 +429,7 @@ hypothesis as confirmed.
 **Browser:** `fagun_start` · `open_browser` · `navigate` · `click` · `fill` ·
 `press_key` · `screenshot` · `evaluate_js` · `get_console` · `get_network` · `close_browser`
 **Product/auth:** `product_map` · `auth_status` · `login_with_credentials`
+**AutoQA:** `autoqa_prompt` · `autoqa_plan_template`
 **Fagun Style:** `fagun_style_prompt` · `fagun_style_schema` · `fagun_render_response`
 **Security orchestration:** `fagun_security_prompt` · `list_external_security_tools` ·
 `recommend_security_tools`
