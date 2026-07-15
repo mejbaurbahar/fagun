@@ -522,6 +522,10 @@ def init() -> None:
         print("  VirusTotal/Shodan: set API keys above, then re-run fagun init.")
     else:
         print("No AI tools detected automatically.\n")
+        print("Chrome DevTools MCP auto-connects during deep tests when available.")
+        print("Playwright MCP provides 70+ additional browser automation tools.\n")
+        print("After installing into your AI tool, try:")
+        print("  fagun deep test https://example.com\n")
         print("Run one of:")
         print("  uvx fagun install claude-code")
         print("  uvx fagun install cursor")

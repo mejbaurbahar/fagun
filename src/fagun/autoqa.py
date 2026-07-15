@@ -44,6 +44,13 @@ Workflow:
 9. Always generate an HTML report with autoqa_write_html_report before the final chat answer, then open the returned Report URL with Chrome DevTools MCP / default Chrome. Do not rely on Fagun's fallback browser for report display unless Chrome MCP is unavailable.
 10. Return a Fagun-style summary with verdict, report path, steps run, evidence, bugs found, fixes, and residual risk.
 
+Phase upgrades built into Fagun:
+- Phase 1 Run Memory: autoqa_write_html_report stores structured run JSON and an index under reports/runs/ by default.
+- Phase 2 Replay / Regression: use autoqa_replay_prompt(run_ref) to replay a stored flow and compare the new run to the old one.
+- Phase 3 Report Comparison: use autoqa_compare_runs(before_ref, after_ref) to show fixed, still-open, and new findings.
+- Phase 4 Power Modes: use existing Fagun tools for evidence timeline fields, test data generation, a11y_audit + keyboard_walk, map_api/deep_test(include_api_map=true), auth_status/session tools, and optional LangGraph host orchestration.
+- Do not add Jira/GitHub/Linear/Notion export in this workflow.
+
 Supporting MCP routing during Fagun runs:
 - Fagun is the main tool and owns the test plan, verdict, report, and final answer.
 - chrome-devtools: primary browser for user-default Chrome, logged-in sessions, DevTools network/console/performance, and opening the final report.
@@ -86,6 +93,8 @@ Useful Fagun tools:
 - evaluate_js(code) for page text, title, DOM checks, and custom assertions
 - get_console(only_errors=true), get_network(only_problems=true)
 - autoqa_write_html_report(project_name, target_url, goal, result_json_or_text) at the end; open the returned Report URL with Chrome DevTools MCP/default Chrome
+- autoqa_list_runs(limit), autoqa_replay_prompt(run_ref), autoqa_compare_runs(before_ref, after_ref) for memory, replay, and before/after regression analysis
+- autoqa_power_plan(url, goal) for Phase 4 evidence timeline, test data, accessibility, API mapping, smart auth, and optional LangGraph orchestration
 - run_qa(url), full_qa_sweep(url), deep_test(url) when the user wants broad coverage
 
 Assertion helpers via evaluate_js:
@@ -130,6 +139,49 @@ def plan_template(url: str = "", goal: str = "") -> str:
     return json.dumps(template, indent=2)
 
 
+def power_plan_prompt(url: str = "", goal: str = "") -> str:
+    """Return a phase-4 power workflow using existing Fagun capabilities."""
+    target = url or "<target-url>"
+    objective = goal or "deep product readiness, regression, and bug validation"
+    return f"""Run Fagun Phase 4 Power Mode.
+
+Target: {target}
+Objective: {objective}
+
+Use Fagun as the execution/reporting layer and skip issue-tracker export.
+
+1. Evidence timeline
+   - For every Interactive Test Flow step, capture: url, title/text signal, screenshot, screen_recording or jam_url, console_errors, network_failures, and DOM/API assertion.
+   - Store those fields in the step payload before calling autoqa_write_html_report.
+
+2. Test data
+   - Call list_test_data(field_type, name) for forms and generate valid, invalid, boundary, i18n/RTL, long, empty, duplicate, and malicious-but-safe inputs.
+   - Use test_forms/fuzz_forms for non-destructive validation checks.
+
+3. Accessibility power mode
+   - Run a11y_audit(url) and keyboard_walk(url).
+   - Check labels, contrast, focus order, focus traps, alt text, empty controls, duplicate IDs, zoom blocking, and keyboard-only completion.
+
+4. API flow mapping
+   - Run map_api(url, interact=true) or deep_test(url, include_api_map=true).
+   - Tie API calls to UI steps: request URL, method, status, payload shape, auth pattern, response errors, and GraphQL/WebSocket findings.
+
+5. Smart auth
+   - Start with auth_status(url).
+   - Prefer Chrome DevTools MCP/default Chrome session. If MFA/CAPTCHA/passkey appears, pause for the user, then continue.
+   - Save reusable sessions with save_session and record auth state in the report.
+
+6. Optional orchestration
+   - If the host app uses LangGraph or similar, model the run as planner -> browser actor -> evidence collector -> specialist reviewers -> report writer.
+   - Keep Fagun tool calls as the source of truth and include the orchestrator name in the report source.
+
+7. Finish
+   - Call autoqa_write_html_report.
+   - Confirm run memory was created.
+   - Use autoqa_compare_runs for before/after regression when a prior run exists.
+"""
+
+
 def infer_project_name(target_url: str = "", explicit: str = "") -> str:
     """Return a human report title from an explicit name or target hostname."""
     if explicit.strip():
@@ -145,10 +197,21 @@ def infer_project_name(target_url: str = "", explicit: str = "") -> str:
 
 def default_report_path(project_name: str, target_url: str = "") -> str:
     """Return a deterministic-ish local report path for an AutoQA run."""
-    stamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
+    stamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S-%f")
     base = project_name or infer_project_name(target_url)
     slug = re.sub(r"[^a-z0-9]+", "-", base.lower()).strip("-") or "fagun"
     return str(Path("reports") / f"{slug}-autoqa-{stamp}.html")
+
+
+def default_memory_dir(report_path: str = "") -> Path:
+    """Return the local directory used for structured AutoQA run memory."""
+    if report_path:
+        return Path(report_path).resolve().parent / "runs"
+    return Path("reports") / "runs"
+
+
+def _slug(text: str, fallback: str = "fagun") -> str:
+    return re.sub(r"[^a-z0-9]+", "-", text.lower()).strip("-") or fallback
 
 
 def _coerce_payload(result_json_or_text: str) -> dict[str, Any]:
@@ -162,6 +225,198 @@ def _coerce_payload(result_json_or_text: str) -> dict[str, Any]:
         return {"verdict": "Unknown", "summary": payload, "steps": [], "findings": []}
     except Exception:
         return {"verdict": "Unknown", "summary": text, "steps": [], "findings": []}
+
+
+def _finding_key(finding: Any) -> str:
+    if isinstance(finding, dict):
+        title = finding.get("type") or finding.get("label") or finding.get("name") or finding.get("detail") or finding.get("description")
+        severity = finding.get("severity") or finding.get("status") or ""
+        return f"{title}|{severity}".lower()
+    return str(finding).lower()
+
+
+def _run_record(
+    project_name: str,
+    target_url: str,
+    goal: str,
+    payload: dict[str, Any],
+    report_path: str,
+    source: str,
+    generated: str | None = None,
+) -> dict[str, Any]:
+    """Create a structured run-memory record from an AutoQA payload."""
+    generated = generated or datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    project = infer_project_name(target_url, project_name)
+    stamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S-%f")
+    run_id = f"{stamp}-{_slug(project)}"
+    steps = _listify(payload.get("steps") or payload.get("action_trace") or payload.get("test_steps"))
+    findings = _listify(payload.get("findings") or payload.get("bugs") or payload.get("issues"))
+    evidence = _listify(payload.get("evidence") or payload.get("screenshots"))
+    return {
+        "schema_version": 1,
+        "run_id": run_id,
+        "project_name": project,
+        "target_url": target_url,
+        "goal": goal,
+        "verdict": str(payload.get("verdict") or payload.get("status") or "Unknown"),
+        "source": source or "fagun",
+        "generated_at": generated,
+        "report_path": str(report_path),
+        "summary": payload.get("summary") or payload.get("executive_summary") or "",
+        "steps": steps,
+        "findings": findings,
+        "evidence": evidence,
+        "recommendations": _listify(payload.get("recommendations") or payload.get("fixes")),
+        "mcp_usage": payload.get("mcp_usage") or payload.get("tools_used") or [],
+        "raw_payload": payload,
+    }
+
+
+def save_run_memory(record: dict[str, Any], memory_dir: str | Path = "") -> str:
+    """Persist a structured run record and update the local run-memory index."""
+    base = Path(memory_dir) if memory_dir else default_memory_dir(str(record.get("report_path") or ""))
+    base.mkdir(parents=True, exist_ok=True)
+    run_id = str(record.get("run_id") or f"{datetime.now(timezone.utc).strftime('%Y%m%d-%H%M%S')}-fagun")
+    record_path = base / f"{_slug(run_id)}.json"
+    record["memory_path"] = str(record_path)
+    record_path.write_text(json.dumps(record, indent=2, default=str), encoding="utf-8")
+
+    index_path = base / "index.json"
+    try:
+        index = json.loads(index_path.read_text(encoding="utf-8")) if index_path.exists() else []
+        if not isinstance(index, list):
+            index = []
+    except Exception:
+        index = []
+    summary = {
+        "run_id": run_id,
+        "project_name": record.get("project_name"),
+        "target_url": record.get("target_url"),
+        "goal": record.get("goal"),
+        "verdict": record.get("verdict"),
+        "generated_at": record.get("generated_at"),
+        "report_path": record.get("report_path"),
+        "memory_path": str(record_path),
+        "findings": len(_listify(record.get("findings"))),
+        "steps": len(_listify(record.get("steps"))),
+    }
+    index = [item for item in index if not isinstance(item, dict) or item.get("run_id") != run_id]
+    index.insert(0, summary)
+    index_path.write_text(json.dumps(index[:200], indent=2, default=str), encoding="utf-8")
+    return str(record_path)
+
+
+def _load_index(memory_dir: str | Path = "") -> list[dict[str, Any]]:
+    base = Path(memory_dir) if memory_dir else default_memory_dir()
+    index_path = base / "index.json"
+    if not index_path.exists():
+        return []
+    try:
+        data = json.loads(index_path.read_text(encoding="utf-8"))
+    except Exception:
+        return []
+    return [item for item in data if isinstance(item, dict)] if isinstance(data, list) else []
+
+
+def list_run_memory(limit: int = 10, memory_dir: str = "") -> str:
+    """Return recent structured Fagun runs as JSON."""
+    runs = _load_index(memory_dir)[: max(1, min(int(limit or 10), 100))]
+    return json.dumps({"runs": runs}, indent=2, default=str)
+
+
+def _load_run(ref: str, memory_dir: str | Path = "") -> dict[str, Any]:
+    """Load a run by JSON path, run id, or report path."""
+    candidates: list[Path] = []
+    if ref:
+        path = Path(ref)
+        if path.exists():
+            candidates.append(path)
+        base = Path(memory_dir) if memory_dir else default_memory_dir()
+        candidates.append(base / f"{_slug(ref)}.json")
+        for item in _load_index(memory_dir):
+            if ref in {str(item.get("run_id")), str(item.get("report_path")), str(item.get("memory_path"))}:
+                candidates.append(Path(str(item.get("memory_path"))))
+    for candidate in candidates:
+        try:
+            data = json.loads(candidate.read_text(encoding="utf-8"))
+            if isinstance(data, dict):
+                return data
+        except Exception:
+            continue
+    raise FileNotFoundError(f"Fagun run memory not found: {ref}")
+
+
+def replay_prompt(run_ref: str, memory_dir: str = "") -> str:
+    """Build a deterministic replay/regression prompt from a stored run."""
+    run = _load_run(run_ref, memory_dir)
+    steps = _listify(run.get("steps"))
+    step_lines = []
+    for i, step in enumerate(steps, 1):
+        if isinstance(step, dict):
+            label = step.get("label") or step.get("name") or step.get("action") or f"Step {i}"
+            target = step.get("target") or step.get("url") or step.get("detail") or ""
+            expected = step.get("expected") or step.get("status") or step.get("result") or ""
+            step_lines.append(f"{i}. {label} — {target} — expected: {expected}".strip())
+        else:
+            step_lines.append(f"{i}. {step}")
+    return (
+        "Replay this Fagun run as a regression check.\n\n"
+        f"Run ID: {run.get('run_id')}\n"
+        f"Project: {run.get('project_name')}\n"
+        f"Target: {run.get('target_url')}\n"
+        f"Original prompt: {run.get('goal')}\n"
+        f"Original verdict: {run.get('verdict')}\n\n"
+        "Replay steps:\n"
+        + ("\n".join(step_lines) if step_lines else "No structured steps were stored; inspect the original report and reconstruct the journey.")
+        + "\n\nCompare the new run against the stored run. Mark fixed bugs, still-open bugs, new bugs, changed console/network failures, changed screenshots/recordings, and changed verdict. Generate a new Fagun HTML report and store run memory."
+    )
+
+
+def compare_runs(before_ref: str, after_ref: str, memory_dir: str = "") -> str:
+    """Compare two stored Fagun runs and return a compact Markdown diff."""
+    before = _load_run(before_ref, memory_dir)
+    after = _load_run(after_ref, memory_dir)
+    before_findings = {_finding_key(item): item for item in _listify(before.get("findings"))}
+    after_findings = {_finding_key(item): item for item in _listify(after.get("findings"))}
+    fixed = [before_findings[key] for key in before_findings.keys() - after_findings.keys()]
+    new = [after_findings[key] for key in after_findings.keys() - before_findings.keys()]
+    still = [after_findings[key] for key in after_findings.keys() & before_findings.keys()]
+
+    def title(item: Any) -> str:
+        if isinstance(item, dict):
+            return str(item.get("type") or item.get("label") or item.get("name") or item.get("detail") or "Finding")
+        return str(item)
+
+    lines = [
+        "# Fagun Report Comparison",
+        "",
+        f"Before: {before.get('run_id')} — {before.get('verdict')} — {before.get('target_url')}",
+        f"After: {after.get('run_id')} — {after.get('verdict')} — {after.get('target_url')}",
+        "",
+        "## Summary",
+        f"- Steps: {len(_listify(before.get('steps')))} → {len(_listify(after.get('steps')))}",
+        f"- Findings: {len(before_findings)} → {len(after_findings)}",
+        f"- Fixed: {len(fixed)}",
+        f"- Still Open: {len(still)}",
+        f"- New: {len(new)}",
+        "",
+        "## Fixed Findings",
+        *(f"- {title(item)}" for item in fixed),
+        *(["- None"] if not fixed else []),
+        "",
+        "## Still Open",
+        *(f"- {title(item)}" for item in still),
+        *(["- None"] if not still else []),
+        "",
+        "## New Findings",
+        *(f"- {title(item)}" for item in new),
+        *(["- None"] if not new else []),
+        "",
+        "## Reports",
+        f"- Before: {before.get('report_path')}",
+        f"- After: {after.get('report_path')}",
+    ]
+    return "\n".join(lines)
 
 
 def _listify(value: Any) -> list[Any]:
@@ -389,10 +644,12 @@ def _findings_summary_section(findings: list[Any]) -> str:
             title = finding.get("type") or finding.get("label") or finding.get("name") or "Finding"
             detail = finding.get("detail") or finding.get("description") or finding.get("evidence") or ""
             status = finding.get("status") or finding.get("severity") or ""
+            detail_html = f" — {escape(str(detail))}" if detail else ""
+            status_html = f'<div class="muted">{escape(str(status))}</div>' if status else ""
             items.append(
                 f"<li><b>{escape(str(title))}</b>"
-                f"{f' — {escape(str(detail))}' if detail else ''}"
-                f"{f'<div class=\"muted\">{escape(str(status))}</div>' if status else ''}</li>"
+                f"{detail_html}"
+                f"{status_html}</li>"
             )
         else:
             items.append(f"<li>{escape(str(finding))}</li>")
@@ -448,10 +705,12 @@ def build_html_report(
             title = item.get("label") or item.get("name") or item.get("type") or item.get("action") or "Item"
             detail = item.get("detail") or item.get("description") or item.get("evidence") or item.get("result") or ""
             meta = " · ".join(str(item.get(k)) for k in ("url", "status", "screenshot") if item.get(k))
+            detail_html = f" — {escape(str(detail))}" if detail else ""
+            meta_html = f'<div class="muted">{escape(meta)}</div>' if meta else ""
             return (
                 f"<li><b>{escape(str(title))}</b>"
-                f"{f' — {escape(str(detail))}' if detail else ''}"
-                f"{f'<div class=\"muted\">{escape(meta)}</div>' if meta else ''}</li>"
+                f"{detail_html}"
+                f"{meta_html}</li>"
             )
         return f"<li>{escape(str(item))}</li>"
 
@@ -691,13 +950,17 @@ def write_html_report(
     result_json_or_text: str,
     report_path: str = "",
     source: str = "fagun",
+    memory_dir: str = "",
 ) -> str:
     """Write the AutoQA HTML report and return the path."""
     project = infer_project_name(target_url, project_name)
+    payload = _coerce_payload(result_json_or_text)
     path = Path(report_path or default_report_path(project, target_url))
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(
         build_html_report(project, target_url, goal, result_json_or_text, source=source),
         encoding="utf-8",
     )
+    record = _run_record(project, target_url, goal, payload, str(path), source)
+    save_run_memory(record, memory_dir or default_memory_dir(str(path)))
     return str(path)

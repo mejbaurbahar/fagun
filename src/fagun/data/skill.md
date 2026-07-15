@@ -187,6 +187,22 @@ Default flow:
    Report URL with Chrome DevTools MCP / the user's default Chrome.
 8. Return verdict, report path, steps run, evidence, bugs, fixes, and residual risk.
 
+Phase workflow for making Fagun stronger:
+1. **Run Memory:** every `autoqa_write_html_report` call stores structured JSON
+   under `reports/runs/` plus an index. Use `autoqa_list_runs(limit)` to inspect
+   recent runs.
+2. **Replay / Regression:** use `autoqa_replay_prompt(run_ref)` to rerun a stored
+   Interactive Test Flow and compare the new evidence against the old run.
+3. **Report Comparison:** use `autoqa_compare_runs(before_ref, after_ref)` to show
+   fixed findings, still-open findings, new findings, verdict changes, and report
+   paths.
+4. **Power Modes:** use the existing Fagun tools for evidence timeline fields,
+   `list_test_data`, `a11y_audit` + `keyboard_walk`, `map_api` /
+   `deep_test(include_api_map=true)`, auth/session tools, and optional LangGraph
+   host orchestration for complex stateful plans.
+
+Do not add Jira/GitHub/Linear/Notion export in this workflow.
+
 ## Fagun Style — always format answers consistently
 For any user-facing answer, use Fagun Style unless the user explicitly asks for a
 different format. This makes Claude, Codex, Cursor, Gemini, Qwen, DeepSeek, and
@@ -492,7 +508,9 @@ hypothesis as confirmed.
 **Browser:** `fagun_start` · `open_browser` · `navigate` · `click` · `fill` ·
 `press_key` · `screenshot` · `evaluate_js` · `get_console` · `get_network` · `close_browser`
 **Product/auth:** `product_map` · `auth_status` · `login_with_credentials`
-**AutoQA:** `autoqa_prompt` · `autoqa_plan_template` · `autoqa_write_html_report`
+**AutoQA:** `autoqa_prompt` · `autoqa_plan_template` · `autoqa_power_plan` ·
+`autoqa_write_html_report` · `autoqa_list_runs` · `autoqa_replay_prompt` ·
+`autoqa_compare_runs`
 **Fagun Style:** `fagun_style_prompt` · `fagun_style_schema` · `fagun_render_response`
 **Security orchestration:** `fagun_security_prompt` · `list_external_security_tools` ·
 `recommend_security_tools`

@@ -149,6 +149,10 @@ file.
 **Fast commands**
 - `fagun https://example.com: verify search works` → no Groq/API key; your AI model plans, Fagun drives browser
 - `deep test <url> and save the report to ./fagun-report.html`
+- `autoqa_list_runs(10)` → recent structured run memory
+- `autoqa_replay_prompt("<run-id>")` → replay/regression prompt from a stored run
+- `autoqa_compare_runs("<before>", "<after>")` → fixed/still-open/new findings
+- `autoqa_power_plan("<url>", "<goal>")` → Phase 4 evidence timeline, test data, a11y, API, auth, optional LangGraph plan
 - `understand product <url>` · `auth status <url>` · `login with test credentials`
 - `run QA on <url>` · `check links on <url>` · `test forms on <url>`
 - `security scan <url>` · `perf audit <url>` · `a11y audit <url>`
@@ -248,6 +252,16 @@ def autoqa_plan_template(url: str = "", goal: str = "") -> str:
 
 
 @mcp.tool()
+def autoqa_power_plan(url: str = "", goal: str = "") -> str:
+    """Return the Phase 4 Fagun power workflow prompt.
+
+    Covers evidence timeline, test data, accessibility, API mapping, smart auth,
+    run memory, report comparison, and optional LangGraph-style orchestration.
+    """
+    return _autoqa.power_plan_prompt(url=url, goal=goal)
+
+
+@mcp.tool()
 async def autoqa_write_html_report(
     project_name: str = "",
     target_url: str = "",
@@ -276,10 +290,12 @@ async def autoqa_write_html_report(
         source=source,
     )
     file_url = Path(path).resolve().as_uri()
+    memory_index = _autoqa.default_memory_dir(path) / "index.json"
     if not open_in_browser:
         return (
             f"HTML report written: {path}\n"
             f"Report URL: {file_url}\n"
+            f"Run memory index: {memory_index}\n"
             "Open the Report URL with Chrome DevTools MCP / the user's default Chrome."
         )
     async with manager.lock:
@@ -287,7 +303,29 @@ async def autoqa_write_html_report(
             await manager.start(headless=os.environ.get("FAGUN_HEADLESS", "1") != "0")
         page = await manager.page()
         await page.goto(file_url, wait_until="load", timeout=30000)
-    return f"HTML report written and opened: {path}\nReport URL: {file_url}"
+    return f"HTML report written and opened: {path}\nReport URL: {file_url}\nRun memory index: {memory_index}"
+
+
+@mcp.tool()
+def autoqa_list_runs(limit: int = 10, memory_dir: str = "") -> str:
+    """List recent structured Fagun AutoQA run-memory records."""
+    return _autoqa.list_run_memory(limit=limit, memory_dir=memory_dir)
+
+
+@mcp.tool()
+def autoqa_replay_prompt(run_ref: str, memory_dir: str = "") -> str:
+    """Return a replay/regression prompt from a stored Fagun run.
+
+    run_ref can be a run id, a run-memory JSON path, or a report path recorded in
+    the run-memory index.
+    """
+    return _autoqa.replay_prompt(run_ref=run_ref, memory_dir=memory_dir)
+
+
+@mcp.tool()
+def autoqa_compare_runs(before_ref: str, after_ref: str, memory_dir: str = "") -> str:
+    """Compare two stored Fagun AutoQA runs and show fixed/still-open/new bugs."""
+    return _autoqa.compare_runs(before_ref=before_ref, after_ref=after_ref, memory_dir=memory_dir)
 
 
 @mcp.tool()

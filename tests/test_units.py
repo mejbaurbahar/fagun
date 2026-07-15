@@ -153,6 +153,20 @@ def test_autoqa_plan_template_contains_target_and_goal():
     assert '"objective": "verify search"' in plan
 
 
+def test_autoqa_power_plan_covers_phase_four():
+    plan = autoqa.power_plan_prompt("https://example.test", "deep regression")
+    lowered = plan.lower()
+    assert "phase 4 power mode" in lowered
+    assert "evidence timeline" in lowered
+    assert "list_test_data" in plan
+    assert "a11y_audit" in plan
+    assert "keyboard_walk" in plan
+    assert "map_api" in plan
+    assert "auth_status" in plan
+    assert "langgraph" in lowered
+    assert "skip issue-tracker export" in lowered
+
+
 def test_autoqa_html_report_contains_project_source_and_tools():
     html = autoqa.build_html_report(
         project_name="Example Project",
@@ -235,6 +249,52 @@ def test_autoqa_write_html_report_defaults_to_reports_dir(tmp_path, monkeypatch)
     content = (tmp_path / path).read_text()
     assert "Example" in content
     assert "No model" not in content
+    index = tmp_path / "reports" / "runs" / "index.json"
+    assert index.exists()
+    assert "verify search" in index.read_text()
+
+
+def test_autoqa_run_memory_replay_and_compare(tmp_path):
+    before = {
+        "run_id": "before-run",
+        "project_name": "Example",
+        "target_url": "https://example.test",
+        "goal": "verify signup",
+        "verdict": "FAIL",
+        "generated_at": "2026-01-01T00:00:00Z",
+        "report_path": "/tmp/before.html",
+        "steps": [{"label": "Open signup", "target": "/signup", "status": "PASS"}],
+        "findings": [{"type": "Signup failed", "severity": "high"}],
+    }
+    after = {
+        "run_id": "after-run",
+        "project_name": "Example",
+        "target_url": "https://example.test",
+        "goal": "verify signup",
+        "verdict": "PASS",
+        "generated_at": "2026-01-02T00:00:00Z",
+        "report_path": "/tmp/after.html",
+        "steps": [{"label": "Open signup", "target": "/signup", "status": "PASS"}],
+        "findings": [{"type": "New console warning", "severity": "low"}],
+    }
+    autoqa.save_run_memory(before, tmp_path)
+    autoqa.save_run_memory(after, tmp_path)
+
+    listing = autoqa.list_run_memory(memory_dir=str(tmp_path))
+    assert "before-run" in listing
+    assert "after-run" in listing
+
+    replay = autoqa.replay_prompt("before-run", memory_dir=str(tmp_path))
+    assert "Replay this Fagun run" in replay
+    assert "Open signup" in replay
+    assert "verify signup" in replay
+
+    comparison = autoqa.compare_runs("before-run", "after-run", memory_dir=str(tmp_path))
+    assert "Fagun Report Comparison" in comparison
+    assert "Signup failed" in comparison
+    assert "New console warning" in comparison
+    assert "Fixed: 1" in comparison
+    assert "New: 1" in comparison
 
 
 # ------------------------------------------------------------- security prompt

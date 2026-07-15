@@ -66,6 +66,21 @@ Supporting MCPs are routed by job:
   branching, retries, reviewer loops, or multi-agent test plans. Fagun remains
   the execution/reporting layer.
 
+Phased power workflow:
+
+- **Phase 1 — Run Memory:** `autoqa_write_html_report` stores structured JSON run
+  records under `reports/runs/`; inspect them with `autoqa_list_runs(limit)`.
+- **Phase 2 — Replay / Regression:** `autoqa_replay_prompt(run_ref)` turns any
+  stored run into a replay prompt for regression testing.
+- **Phase 3 — Report Comparison:** `autoqa_compare_runs(before_ref, after_ref)`
+  shows fixed, still-open, and new findings.
+- **Phase 4 — Power Modes:** start with `autoqa_power_plan(url, goal)`, then use
+  evidence timeline fields, `list_test_data`,
+  `a11y_audit` + `keyboard_walk`, `map_api`, `deep_test(include_api_map=true)`,
+  auth/session tools, and optional LangGraph orchestration.
+
+Issue-tracker export is intentionally not included in this workflow.
+
 ---
 
 ## ⚡ One command sets up everything
