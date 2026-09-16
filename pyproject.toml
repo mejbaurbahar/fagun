@@ -13,7 +13,7 @@ authors = [{ name = "Mejbaur Bahar Fagun", email = "mejbaur@markopolo.ai" }]
 keywords = ["mcp", "browser", "qa", "testing", "playwright", "ai", "claude", "cursor", "codex"]
 
 dependencies = [
-    "mcp>=1.2.0",
+    "mcp>=1.2.0,<2",
     "playwright>=1.44.0",
 ]
 
