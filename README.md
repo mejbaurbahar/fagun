@@ -2,9 +2,11 @@
 
 **Give any AI a browser to use your product like real customers, run full UAT, hunt real bugs, and tell you if it's ready to ship.**
 
-Fagun is a single tool that plugs into **Claude, Cursor, Codex, Antigravity, Windsurf,
-Cline, or VS Code**. Once it's set up, you just type **`fagun`** (or `/fagun`) and your
-AI can open a real browser and:
+Fagun is a **QA/testing Skill** — a senior tester's playbook that drops into
+**Claude, Cursor, Codex, Antigravity, Windsurf, Cline, or VS Code**. Under the
+hood it's powered by a bundle of MCP servers that give the skill a real
+browser to act with. Once it's set up, you just type **`fagun`** (or `/fagun`)
+and your AI can open a real browser and:
 
 - **Use the site as real end users** — mobile, slow-internet, low-end, keyboard-only,
   screen-reader, international, first-time visitor — with real device + network emulation.
@@ -188,13 +190,13 @@ That's it. Restart your AI tool, type **`fagun`**, and go.
 
 ## 🔌 Connect it to your AI tool
 
-Every tool gets two MCP servers:
+`uvx fagun init` installs the **Fagun Skill** and configures the supporting MCP servers automatically:
 
 - **fagun** — UAT, bug hunting, security, a11y, forms, reports.
 - **chrome-devtools** — official Chrome DevTools MCP for live DevTools debugging,
   console/network inspection, DOM/CSS inspection, and performance traces.
 
-`uvx fagun init` writes both automatically. Manual config:
+Manual config:
 
 | Tool | How |
 |------|-----|

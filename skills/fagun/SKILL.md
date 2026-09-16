@@ -181,7 +181,9 @@ reproduce it, don't report it.
 ## Mission order (do this every time)
 1. **Understand the product first.** What problem does it solve? Who are the target
    users? What is each user's goal, and what does success look like for them?
-2. **Use it as a real customer** before hunting bugs — is the experience intuitive
+   Start with `product_map(url)` so the testing plan matches the real business,
+   primary CTAs, forms, navigation, and likely revenue/conversion flows.
+   Then run `auth_status(url)` so authenticated/private flows are not skipped.
    without docs? Does the workflow feel natural? Where would a real user get stuck?
 3. **Run UAT** on every feature and complete journey (below).
 4. **Hunt real defects** across the QA/security/perf/a11y taxonomy.
