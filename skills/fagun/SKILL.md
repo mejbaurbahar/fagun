@@ -47,6 +47,132 @@ run `fagun connect to my Chrome`. The expected flow is:
 If Chrome asks for permission, tell the user to click **Allow**. Never ask them
 for passwords when their signed-in Chrome session can be reused.
 
+## Install & connect Fagun in your AI agent
+One command works in any MCP-capable tool:
+```bash
+uvx fagun init
+```
+Needs `uv` (bundles its own Python, no separate install needed): macOS/Linux
+`curl -LsSf https://astral.sh/uv/install.sh | sh` · Windows (PowerShell)
+`powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"`.
+`fagun init` auto-detects every AI tool on the machine, installs the Chromium
+engine, registers all **8 bundled MCP servers** (below) plus this skill, and
+opens `chrome://inspect/#remote-debugging` so the user can click **Allow**.
+Restart the AI tool afterward, then say `fagun deep test https://example.com`.
+If output looks stale: `uvx --upgrade --reinstall fagun init`. Pip users:
+`pip install --upgrade fagun && fagun init`.
+
+If a tool isn't auto-detected, or only Fagun (not the full bundle) should be
+wired, register it manually — Fagun's entry is always `command: uvx`,
+`args: ["fagun"]`; Chrome DevTools MCP is `command: npx`,
+`args: ["-y", "chrome-devtools-mcp@latest", "--auto-connect", "--no-usage-statistics"]`:
+
+- **Claude Code:**
+  ```bash
+  claude mcp add fagun -- uvx fagun
+  claude mcp add chrome-devtools -- npx -y chrome-devtools-mcp@latest --auto-connect --no-usage-statistics
+  ```
+  Or as a plugin: `/plugin marketplace add mejbaurbahar/fagun` then
+  `/plugin install fagun@fagun` — installs the MCP server and this skill
+  together. Manual skill placement: `~/.claude/skills/fagun/SKILL.md`.
+- **Claude Desktop:** Settings → Developer → Edit Config → add the same
+  `fagun` / `chrome-devtools` JSON entries shown under Cursor below → restart.
+- **Cursor / Windsurf / Cline / Antigravity** — add to `~/.cursor/mcp.json`
+  (or that tool's equivalent MCP config file):
+  ```json
+  {
+    "mcpServers": {
+      "fagun": { "command": "uvx", "args": ["fagun"] },
+      "chrome-devtools": {
+        "command": "npx",
+        "args": ["-y", "chrome-devtools-mcp@latest", "--auto-connect", "--no-usage-statistics"],
+        "env": { "CHROME_DEVTOOLS_MCP_NO_USAGE_STATISTICS": "1", "CHROME_DEVTOOLS_MCP_NO_UPDATE_CHECKS": "1" }
+      }
+    }
+  }
+  ```
+- **VS Code (Copilot MCP)** — add to `.vscode/mcp.json`:
+  ```json
+  {
+    "servers": {
+      "fagun": { "type": "stdio", "command": "uvx", "args": ["fagun"] },
+      "chrome-devtools": {
+        "type": "stdio", "command": "npx",
+        "args": ["-y", "chrome-devtools-mcp@latest", "--auto-connect", "--no-usage-statistics"],
+        "env": { "CHROME_DEVTOOLS_MCP_NO_USAGE_STATISTICS": "1", "CHROME_DEVTOOLS_MCP_NO_UPDATE_CHECKS": "1" }
+      }
+    }
+  }
+  ```
+- **Codex CLI** — add to `~/.codex/config.toml`:
+  ```toml
+  [mcp_servers.fagun]
+  command = "uvx"
+  args = ["fagun"]
+
+  [mcp_servers.chrome-devtools]
+  command = "npx"
+  args = ["-y", "chrome-devtools-mcp@latest", "--auto-connect", "--no-usage-statistics"]
+  env = { CHROME_DEVTOOLS_MCP_NO_USAGE_STATISTICS = "1", CHROME_DEVTOOLS_MCP_NO_UPDATE_CHECKS = "1" }
+  startup_timeout_ms = 20_000
+  ```
+- **Any other MCP-capable agent:** point it at `command: uvx`,
+  `args: ["fagun"]` in whatever MCP config format it uses. Fagun itself needs
+  no API key.
+
+Shortcuts: `uvx fagun install claude-code` (or `cursor` / `vscode`) writes one
+tool's config directly; `uvx fagun install chrome-devtools` wires just
+Chrome DevTools MCP.
+
+**Verify:** restart the tool, run `check_integrations()` to see which of the
+8 MCPs are active and what (if anything) still needs a key, then
+`fagun deep test https://example.com`.
+
+**Troubleshooting:** `uv` not found → reinstall, open a new shell (or
+`source ~/.local/bin/env`) · browser launch error on Linux →
+`uv tool run --from fagun python -m playwright install-deps chromium` · tool
+doesn't see `fagun` → fully restart it and check the MCP config JSON/TOML is
+valid (no trailing commas) · want to see the browser → `FAGUN_HEADLESS=0` ·
+corporate proxy → set `HTTPS_PROXY`; manual CDP attach → `FAGUN_CDP_URL`.
+
+## The 8 bundled MCP servers
+`fagun init` auto-registers all of these — one command, nothing else to
+configure. Run `check_integrations()` any time to see what's active.
+- **Fagun** — QA, UAT, security, readiness (this skill's own tool catalog, below).
+- **Playwright** (`@playwright/mcp`, npx, no key) — Microsoft's official
+  70+-tool browser-automation server: accessibility-tree snapshots, video
+  recording, network mocking, tab management, PDF generation. Use it for
+  isolated/headless regression runs, multi-context checks, and stable
+  screenshot/trace automation alongside Fagun's own browser tools.
+- **Chrome DevTools MCP** (`chrome-devtools-mcp@latest`, npx, no key) — real,
+  signed-in Chrome session via CDP; auto-connects so logged-in testing needs
+  no credential sharing. Fagun's primary browser path.
+- **MCP-Fetch** (`mcp-server-fetch`, uvx, no key) — static page/API/header/
+  robots/sitemap fetching as Markdown, without touching browser state.
+- **VirusTotal** (`@burtthecoder/mcp-virustotal`, needs a free key) — scans
+  URLs/files/IPs/domains against 90+ AV engines and threat-intel feeds;
+  malware, phishing, and suspicious-infrastructure signals during a security
+  audit. Key: `VIRUSTOTAL_API_KEY` (free at virustotal.com). Enable with
+  `configure_api_key("virustotal", "your-key")`.
+- **Shodan** (`@burtthecoder/mcp-shodan`, needs a free key) — internet-
+  connected-device index: open ports, running services, TLS certs,
+  geolocation, and known CVEs for a host, passively (no traffic to target).
+  Key: `SHODAN_API_KEY` (free tier at shodan.io). Enable with
+  `configure_api_key("shodan", "your-key")`.
+- **Jam** (`@jam-dev/jam-mcp`, npx, OAuth sign-in, no key) — one-click visual
+  bug reports: screen recording + console + network + device info, bundled
+  into a shareable reproduction. Use for every important Interactive Test
+  Flow step and for reproducible bugs.
+- **Context7** (`@upstash/context7-mcp`, npx, no key) — injects current
+  library docs (React, Next.js, Vue…) into context before fix advice that
+  depends on library behavior, so nothing is hallucinated.
+
+`configure_api_key(service, key)` applies a VirusTotal/Shodan key immediately
+for the session, saves it to `~/.fagun/api_keys.json` (auto-loaded on every
+future start), and patches any existing MCP config files on disk so the
+external process picks it up after the next AI-tool restart. No manual
+env-var exports, no repeated setup.
+
 **Evidence or it didn't happen** — every finding, score, and verdict must trace
 to a tool result (a console error, a status code, a DOM fact, a screenshot, a
 measured number, a journey step that failed). Never fabricate. If you can't
@@ -400,6 +526,11 @@ hypothesis as confirmed.
 **QA:** `crawl` · `run_qa` · `check_links` · `test_forms` · `fuzz_forms` ·
 `list_test_data` · `fingerprint` · `perf_audit` · `a11y_audit` · `security_headers` ·
 `security_scan` · `advanced_security` · `deep_test` · `full_qa_sweep` · `write_report`
+**Deeper discovery:** `map_api` (full REST/GraphQL/WebSocket surface, auth
+pattern + unprotected-endpoint detection) · `explore_interactions` (clicks
+through tabs/modals/drawers/accordions to find SPA states a crawler misses) ·
+`import_chrome_session` (reads cookies from the user's Chrome — CDP first,
+then profile SQLite — for zero-credential authenticated testing)
 **Auth sessions:** `save_session` · `load_session` · `list_sessions` · `delete_session`
 **Browser:** `fagun_start` · `open_browser` · `navigate` · `click` · `fill` ·
 `press_key` · `screenshot` · `evaluate_js` · `get_console` · `get_network` · `close_browser`
@@ -408,5 +539,37 @@ hypothesis as confirmed.
 **Security orchestration:** `fagun_security_prompt` · `list_external_security_tools` ·
 `recommend_security_tools`
 **Power:** `browser_exec` · `save_helper` · `list_helpers` · `load_helper` · `connect_chrome`
+**Integrations:** `check_integrations` (status of all 8 bundled MCPs, which
+need keys, exact instructions) · `configure_api_key(service, key)`
+(VirusTotal/Shodan — see "The 8 bundled MCP servers" above)
 
 When done, always `close_browser`.
+
+## Example prompts
+- "deep test https://example.com and give me a readiness verdict + report to ./report.html"
+- "experience acme.store as a slow-internet mobile user — where would they give up?"
+- "run the checkout journey on staging and tell me if a real user can finish it"
+- "log into my app, save the session, then deep test the dashboard as that user"
+- "fingerprint example.com, then security scan it — I own it — and rank by severity"
+- "a11y audit + keyboard walk this page for WCAG AA and focus issues"
+- "check_integrations() — which MCPs do I have active right now?"
+- "scan example.com with virustotal and shodan, then deep test it — I own it"
+- "map the API surface of my SPA, check for unauth endpoints, then VirusTotal the domain"
+- "use Playwright MCP to record a signup flow, then run Fagun security_scan on the result"
+
+## FAQ
+- **Does it need an API key?** Fagun itself needs none. VirusTotal and Shodan
+  each need a free key, requested on first use via `configure_api_key()` and
+  saved to `~/.fagun/api_keys.json`. Playwright and MCP-Fetch need no keys.
+- **Which AI tools work?** Any MCP client — Claude Code & Desktop, Cursor,
+  Codex, Windsurf, Cline, VS Code, Antigravity, and more.
+- **Chrome or Python required?** No — `uv` bundles its own Python and
+  Chromium auto-installs on first run. Node.js is needed for
+  Playwright/Chrome DevTools MCP, but most machines already have it.
+- **Is the security scan safe to run?** Non-destructive, read-only probes —
+  still, only run it on systems you're authorized to test.
+- **VirusTotal/Shodan showing nothing?** Call `check_integrations()` — it
+  names exactly which keys are missing, then `configure_api_key(...)`.
+- **How many tools total?** 56+ in Fagun, 70+ in Playwright MCP, 11 in
+  VirusTotal MCP, 7 in Shodan MCP, plus Chrome DevTools, MCP-Fetch, Jam, and
+  Context7 — 170+ across the 8 bundled servers.
