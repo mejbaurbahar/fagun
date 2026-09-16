@@ -459,6 +459,43 @@ GET/HEAD only, no attacks on third parties:
 
 ---
 
+## 🎓 QA & testing skills (23 disciplines, built in)
+
+Installing the Fagun plugin also installs 23 standalone testing-discipline skills
+under `skills/`. They load automatically in any Claude Code (or skill-aware MCP
+client) session when the conversation matches their trigger, and they compose
+with the `fagun` MCP tools above — e.g. `security-testing` reasons about what to
+check, `fagun`'s `security_scan`/`advanced_security` tools gather the evidence.
+
+| Skill | Use when |
+|---|---|
+| `qa-fundamentals` | Scoping test strategy, test plans, QA vs QC, risk-based prioritization. The conceptual root the rest build on. |
+| `manual-testing` | Designing test cases, exploratory testing, checklists before/instead of automating. |
+| `functional-testing` | Verifying a feature/flow behaves per spec — forms, workflows, business logic, CRUD. |
+| `regression-testing` | Confirming recent changes haven't broken existing functionality; regression scope from a diff. |
+| `test-automation` | Writing/structuring/debugging Playwright/Selenium/pytest suites, page objects, CI integration. |
+| `api-testing` | Testing REST/GraphQL directly — status codes, schema/contract, auth, pagination, rate limits. |
+| `database-testing` | Data integrity, CRUD correctness at the persistence layer, migrations, transactions/concurrency. |
+| `contract-testing` | Consumer-driven contracts, service boundaries, event/queue testing, schema evolution. |
+| `cicd-testing` | Test execution in CI/CD — PR gates, tiering, parallelization, quality gates, flaky-test tracking. |
+| `cloud-infrastructure-testing` | Docker/Kubernetes, serverless, managed-service integration, DR/failover, IaC correctness. |
+| `observability-testing` | Correlating a failure across logs/metrics/traces; verifying a feature emits what it needs. |
+| `chaos-resilience-testing` | Deliberate failure injection to verify graceful degradation — retries, circuit breakers, backpressure. |
+| `visual-testing` | Screenshot/visual regression, design-system/Figma-to-prod validation, responsive/dark-mode. |
+| `accessibility-testing` | WCAG compliance, screen reader compatibility, keyboard nav, color contrast, ARIA correctness. |
+| `performance-testing` | Load/stress/soak/spike testing, Core Web Vitals, Lighthouse, API latency benchmarking. |
+| `security-testing` | Authorized pentesting of web apps/APIs — OWASP Top 10, auth/session, header/config audits. |
+| `mobile-testing` | iOS/Android native or responsive/mobile-web — device matrices, gestures, mobile network/lifecycle. |
+| `ai-ml-testing` | Classical ML model testing — accuracy/precision/recall, model regression, bias/fairness. |
+| `llm-testing` | LLM-powered features — prompt testing, hallucination/faithfulness, RAG eval, prompt injection. |
+| `chatbot-voice-agent-testing` | Chatbots/voice assistants — conversation flow, context retention, intent recognition, STT/TTS. |
+| `test-data-engineering` | Synthetic/realistic test data, fixture seeding, PII masking, deterministic datasets. |
+| `qa-code-intelligence` | Spotting testability/risk in source, auto-generating test cases, root-cause/bug clustering. |
+| `bug-reporting` | Filing a defect with the standard severity scale, report template, and evidence requirements. |
+| `autonomous-qa-orchestration` | End-to-end autonomous QA pass — discover, plan, execute, investigate, report, verify — pulling in the other skills as needed. |
+
+---
+
 ## 🛠️ For developers
 
 ```bash
