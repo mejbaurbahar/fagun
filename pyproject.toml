@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "fagun"
 version = "0.11.0"
-description = "Fagun — one MCP server that lets any AI tool (Claude, Cursor, Codex, Antigravity, Windsurf) use a site as real end users, run full UAT, hunt bugs, and give a product-readiness verdict."
+description = "Fagun — a QA/testing Skill for any AI tool (Claude, Cursor, Codex, Antigravity, Windsurf), powered by an MCP server bundle, that uses a site as real end users, runs full UAT, hunts bugs, and gives a product-readiness verdict."
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }
@@ -13,7 +13,7 @@ authors = [{ name = "Mejbaur Bahar Fagun", email = "mejbaur@markopolo.ai" }]
 keywords = ["mcp", "browser", "qa", "testing", "playwright", "ai", "claude", "cursor", "codex"]
 
 dependencies = [
-    "mcp>=1.2.0",
+    "mcp>=1.2.0,<2",
     "playwright>=1.44.0",
 ]
 

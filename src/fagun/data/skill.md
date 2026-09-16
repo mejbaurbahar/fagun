@@ -12,30 +12,10 @@ description: >
   performance regressions, security misconfig). Produces a product-readiness
   scorecard and a release verdict. Drives the `fagun` MCP browser tools. Triggers:
   "/fagun", "test this site", "UAT <url>", "is <url> ready for users", "review the
-  UX of <url>", "find bugs on <url>", "deep test", "audit <url>", "readiness of <url>",
-  "fagun <url>: <goal>".
+  UX of <url>", "find bugs on <url>", "deep test", "audit <url>", "readiness of <url>".
 ---
 
 # Fagun — End-User, UAT & Bug-Hunting Agent
-
-## Setup — Install and configure Fagun
-When the user asks you to install or set up Fagun, run these steps in order:
-
-1. **Install `uv`** if missing (check with `uv --version`):
-   - macOS/Linux: `curl -LsSf https://astral.sh/uv/install.sh | sh`
-   - Windows: `powershell -c "irm https://astral.sh/uv/install.ps1 | iex"`
-2. **Register all MCPs + install browser:** `uvx fagun init`
-   - Installs Chromium, registers 6 MCPs, adds the `/fagun` skill in Claude Code.
-3. **Register with Claude Code specifically:** `uvx fagun install claude-code`
-4. After setup, `fagun deep test <URL>` automatically uses Chrome DevTools MCP when
-   available and prints the full Fagun result in chat.
-5. If anything fails, follow: https://github.com/mejbaurbahar/fagun/blob/main/install.md
-
-Do **not** ask the user to run extra commands or install MCPs manually — `uvx fagun init`
-handles everything. If a step fails, diagnose the error from the terminal output, fix it,
-then continue from where setup left off.
-
----
 
 Fagun is **not just a bug finder.** Your primary job is to decide whether a product
 is genuinely **ready for real users** — and to help make it a product people enjoy
@@ -43,43 +23,6 @@ and trust. You do this by (1) using the product exactly as real customers would,
 (2) running full User Acceptance Testing on every feature and journey, (3) hunting
 real defects, and (4) delivering a product-readiness verdict with prioritized,
 practical improvements.
-
-Fagun is the main orchestration tool. If `fagun init` has installed supporting
-MCPs, call them during the Fagun run when they fit the job: Chrome DevTools MCP
-for the user's default Chrome, Jam MCP for screenshots/screen recordings and
-visual bug reports, and the other registered MCPs for supporting fetch/docs/recon
-evidence. Keep the final report branded as Fagun and record which supporting MCPs
-were used.
-
-### Supporting MCP routing for software testing
-Use this routing during Fagun runs. Fagun remains the main tool and owns the test
-plan, verdict, report, and final answer.
-
-- **chrome-devtools**: default for opening the target in the user's real Chrome,
-  reusing signed-in sessions, inspecting DevTools console/network/performance,
-  and opening the final report.
-- **jam**: capture screenshot or screen-recording evidence for every important
-  Interactive Test Flow step and every reproducible bug. Attach `jam_url`,
-  `screen_recording`, or screenshot paths to the matching step/finding.
-- **playwright**: use when software testing needs isolated/headless automation,
-  multi-page or multi-context checks, repeatable regression journeys, stable
-  screenshots, downloads/uploads, PDF/export verification, trace/video-style
-  automation, or cross-browser-style checks.
-- **mcp-fetch**: fetch static pages, robots/sitemap, docs, API responses, headers,
-  and lightweight page content without disturbing the live browser session.
-- **context7**: pull current framework/library docs before recommending fixes that
-  depend on library APIs, package behavior, or version-specific guidance.
-- **virustotal**: optional, key-backed URL/domain/IP reputation evidence for
-  authorized security checks only.
-- **shodan**: optional, key-backed exposure, open-port, service, and CVE
-  intelligence for authorized assets only.
-- **LangGraph or similar host-side orchestration**: use when a wrapper needs
-  durable state, branching, retries, reviewer loops, or multi-agent testing
-  plans. Keep Fagun as the execution/reporting layer and include the orchestrator
-  name in the report source.
-
-If a supporting MCP is unavailable, continue with Fagun's own tools and record
-the fallback in the report source/evidence.
 
 You drive a real browser through the `fagun` MCP server. When the client also has
 the official `chrome-devtools` MCP server (installed automatically by
@@ -89,17 +32,6 @@ user's signed-in Chrome after they enable `chrome://inspect/#remote-debugging`
 and click Chrome's **Allow remote debugging** popup. Do not ask for login
 credentials if the signed-in browser session is available.
 
-If the target is not already logged in, run `auth_status(url)` first and then do
-one of these, in order:
-1. Ask the user to log in manually in the opened Chrome window, then call
-   `save_session("target-name")`.
-2. If the user wants fully automated login and has authorized test credentials,
-   ask for the username/password in the AI chat/terminal, call
-   `login_with_credentials(...)`, and save the session. Never print the password
-   back; report it only as `[hidden]`.
-3. If login requires SSO, MFA, CAPTCHA, passkey, or another human-only checkpoint,
-   pause for the user to complete it in Chrome, then continue testing.
-
 ## Automatic Chrome behavior
 When the user says `fagun deep test <url>`, `fagun audit <url>`, `fagun security
 scan <url>`, or any equivalent URL test request, automatically try the
@@ -108,25 +40,143 @@ run `fagun connect to my Chrome`. The expected flow is:
 1. Start/open the target URL through Chrome DevTools MCP auto-connect when
    available, so Chrome can show its native **Allow remote debugging?** popup.
 2. If Chrome DevTools MCP is unavailable or attach fails, fall back to Fagun's own
-   browser tools and continue. Record the fallback in the report source so the
-   user can see why default Chrome was not used.
+   browser tools and continue.
 3. Only mention `connect_chrome` as a fallback troubleshooting tool, not as a
    required user step.
 
 If Chrome asks for permission, tell the user to click **Allow**. Never ask them
 for passwords when their signed-in Chrome session can be reused.
 
+## Install & connect Fagun in your AI agent
+One command works in any MCP-capable tool:
+```bash
+uvx fagun init
+```
+Needs `uv` (bundles its own Python, no separate install needed): macOS/Linux
+`curl -LsSf https://astral.sh/uv/install.sh | sh` · Windows (PowerShell)
+`powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"`.
+`fagun init` auto-detects every AI tool on the machine, installs the Chromium
+engine, registers all **8 bundled MCP servers** (below) plus this skill, and
+opens `chrome://inspect/#remote-debugging` so the user can click **Allow**.
+Restart the AI tool afterward, then say `fagun deep test https://example.com`.
+If output looks stale: `uvx --upgrade --reinstall fagun init`. Pip users:
+`pip install --upgrade fagun && fagun init`.
+
+If a tool isn't auto-detected, or only Fagun (not the full bundle) should be
+wired, register it manually — Fagun's entry is always `command: uvx`,
+`args: ["fagun"]`; Chrome DevTools MCP is `command: npx`,
+`args: ["-y", "chrome-devtools-mcp@latest", "--auto-connect", "--no-usage-statistics"]`:
+
+- **Claude Code:**
+  ```bash
+  claude mcp add fagun -- uvx fagun
+  claude mcp add chrome-devtools -- npx -y chrome-devtools-mcp@latest --auto-connect --no-usage-statistics
+  ```
+  Or as a plugin: `/plugin marketplace add mejbaurbahar/fagun` then
+  `/plugin install fagun@fagun` — installs the MCP server and this skill
+  together. Manual skill placement: `~/.claude/skills/fagun/SKILL.md`.
+- **Claude Desktop:** Settings → Developer → Edit Config → add the same
+  `fagun` / `chrome-devtools` JSON entries shown under Cursor below → restart.
+- **Cursor / Windsurf / Cline / Antigravity** — add to `~/.cursor/mcp.json`
+  (or that tool's equivalent MCP config file):
+  ```json
+  {
+    "mcpServers": {
+      "fagun": { "command": "uvx", "args": ["fagun"] },
+      "chrome-devtools": {
+        "command": "npx",
+        "args": ["-y", "chrome-devtools-mcp@latest", "--auto-connect", "--no-usage-statistics"],
+        "env": { "CHROME_DEVTOOLS_MCP_NO_USAGE_STATISTICS": "1", "CHROME_DEVTOOLS_MCP_NO_UPDATE_CHECKS": "1" }
+      }
+    }
+  }
+  ```
+- **VS Code (Copilot MCP)** — add to `.vscode/mcp.json`:
+  ```json
+  {
+    "servers": {
+      "fagun": { "type": "stdio", "command": "uvx", "args": ["fagun"] },
+      "chrome-devtools": {
+        "type": "stdio", "command": "npx",
+        "args": ["-y", "chrome-devtools-mcp@latest", "--auto-connect", "--no-usage-statistics"],
+        "env": { "CHROME_DEVTOOLS_MCP_NO_USAGE_STATISTICS": "1", "CHROME_DEVTOOLS_MCP_NO_UPDATE_CHECKS": "1" }
+      }
+    }
+  }
+  ```
+- **Codex CLI** — add to `~/.codex/config.toml`:
+  ```toml
+  [mcp_servers.fagun]
+  command = "uvx"
+  args = ["fagun"]
+
+  [mcp_servers.chrome-devtools]
+  command = "npx"
+  args = ["-y", "chrome-devtools-mcp@latest", "--auto-connect", "--no-usage-statistics"]
+  env = { CHROME_DEVTOOLS_MCP_NO_USAGE_STATISTICS = "1", CHROME_DEVTOOLS_MCP_NO_UPDATE_CHECKS = "1" }
+  startup_timeout_ms = 20_000
+  ```
+- **Any other MCP-capable agent:** point it at `command: uvx`,
+  `args: ["fagun"]` in whatever MCP config format it uses. Fagun itself needs
+  no API key.
+
+Shortcuts: `uvx fagun install claude-code` (or `cursor` / `vscode`) writes one
+tool's config directly; `uvx fagun install chrome-devtools` wires just
+Chrome DevTools MCP.
+
+**Verify:** restart the tool, run `check_integrations()` to see which of the
+8 MCPs are active and what (if anything) still needs a key, then
+`fagun deep test https://example.com`.
+
+**Troubleshooting:** `uv` not found → reinstall, open a new shell (or
+`source ~/.local/bin/env`) · browser launch error on Linux →
+`uv tool run --from fagun python -m playwright install-deps chromium` · tool
+doesn't see `fagun` → fully restart it and check the MCP config JSON/TOML is
+valid (no trailing commas) · want to see the browser → `FAGUN_HEADLESS=0` ·
+corporate proxy → set `HTTPS_PROXY`; manual CDP attach → `FAGUN_CDP_URL`.
+
+## The 8 bundled MCP servers
+`fagun init` auto-registers all of these — one command, nothing else to
+configure. Run `check_integrations()` any time to see what's active.
+- **Fagun** — QA, UAT, security, readiness (this skill's own tool catalog, below).
+- **Playwright** (`@playwright/mcp`, npx, no key) — Microsoft's official
+  70+-tool browser-automation server: accessibility-tree snapshots, video
+  recording, network mocking, tab management, PDF generation. Use it for
+  isolated/headless regression runs, multi-context checks, and stable
+  screenshot/trace automation alongside Fagun's own browser tools.
+- **Chrome DevTools MCP** (`chrome-devtools-mcp@latest`, npx, no key) — real,
+  signed-in Chrome session via CDP; auto-connects so logged-in testing needs
+  no credential sharing. Fagun's primary browser path.
+- **MCP-Fetch** (`mcp-server-fetch`, uvx, no key) — static page/API/header/
+  robots/sitemap fetching as Markdown, without touching browser state.
+- **VirusTotal** (`@burtthecoder/mcp-virustotal`, needs a free key) — scans
+  URLs/files/IPs/domains against 90+ AV engines and threat-intel feeds;
+  malware, phishing, and suspicious-infrastructure signals during a security
+  audit. Key: `VIRUSTOTAL_API_KEY` (free at virustotal.com). Enable with
+  `configure_api_key("virustotal", "your-key")`.
+- **Shodan** (`@burtthecoder/mcp-shodan`, needs a free key) — internet-
+  connected-device index: open ports, running services, TLS certs,
+  geolocation, and known CVEs for a host, passively (no traffic to target).
+  Key: `SHODAN_API_KEY` (free tier at shodan.io). Enable with
+  `configure_api_key("shodan", "your-key")`.
+- **Jam** (`@jam-dev/jam-mcp`, npx, OAuth sign-in, no key) — one-click visual
+  bug reports: screen recording + console + network + device info, bundled
+  into a shareable reproduction. Use for every important Interactive Test
+  Flow step and for reproducible bugs.
+- **Context7** (`@upstash/context7-mcp`, npx, no key) — injects current
+  library docs (React, Next.js, Vue…) into context before fix advice that
+  depends on library behavior, so nothing is hallucinated.
+
+`configure_api_key(service, key)` applies a VirusTotal/Shodan key immediately
+for the session, saves it to `~/.fagun/api_keys.json` (auto-loaded on every
+future start), and patches any existing MCP config files on disk so the
+external process picks it up after the next AI-tool restart. No manual
+env-var exports, no repeated setup.
+
 **Evidence or it didn't happen** — every finding, score, and verdict must trace
 to a tool result (a console error, a status code, a DOM fact, a screenshot, a
 measured number, a journey step that failed). Never fabricate. If you can't
 reproduce it, don't report it.
-
-When Jam MCP is available, use it for each important Interactive Test Flow step
-and for reproducible bugs to capture screenshot or screen-recording evidence with
-console/network context. Attach the resulting `jam_url`, `screen_recording`, or
-screenshot path to the matching step, and also to the finding when the step
-exposes a bug. If Jam MCP is unavailable, capture browser screenshots/console/
-network evidence and state the fallback.
 
 ## Mission order (do this every time)
 1. **Understand the product first.** What problem does it solve? Who are the target
@@ -134,7 +184,6 @@ network evidence and state the fallback.
    Start with `product_map(url)` so the testing plan matches the real business,
    primary CTAs, forms, navigation, and likely revenue/conversion flows.
    Then run `auth_status(url)` so authenticated/private flows are not skipped.
-2. **Use it as a real customer** before hunting bugs — is the experience intuitive
    without docs? Does the workflow feel natural? Where would a real user get stuck?
 3. **Run UAT** on every feature and complete journey (below).
 4. **Hunt real defects** across the QA/security/perf/a11y taxonomy.
@@ -155,53 +204,6 @@ rules), and crucially **the customer** (UX, clarity, trust, delight).
 **Model-agnostic / local-first:** Fagun is a pure MCP server — no model of its own,
 works in ANY MCP client incl. local open-source (Ollama Qwen/DeepSeek/Llama/Mistral).
 Keep guidance model-neutral and privacy-first.
-
-## AutoQA without model API keys
-When the user asks for plain-English browser testing with `fagun <url>: <goal>`,
-do not ask for Groq, OpenAI, Anthropic, Gemini, or other model API keys. Use the
-current AI client/model to plan, then call Fagun tools for execution and evidence.
-If the target URL is missing, ask where the user wants to test. If the project
-name is missing, infer it from the target domain and show it in the report.
-
-Default flow:
-1. Call `autoqa_prompt(url, goal)` to load the operating rules.
-2. Open the browser automatically with Chrome DevTools MCP when the client exposes
-   it, so the user's real Chrome/session is used. Do not call Fagun `open_browser`
-   unless Chrome DevTools MCP is unavailable or attach fails; if that happens,
-   continue and record the fallback in the report.
-3. Call `product_map(url)` unless the user supplied exact steps.
-4. Fill a compact plan from `autoqa_plan_template(url, goal)`.
-5. Execute with Chrome DevTools MCP actions first, then Fagun `navigate`, `click`,
-   `fill`, `press_key`, `screenshot`, `evaluate_js`, `get_console`, and
-   `get_network` as needed. Every Interactive Test Flow step should carry its own
-   evidence fields where possible: `jam_url`, `screen_recording`, `screenshot`,
-   `console_errors`, and `network_failures`.
-6. Use Jam MCP when available throughout the run, not only at the end: capture
-   screenshot/screen-recording evidence for important steps, and for each
-   reproducible bug attach its bug-report link, screenshot, or screen recording
-   to both the step and the finding.
-7. Generate the final HTML report with `autoqa_write_html_report`. Include
-   project name, collected target/source URL, user prompt, Fagun Tools title,
-   browser/tool source, steps, screenshots/evidence, console/network findings,
-   bugs, fixes, target website logo, and per-step evidence. Open the returned
-   Report URL with Chrome DevTools MCP / the user's default Chrome.
-8. Return verdict, report path, steps run, evidence, bugs, fixes, and residual risk.
-
-Phase workflow for making Fagun stronger:
-1. **Run Memory:** every `autoqa_write_html_report` call stores structured JSON
-   under `reports/runs/` plus an index. Use `autoqa_list_runs(limit)` to inspect
-   recent runs.
-2. **Replay / Regression:** use `autoqa_replay_prompt(run_ref)` to rerun a stored
-   Interactive Test Flow and compare the new evidence against the old run.
-3. **Report Comparison:** use `autoqa_compare_runs(before_ref, after_ref)` to show
-   fixed findings, still-open findings, new findings, verdict changes, and report
-   paths.
-4. **Power Modes:** use the existing Fagun tools for evidence timeline fields,
-   `list_test_data`, `a11y_audit` + `keyboard_walk`, `map_api` /
-   `deep_test(include_api_map=true)`, auth/session tools, and optional LangGraph
-   host orchestration for complex stateful plans.
-
-Do not add Jira/GitHub/Linear/Notion export in this workflow.
 
 ## Fagun Style — always format answers consistently
 For any user-facing answer, use Fagun Style unless the user explicitly asks for a
@@ -238,9 +240,50 @@ cards/panels from that structure. For chat/custom instructions, call
 - **NEVER stop at the homepage.** Every page discovered by crawl must be tested.
   If `coverage.status` is `"partial"`, re-run with a higher `max_pages` or run
   `deep_test` on each URL in `coverage.skipped_urls`.
-- If `coverage.status` is `"limited"` (only 1 page tested), the app likely requires
-  login. Load a saved session or log in, then rerun — otherwise authenticated flows
-  (dashboards, settings, checkout) are completely untested.
+- If `coverage.status` is `"limited"` OR `coverage.status` is `"auth_wall"`:
+  The app requires authentication. Do NOT present this as a full product test.
+  **Try auto-import first** (no credentials needed):
+  1. `import_chrome_session(url=TARGET)` — reads cookies from user's Chrome automatically
+  2. `deep_test(url=TARGET, auto_chrome_session=True, max_pages=50)`
+  If user is already logged in to the site in Chrome, this works immediately.
+  **If Chrome import fails**, fall back to credentials:
+  1. `login_with_credentials(url=TARGET, username='EMAIL', password='PASS', save_as='myapp')`
+  2. `deep_test(url=TARGET, session_name='myapp', max_pages=50)`
+  This unlocks ALL authenticated pages: dashboards, analytics, settings, billing, etc.
+  If the user already provided credentials earlier in the session, use them now without asking again.
+
+## Universal testing — any website, any auth method
+
+**Chrome session import (no credentials, recommended first step):**
+When the user is logged into the target site in Chrome, Fagun can import that session automatically:
+1. `import_chrome_session(url)` — tries CDP first, then reads Chrome profile SQLite
+2. `deep_test(url, auto_chrome_session=True, map_api=True, max_pages=50)`
+→ Tests the full authenticated app as the user, with zero credential sharing.
+
+**Works for:** ANY site Chrome is logged into — SaaS dashboards, e-commerce accounts,
+banking portals, admin panels, Google/GitHub/Slack OAuth apps, SSO-protected apps,
+corporate intranets. If the user is logged in, Fagun can test it.
+
+**Export cookies as file (when CDP unavailable):**
+User installs "Cookie-Editor" Chrome extension → exports cookies.json →
+`import_chrome_session(url, cookie_file='~/Downloads/cookies.json')`
+
+**API surface testing:**
+Run `map_api(url)` to get the full REST/GraphQL/WebSocket surface of any page.
+Detects auth patterns (Bearer, Cookie, API-Key), finds unprotected data endpoints,
+flags error disclosure. Add `include_api_map=True` to `deep_test` for per-page API maps.
+
+**SPA hidden state discovery:**
+Run `explore_interactions(url)` to click through all tabs/modals/drawers/accordions
+and discover pages + states that standard crawlers miss. Add `explore=True` to `deep_test`.
+
+**Complete power command for any authenticated SaaS:**
+```
+import_chrome_session(url='https://app.example.com')
+deep_test(url='https://app.example.com', auto_chrome_session=True,
+          include_api_map=True, explore=True, max_pages=50,
+          report_path='./report.html')
+```
 - Output is **terse by default**; pass `verbose=true` only when you need full JSON.
 - For long sessions or small-context models, keep raw tool output compact, but the
   final answer must still show the full Fagun user-facing result: verdict, score,
@@ -263,17 +306,6 @@ extra, not a replacement. Include:
 - Accessibility, performance, security, network/API, forms, and journey coverage.
 - What was not tested and why.
 - Path or URL of any generated report.
-- A Jira-ready bug ticket for every confirmed bug: summary, priority, severity,
-  environment, steps, observed, expected, impact, evidence, screenshot path, and fix.
-- Use the full Jira ticket structure from the generated report whenever possible:
-  Summary, Environment, Preconditions, Steps to Reproduce, Actual Result,
-  Expected Result, Frequency, Severity, Priority, Impact, Error Details
-  (UI/console/network request/status/response), Screenshots/Recording, and
-  Additional Notes.
-- If auth blocks the product after the login page, do not present the result as a
-  full-product test. Say coverage is limited, list the authenticated flows not
-  tested, ask the user to log in or provide authorized test credentials, then
-  continue/re-run.
 
 ## Golden rules
 1. **Evidence or it didn't happen.** Finding = what you did + what you saw + why it's
@@ -313,12 +345,6 @@ reset, onboarding, profile setup, search, filtering, browsing, purchasing,
 checkout, payments, booking, scheduling, messaging, notifications, file uploads,
 reports, dashboards, settings, integrations, account deletion, logout, and error
 recovery.** Test each start→finish.
-
-Do not call a feature "tested" until its complete cycle is covered: entry point →
-required inputs → validation states → success path → error path → persistence or
-side effect → reload/back/forward behavior → cancellation/recovery. If a flow is
-unsafe to complete on production (payment, disconnect, delete, email blast), stop
-before the destructive action and mark the untested step clearly.
 
 Journey step actions: `goto`, `click`, `fill`, `select`, `press`, `wait`,
 `assert_text`, `assert_no_text`, `assert_url`, `assert_visible`, `screenshot`.
@@ -368,10 +394,11 @@ not a defect list; it's a better product.
 
 ## Workflow
 **0. Scope** — confirm URL(s), staging vs production, what matters most.
-**1. Recon** — `product_map(url)` → `auth_status(url)` → `open_browser` →
-`navigate` → `screenshot`; run `crawl(url, max_pages=100)` to map ALL pages via
-sitemap + SPA routes + nav links + BFS. Inspect `coverage.seed_sources` and
-`coverage.crawled`. If `crawled < 5` and app has many features → login required.
+**1. Recon** — `open_browser` → `navigate` → `screenshot`; run
+`crawl(url, max_pages=100)` first to map ALL pages via sitemap + SPA routes +
+nav links + BFS. Inspect `coverage.seed_sources` and `coverage.crawled` to confirm
+full discovery. If `crawled < 5` and the app has many features, the app likely
+needs auth — call `auth_status(url)` and log in before retesting.
 **2. Broad sweep** — automatically use Chrome DevTools MCP auto-connect when
 available, then call `deep_test(url, max_pages=50, report_path="report.html")`
 (baseline: crawl ALL pages + QA + forms + security + vitals + keyboard + readiness).
@@ -403,14 +430,11 @@ events, duplicate/N+1, missing loading states, mixed content.
 `test_forms` (static, no submit) then **`fuzz_forms(url)`** (active — fills every
 field with the labelled catalog and reads the browser's REAL Constraint-Validation
 verdict; a gap is reported only when the browser accepted a value it should reject —
-never fabricated). Categories (`list_test_data(type)`): valid, invalid, negative,
-empty, whitespace, special characters, unicode, emoji, RTL, homoglyph, null byte,
-very long boundary values, out-of-range values, and injection (`'"><script>`,
-`{{7*7}}`, `' OR '1'='1`, `../../etc/passwd`, CRLF — observe reflection only).
-Reports must include the scenario matrix: field, category, exact test data label,
-expected result, browser verdict, and screenshot for failures. `fuzz_forms(url,
-submit=true)` submits once + watches 5xx (authorized only). Also test double-submit
-races and client-vs-server mismatch.
+never fabricated). Categories (`list_test_data(type)`): valid, invalid, edge,
+boundary, outofbox (unicode/emoji/RTL/homoglyph/null-byte/format-string/IDN),
+injection (`'"><script>`, `{{7*7}}`, `' OR '1'='1`, `../../etc/passwd`, CRLF —
+observe reflection only). `fuzz_forms(url, submit=true)` submits once + watches 5xx
+(authorized only). Also test double-submit races and client-vs-server mismatch.
 
 ### E. Authentication / session / authorization
 Wrong password → clear error, no crash, no user enumeration; session persists on
@@ -504,16 +528,50 @@ hypothesis as confirmed.
 **QA:** `crawl` · `run_qa` · `check_links` · `test_forms` · `fuzz_forms` ·
 `list_test_data` · `fingerprint` · `perf_audit` · `a11y_audit` · `security_headers` ·
 `security_scan` · `advanced_security` · `deep_test` · `full_qa_sweep` · `write_report`
+**Deeper discovery:** `map_api` (full REST/GraphQL/WebSocket surface, auth
+pattern + unprotected-endpoint detection) · `explore_interactions` (clicks
+through tabs/modals/drawers/accordions to find SPA states a crawler misses) ·
+`import_chrome_session` (reads cookies from the user's Chrome — CDP first,
+then profile SQLite — for zero-credential authenticated testing)
 **Auth sessions:** `save_session` · `load_session` · `list_sessions` · `delete_session`
 **Browser:** `fagun_start` · `open_browser` · `navigate` · `click` · `fill` ·
 `press_key` · `screenshot` · `evaluate_js` · `get_console` · `get_network` · `close_browser`
 **Product/auth:** `product_map` · `auth_status` · `login_with_credentials`
-**AutoQA:** `autoqa_prompt` · `autoqa_plan_template` · `autoqa_power_plan` ·
-`autoqa_write_html_report` · `autoqa_list_runs` · `autoqa_replay_prompt` ·
-`autoqa_compare_runs`
 **Fagun Style:** `fagun_style_prompt` · `fagun_style_schema` · `fagun_render_response`
 **Security orchestration:** `fagun_security_prompt` · `list_external_security_tools` ·
 `recommend_security_tools`
 **Power:** `browser_exec` · `save_helper` · `list_helpers` · `load_helper` · `connect_chrome`
+**Integrations:** `check_integrations` (status of all 8 bundled MCPs, which
+need keys, exact instructions) · `configure_api_key(service, key)`
+(VirusTotal/Shodan — see "The 8 bundled MCP servers" above)
 
 When done, always `close_browser`.
+
+## Example prompts
+- "deep test https://example.com and give me a readiness verdict + report to ./report.html"
+- "experience acme.store as a slow-internet mobile user — where would they give up?"
+- "run the checkout journey on staging and tell me if a real user can finish it"
+- "log into my app, save the session, then deep test the dashboard as that user"
+- "fingerprint example.com, then security scan it — I own it — and rank by severity"
+- "a11y audit + keyboard walk this page for WCAG AA and focus issues"
+- "check_integrations() — which MCPs do I have active right now?"
+- "scan example.com with virustotal and shodan, then deep test it — I own it"
+- "map the API surface of my SPA, check for unauth endpoints, then VirusTotal the domain"
+- "use Playwright MCP to record a signup flow, then run Fagun security_scan on the result"
+
+## FAQ
+- **Does it need an API key?** Fagun itself needs none. VirusTotal and Shodan
+  each need a free key, requested on first use via `configure_api_key()` and
+  saved to `~/.fagun/api_keys.json`. Playwright and MCP-Fetch need no keys.
+- **Which AI tools work?** Any MCP client — Claude Code & Desktop, Cursor,
+  Codex, Windsurf, Cline, VS Code, Antigravity, and more.
+- **Chrome or Python required?** No — `uv` bundles its own Python and
+  Chromium auto-installs on first run. Node.js is needed for
+  Playwright/Chrome DevTools MCP, but most machines already have it.
+- **Is the security scan safe to run?** Non-destructive, read-only probes —
+  still, only run it on systems you're authorized to test.
+- **VirusTotal/Shodan showing nothing?** Call `check_integrations()` — it
+  names exactly which keys are missing, then `configure_api_key(...)`.
+- **How many tools total?** 56+ in Fagun, 70+ in Playwright MCP, 11 in
+  VirusTotal MCP, 7 in Shodan MCP, plus Chrome DevTools, MCP-Fetch, Jam, and
+  Context7 — 170+ across the 8 bundled servers.
